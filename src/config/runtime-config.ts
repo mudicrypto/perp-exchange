@@ -7,6 +7,10 @@ import { z } from "zod";
 export const PublicRuntimeConfigSchema = z.object({
   marketDataSource: z.enum(["hyperliquid", "simulation"]),
   hyperliquidNetwork: z.enum(["mainnet", "testnet"]),
-  executionMode: z.literal("disabled"),
+  /**
+   * "paper" only when market data is simulated: orders are matched locally
+   * against simulated books. Live venues are always "disabled" in this milestone.
+   */
+  executionMode: z.enum(["disabled", "paper"]),
 });
 export type PublicRuntimeConfig = z.infer<typeof PublicRuntimeConfigSchema>;

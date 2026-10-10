@@ -35,11 +35,15 @@ export type RiskWarning =
 export interface PortfolioRisk {
   grossExposure: number;
   netExposure: number;
+  longExposure: number;
+  shortExposure: number;
   /** grossExposure / equity; null if equity <= 0. */
   effectiveLeverage: number | null;
   /** maintenanceMargin / equity; null if equity <= 0. */
   marginUtilization: number | null;
   unrealizedPnl: number;
+  /** Position closest to its liquidation price (fractional distance from mark). */
+  closestLiquidation: { marketId: string; distance: number } | null;
 }
 
 export interface PreTradeInput {
@@ -52,5 +56,6 @@ export interface PreTradeInput {
 
 export interface RiskEngine {
   preTrade(input: PreTradeInput): PreTradeRisk | null;
-  portfolio(account: AccountSnapshot, markPrices: ReadonlyMap<string, number>): PortfolioRisk;
+  /** Uses each position's mark price (falls back to entry price if unknown). */
+  portfolio(account: AccountSnapshot): PortfolioRisk;
 }

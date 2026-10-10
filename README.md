@@ -1,8 +1,9 @@
 # Nova Exchange
 
 A perpetual futures trading terminal focused on risk transparency, analytics and — longer term —
-private execution. **Milestone 1 is read-only:** real-time public market data, charting and
-pre-trade risk estimates. There is no order submission, custody, deposits or withdrawals.
+private execution. **Milestone 1:** real-time public market data (read-only for live venues), a
+complete trading terminal, and a clearly-labelled demo environment where orders are matched
+locally by a paper-trading simulator. No real orders, custody, deposits or withdrawals.
 
 - Architecture: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
 - Progress and roadmap: [`docs/CHECKLIST.md`](docs/CHECKLIST.md)
@@ -13,11 +14,19 @@ pre-trade risk estimates. There is no order submission, custody, deposits or wit
 npm install
 cp .env.example .env.local   # optional; defaults are safe
 
-npm run dev        # live public market data from Hyperliquid mainnet
-npm run dev:sim    # simulated data (no network), clearly labelled in the UI
+npm run dev:sim    # demo environment: simulated data + paper trading (no network needed)
+npm run dev        # live public market data from Hyperliquid mainnet (read-only)
 ```
 
-Open http://localhost:3000.
+Open http://localhost:3000. Production-like demo run:
+
+```bash
+npm run build
+NOVA_MARKET_DATA_SOURCE=simulation NOVA_ALLOW_SIMULATION_IN_PRODUCTION=true npm start
+```
+
+In the demo, the header's **Demo** menu can simulate a connection loss, a chart data failure, or
+reset the demo account.
 
 ## Configuration
 

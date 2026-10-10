@@ -44,8 +44,8 @@ boundary, so a venue's response shape never leaks past its adapter directory.
 |---|---|---|
 | Market data | `MarketDataSource` | `HyperliquidMarketDataSource` (live, public), `SimulatedMarketDataSource` (dev) |
 | Market catalog (server) | `MarketCatalogGateway` | `HyperliquidInfoClient`, `SimulatedCatalogGateway` |
-| Account data | `AccountDataSource` | `DisconnectedAccountDataSource` (no account in M1) |
-| Trading / execution | `ExecutionAdapter` | `DisabledExecutionAdapter` (rejects everything) |
+| Account data | `AccountDataSource` | `DisconnectedAccountDataSource` (live), `PaperVenue` (simulation) |
+| Trading / execution | `ExecutionAdapter` | `DisabledExecutionAdapter` (live), `PaperVenue` (simulation only) |
 | Order lifecycle & reconciliation | `OrderLifecycle` (types) | planned M3 |
 | Risk engine | `RiskEngine` | `DefaultRiskEngine` (pure functions) |
 | Private execution | `VenueExecutionCapabilities` | `hyperliquidCapabilities`, `simulationCapabilities` |
@@ -76,9 +76,23 @@ Browser: HyperliquidMarketDataSource ── fetch /api/* (Zod again on the domai
 ## Execution safety (M1)
 
 There is no live execution adapter in the codebase. `NOVA_EXECUTION_MODE` accepts only
-`disabled`; any other value fails configuration validation at startup. The order ticket computes a
-risk preview but its submit control is disabled and says why. Custody, deposits, withdrawals and
-production trading are explicitly out of scope for M1.
+`disabled`; any other value fails configuration validation at startup. With live data the order
+ticket computes a risk preview but its submit control is disabled and says why.
+
+With `NOVA_MARKET_DATA_SOURCE=simulation` the browser composes a `PaperVenue`: a local paper
+engine (`adapters/simulation/paper-engine.ts`) that matches orders against the *simulated* book in
+fictitious SIMUSD. Every surface says so (banner, badge, "SIMULATED" account label, review dialog,
+"Simulated fill" results). The paper venue cannot be wired to a live data source: the composition
+root only creates it alongside the simulated source. Custody, deposits, withdrawals and production
+trading are explicitly out of scope for M1.
+
+## UI composition
+
+`app/(terminal)/layout.tsx` reads the public runtime config per request and mounts
+`TerminalProvider`, which owns the market data source, account source and execution adapter for
+all pages (Trade, Portfolio, Private Execution), so state survives client navigation.
+Design tokens live in `app/globals.css` (semantic colours: `buy`, `sell`, `warning`, `private`,
+surface elevation); reusable trading primitives live in `components/trading`.
 
 ## Private execution
 

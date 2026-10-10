@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 
 export function TradesTape({ market, trades }: { market: Market; trades: readonly Trade[] }) {
   if (trades.length === 0) {
-    return <p className="p-3 text-xs text-muted-foreground">Waiting for trades…</p>;
+    return <p className="p-3 text-xs text-muted-foreground" data-testid="trades-empty">Waiting for trades… (none received yet)</p>;
   }
   const decimals = displayPriceDecimals(trades[0]?.price, market.priceDecimals);
   return (

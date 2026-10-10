@@ -158,27 +158,48 @@ describe("DefaultRiskEngine.preTrade", () => {
 describe("DefaultRiskEngine.portfolio", () => {
   const engine = new DefaultRiskEngine();
   const account: AccountSnapshot = {
+    currency: "USDC",
+    balance: 960,
     equity: 1000,
-    available: 500,
+    unrealizedPnl: 40,
+    realizedPnl: 0,
+    feesPaid: 0,
+    marginUsed: 80,
+    orderMargin: 0,
+    available: 920,
     maintenanceMargin: 50,
     observedAt: 0,
     positions: [
-      { marketId: "BTC-PERP", size: 2, entryPrice: 100, leverage: 5, marginMode: "cross", marginUsed: 40, liquidationPrice: null },
-      { marketId: "ETH-PERP", size: -10, entryPrice: 20, leverage: 5, marginMode: "cross", marginUsed: 40, liquidationPrice: null },
+      { marketId: "BTC-PERP", size: 2, entryPrice: 100, leverage: 5, marginMode: "isolated", marginUsed: 40, liquidationPrice: 99, markPrice: 110, unrealizedPnl: 20 },
+      { marketId: "ETH-PERP", size: -10, entryPrice: 20, leverage: 5, marginMode: "isolated", marginUsed: 40, liquidationPrice: 23.4, markPrice: 18, unrealizedPnl: 20 },
     ],
   };
 
-  it("aggregates exposure, leverage, utilisation and PnL", () => {
-    const risk = engine.portfolio(account, new Map([["BTC-PERP", 110], ["ETH-PERP", 18]]));
-    expect(risk.grossExposure).toBe(220 + 180);
-    expect(risk.netExposure).toBe(220 - 180);
+  it("aggregates exposure, leverage, utilisation and PnL from mark prices", () => {
+    const risk = engine.portfolio(account);
+    expect(risk.longExposure).toBe(220);
+    expect(risk.shortExposure).toBe(180);
+    expect(risk.grossExposure).toBe(400);
+    expect(risk.netExposure).toBe(40);
     expect(risk.effectiveLeverage).toBeCloseTo(0.4);
     expect(risk.marginUtilization).toBeCloseTo(0.05);
-    expect(risk.unrealizedPnl).toBeCloseTo(20 + 20);
+    expect(risk.unrealizedPnl).toBeCloseTo(40);
   });
 
-  it("does not divide by non-positive equity", () => {
-    const risk = engine.portfolio({ ...account, equity: 0 }, new Map());
+  it("finds the position closest to liquidation", () => {
+    const risk = engine.portfolio(account);
+    // BTC: |110 - 99| / 110 = 10%; ETH: |18 - 23.4| / 18 = 30%
+    expect(risk.closestLiquidation?.marketId).toBe("BTC-PERP");
+    expect(risk.closestLiquidation?.distance).toBeCloseTo(0.1);
+  });
+
+  it("falls back to entry price without a mark and does not divide by non-positive equity", () => {
+    const risk = engine.portfolio({
+      ...account,
+      equity: 0,
+      positions: account.positions.map((p) => ({ ...p, markPrice: null })),
+    });
+    expect(risk.unrealizedPnl).toBe(0);
     expect(risk.effectiveLeverage).toBeNull();
     expect(risk.marginUtilization).toBeNull();
   });

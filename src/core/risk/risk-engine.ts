@@ -80,24 +80,33 @@ export class DefaultRiskEngine implements RiskEngine {
     };
   }
 
-  portfolio(account: AccountSnapshot, markPrices: ReadonlyMap<string, number>): PortfolioRisk {
-    let gross = 0;
-    let net = 0;
+  portfolio(account: AccountSnapshot): PortfolioRisk {
+    let long = 0;
+    let short = 0;
     let unrealized = 0;
+    let closest: PortfolioRisk["closestLiquidation"] = null;
     for (const position of account.positions) {
-      const mark = markPrices.get(position.marketId) ?? position.entryPrice;
+      const mark = position.markPrice ?? position.entryPrice;
       const exposure = position.size * mark;
-      gross += Math.abs(exposure);
-      net += exposure;
+      if (exposure >= 0) long += exposure;
+      else short += -exposure;
       unrealized += position.size * (mark - position.entryPrice);
+      if (position.liquidationPrice !== null) {
+        const distance = Math.abs(mark - position.liquidationPrice) / mark;
+        if (!closest || distance < closest.distance) closest = { marketId: position.marketId, distance };
+      }
     }
+    const gross = long + short;
     const positiveEquity = account.equity > 0;
     return {
       grossExposure: gross,
-      netExposure: net,
+      netExposure: long - short,
+      longExposure: long,
+      shortExposure: short,
       effectiveLeverage: positiveEquity ? gross / account.equity : null,
       marginUtilization: positiveEquity ? account.maintenanceMargin / account.equity : null,
       unrealizedPnl: unrealized,
+      closestLiquidation: closest,
     };
   }
 }

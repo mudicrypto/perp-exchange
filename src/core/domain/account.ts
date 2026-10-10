@@ -13,14 +13,28 @@ export const PositionSchema = z.object({
   marginMode: MarginModeSchema,
   /** Margin allocated to this position (quote units). */
   marginUsed: z.number().nonnegative(),
-  /** Venue-reported liquidation price, if any. */
+  /** Liquidation price as reported (or, for the simulator, enforced) by the venue. */
   liquidationPrice: z.number().positive().nullable(),
+  /** Latest mark price used for the PnL figures below, if known. */
+  markPrice: z.number().positive().nullable(),
+  unrealizedPnl: z.number(),
 });
 export type Position = z.infer<typeof PositionSchema>;
 
 export const AccountSnapshotSchema = z.object({
-  /** Total account equity (quote units). */
+  /** Collateral currency, e.g. "USDC" or "SIMUSD" for the simulator. */
+  currency: z.string().min(1),
+  /** Cash balance: deposits + realised PnL − fees (quote units). */
+  balance: z.number(),
+  /** balance + unrealised PnL. */
   equity: z.number(),
+  unrealizedPnl: z.number(),
+  realizedPnl: z.number(),
+  feesPaid: z.number().nonnegative(),
+  /** Margin locked by open positions. */
+  marginUsed: z.number().nonnegative(),
+  /** Margin reserved by resting orders. */
+  orderMargin: z.number().nonnegative(),
   /** Collateral available for new positions (quote units). */
   available: z.number(),
   maintenanceMargin: z.number().nonnegative(),

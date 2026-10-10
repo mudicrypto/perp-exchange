@@ -26,14 +26,24 @@ export interface SimMarketSpec {
   startPrice: number;
   sizeDecimals: number;
   maxLeverage: number;
-  /** Per-tick volatility as a fraction of price. */
+  /**
+   * Max per-tick move as a fraction of price (uniform shock in ±volatility,
+   * one tick ≈ SIM_TICK_MS). History candles use the same process, scaled.
+   */
   volatility: number;
+  /** Baseline 24h notional volume (fictitious SIMUSD). */
+  dayVolume: number;
+  /** Open interest notional (fictitious SIMUSD). */
+  openInterestNotional: number;
 }
 
+/** Nominal simulator tick; history volatility is scaled from it. */
+export const SIM_TICK_MS = 500;
+
 export const SIM_MARKETS: readonly SimMarketSpec[] = [
-  { base: "ALPHA", startPrice: 1_000, sizeDecimals: 3, maxLeverage: 25, volatility: 0.0008 },
-  { base: "BETA", startPrice: 42.5, sizeDecimals: 1, maxLeverage: 20, volatility: 0.0012 },
-  { base: "GAMMA", startPrice: 0.8, sizeDecimals: 0, maxLeverage: 10, volatility: 0.002 },
+  { base: "ALPHA", startPrice: 1_000, sizeDecimals: 3, maxLeverage: 25, volatility: 0.00012, dayVolume: 182_400_000, openInterestNotional: 96_500_000 },
+  { base: "BETA", startPrice: 42.5, sizeDecimals: 1, maxLeverage: 20, volatility: 0.00018, dayVolume: 64_800_000, openInterestNotional: 31_200_000 },
+  { base: "GAMMA", startPrice: 0.8, sizeDecimals: 0, maxLeverage: 10, volatility: 0.00025, dayVolume: 21_300_000, openInterestNotional: 8_900_000 },
 ];
 
 /** mulberry32: small, fast, deterministic PRNG. */
@@ -82,7 +92,6 @@ export class SimulatedMarket {
   ) {
     this.rng = createRng(seed ^ hashString(spec.base));
     this.price = spec.startPrice;
-    this.prevDayPrice = spec.startPrice * (1 - 0.02 + this.rng() * 0.04);
     this.market = {
       id: marketIdFromBase(spec.base),
       base: spec.base,
@@ -93,6 +102,9 @@ export class SimulatedMarket {
       isolatedOnly: false,
       maintenanceMarginRate: 1 / (2 * spec.maxLeverage),
     };
+    // Derive the 24h reference from the same synthetic path the hourly chart
+    // shows, so "24h change" agrees with the candles.
+    this.prevDayPrice = this.history("1h", 0, 25)[0]?.open ?? spec.startPrice;
   }
 
   get id(): MarketId {
@@ -163,8 +175,8 @@ export class SimulatedMarket {
       midPrice: round(this.price, this.market.priceDecimals),
       fundingRate: 0.0000125 + (this.rng() - 0.5) * 0.00001,
       fundingIntervalHours: 1,
-      openInterest: round(50_000_000 / this.price, this.spec.sizeDecimals),
-      dayNotionalVolume: 25_000_000 + this.dayVolume,
+      openInterest: round(this.spec.openInterestNotional / this.price, this.spec.sizeDecimals),
+      dayNotionalVolume: this.spec.dayVolume + this.dayVolume,
       prevDayPrice: round(this.prevDayPrice, this.market.priceDecimals),
       observedAt: time,
     };
@@ -178,7 +190,7 @@ export class SimulatedMarket {
     const step = CANDLE_INTERVAL_MS[interval];
     const rng = createRng(hashString(`${this.spec.base}:${interval}`));
     const lastOpen = Math.floor(endTime / step) * step;
-    const vol = this.spec.volatility * Math.sqrt(step / 1_000);
+    const vol = this.spec.volatility * Math.sqrt(step / SIM_TICK_MS);
     const candles: Candle[] = [];
     let close = this.price;
     for (let i = 0; i < count; i += 1) {
@@ -197,6 +209,28 @@ export class SimulatedMarket {
       close = open;
     }
     return candles.reverse();
+  }
+
+  /**
+   * Synthetic "recent trades" snapshot ending at `endTime`, like the batch a
+   * venue sends when a trades subscription starts. Uses its own RNG.
+   */
+  recentTrades(endTime: number, count: number): Trade[] {
+    const rng = createRng(hashString(`${this.spec.base}:trades:${Math.floor(endTime / 60_000)}`));
+    const trades: Trade[] = [];
+    let time = endTime - 500;
+    for (let i = 0; i < count; i += 1) {
+      time -= Math.floor(1_000 + rng() * 9_000);
+      trades.push({
+        marketId: this.id,
+        id: `sim-${this.spec.base}-snap-${time}-${i}`,
+        side: rng() < 0.5 ? "buy" : "sell",
+        price: round(this.price * (1 + (rng() - 0.5) * 0.002), this.market.priceDecimals),
+        size: Math.max(10 ** -this.spec.sizeDecimals, round((200 / this.price) * (0.1 + rng() * 4), this.spec.sizeDecimals)),
+        venueTime: time,
+      });
+    }
+    return trades;
   }
 
   summary(time: number): MarketSummary {

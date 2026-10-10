@@ -12,8 +12,8 @@ export function formatPrice(value: number | null | undefined, decimals: number):
 export function displayPriceDecimals(price: number | null | undefined, maxDecimals: number): number {
   if (!price || !Number.isFinite(price)) return Math.min(2, maxDecimals);
   const significant = 5;
-  const integerDigits = Math.max(1, Math.floor(Math.log10(Math.abs(price))) + 1);
-  return Math.max(0, Math.min(maxDecimals, significant - integerDigits));
+  const magnitude = Math.floor(Math.log10(Math.abs(price)));
+  return Math.max(0, Math.min(maxDecimals, significant - magnitude - 1));
 }
 
 export function formatSize(value: number | null | undefined, decimals: number): string {
@@ -47,4 +47,37 @@ export function formatPercent(fraction: number | null | undefined, decimals = 2,
 
 export function formatTime(ms: number): string {
   return new Date(ms).toLocaleTimeString("en-GB", { hour12: false });
+}
+
+/** Quote-currency amount without a currency symbol (the currency is labelled separately). */
+export function formatAmount(
+  value: number | null | undefined,
+  options: { decimals?: number; signed?: boolean; compact?: boolean } = {},
+): string {
+  if (value === null || value === undefined || !Number.isFinite(value)) return EM_DASH;
+  const { decimals = 2, signed = false, compact = false } = options;
+  // Avoid "-0.00".
+  const normalized = Math.abs(value) < 0.5 * 10 ** -decimals ? 0 : value;
+  const text = normalized.toLocaleString("en-US", {
+    notation: compact ? "compact" : "standard",
+    minimumFractionDigits: compact ? 0 : decimals,
+    maximumFractionDigits: decimals,
+  });
+  return signed && normalized > 0 ? `+${text}` : text;
+}
+
+export function formatDateTime(ms: number): string {
+  const d = new Date(ms);
+  const date = d.toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
+  return `${date} ${formatTime(ms)}`;
+}
+
+export function formatRelativeTime(ms: number, now: number): string {
+  const seconds = Math.max(0, Math.round((now - ms) / 1000));
+  if (seconds < 60) return `${seconds}s ago`;
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 48) return `${hours}h ago`;
+  return `${Math.round(hours / 24)}d ago`;
 }

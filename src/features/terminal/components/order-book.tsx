@@ -1,3 +1,4 @@
+import { Skeleton } from "@/components/ui/skeleton";
 import type { Market } from "@/core/domain";
 import { withCumulativeDepth, type DepthRow, type OrderBookView } from "@/core/market-data";
 import { displayPriceDecimals, formatPercent, formatPrice, formatSize } from "@/lib/format";
@@ -11,16 +12,26 @@ function Row({
   side,
   priceDecimals,
   sizeDecimals,
+  onSelect,
 }: {
   row: DepthRow;
   maxCumulative: number;
   side: "bid" | "ask";
   priceDecimals: number;
   sizeDecimals: number;
+  onSelect?: (price: number) => void;
 }) {
   const depth = maxCumulative > 0 ? (row.cumulative / maxCumulative) * 100 : 0;
   return (
-    <div className="relative grid h-5 grid-cols-3 items-center px-3 text-xs" data-testid={`book-${side}`}>
+    <button
+      type="button"
+      // Rows are a mouse shortcut; keyboard users type the price or use "Use mid".
+      tabIndex={-1}
+      onClick={() => onSelect?.(row.price)}
+      title="Use this price"
+      className="relative grid h-5 w-full grid-cols-3 items-center px-3 text-left text-xs hover:bg-accent/60"
+      data-testid={`book-${side}`}
+    >
       <div
         aria-hidden
         className={cn("absolute inset-y-0 right-0", side === "bid" ? "bg-buy/12" : "bg-sell/12")}
@@ -31,13 +42,28 @@ function Row({
       </span>
       <span className="tabular relative text-right">{formatSize(row.size, sizeDecimals)}</span>
       <span className="tabular relative text-right text-muted-foreground">{formatSize(row.cumulative, sizeDecimals)}</span>
-    </div>
+    </button>
   );
 }
 
-export function OrderBook({ market, view }: { market: Market; view: OrderBookView | null }) {
+export function OrderBook({
+  market,
+  view,
+  onPriceSelect,
+}: {
+  market: Market;
+  view: OrderBookView | null;
+  onPriceSelect?: (price: number) => void;
+}) {
   if (!view) {
-    return <p className="p-3 text-xs text-muted-foreground">Waiting for order book…</p>;
+    return (
+      <div className="space-y-1 p-3" aria-busy="true" data-testid="book-loading">
+        <span className="sr-only">Waiting for order book…</span>
+        {Array.from({ length: 10 }, (_, i) => (
+          <Skeleton key={i} className="h-4 w-full" />
+        ))}
+      </div>
+    );
   }
   const priceDecimals = displayPriceDecimals(view.mid, market.priceDecimals);
   const asks = withCumulativeDepth(view.asks, ROWS);
@@ -54,7 +80,7 @@ export function OrderBook({ market, view }: { market: Market; view: OrderBookVie
       </div>
       <div className="flex flex-1 flex-col-reverse overflow-hidden">
         {asks.map((row) => (
-          <Row key={`a${row.price}`} row={row} maxCumulative={maxCumulative} side="ask" priceDecimals={priceDecimals} sizeDecimals={market.sizeDecimals} />
+          <Row key={`a${row.price}`} row={row} maxCumulative={maxCumulative} side="ask" priceDecimals={priceDecimals} sizeDecimals={market.sizeDecimals} onSelect={onPriceSelect} />
         ))}
       </div>
       <div className="flex items-center justify-between border-y bg-muted/40 px-3 py-1 text-xs" data-testid="book-spread">
@@ -65,7 +91,7 @@ export function OrderBook({ market, view }: { market: Market; view: OrderBookVie
       </div>
       <div className="flex-1 overflow-hidden">
         {bids.map((row) => (
-          <Row key={`b${row.price}`} row={row} maxCumulative={maxCumulative} side="bid" priceDecimals={priceDecimals} sizeDecimals={market.sizeDecimals} />
+          <Row key={`b${row.price}`} row={row} maxCumulative={maxCumulative} side="bid" priceDecimals={priceDecimals} sizeDecimals={market.sizeDecimals} onSelect={onPriceSelect} />
         ))}
       </div>
     </div>

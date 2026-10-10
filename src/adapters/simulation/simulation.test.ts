@@ -47,6 +47,26 @@ describe("SimulationEngine", () => {
   });
 });
 
+describe("SimulatedMarket consistency", () => {
+  it("derives 24h change from the same path as the hourly chart", () => {
+    const market = new SimulationEngine().get("GAMMA-PERP")!;
+    const hourly = market.history("1h", NOW, 25);
+    expect(market.stats(NOW).prevDayPrice).toBeCloseTo(hourly[0]!.open, 4);
+  });
+
+  it("keeps synthetic history within a plausible range of the current price", () => {
+    for (const market of new SimulationEngine().markets.values()) {
+      for (const interval of ["1m", "15m", "1h"] as const) {
+        const candles = market.history(interval, NOW, 300);
+        const lows = Math.min(...candles.map((c) => c.low));
+        const highs = Math.max(...candles.map((c) => c.high));
+        expect(lows).toBeGreaterThan(market.mid * 0.6);
+        expect(highs).toBeLessThan(market.mid * 1.6);
+      }
+    }
+  });
+});
+
 describe("SimulatedMarketDataSource", () => {
   beforeEach(() => vi.useFakeTimers());
   afterEach(() => vi.useRealTimers());
@@ -94,6 +114,19 @@ describe("SimulatedMarketDataSource", () => {
     source.subscribeOrderBook("ALPHA-PERP", { onData });
     vi.advanceTimersByTime(100);
     expect(onData).toHaveBeenCalledTimes(1);
+  });
+
+  it("starts a trades subscription with a timestamped snapshot of recent trades", () => {
+    const source = new SimulatedMarketDataSource({ now: () => NOW, tickMs: 10_000 });
+    const batches: Trade[][] = [];
+    source.subscribeTrades("BETA-PERP", { onData: (t) => batches.push(t) });
+    vi.advanceTimersByTime(1);
+    expect(batches[0]).toHaveLength(30);
+    const times = batches[0]!.map((t) => t.venueTime);
+    expect(times.every((t) => t < NOW)).toBe(true);
+    expect([...times].sort((a, b) => b - a)).toEqual(times);
+    batches[0]!.forEach((t) => TradeSchema.parse(t));
+    source.dispose();
   });
 
   it("rejects unknown markets", () => {

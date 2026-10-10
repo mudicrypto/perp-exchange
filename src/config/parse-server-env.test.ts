@@ -48,3 +48,10 @@ describe("parseServerEnv", () => {
     expect(JSON.stringify(publicConfig)).not.toContain("do-not-leak");
   });
 });
+
+describe("toPublicRuntimeConfig execution mode", () => {
+  it("uses local paper matching only for simulated data", () => {
+    expect(toPublicRuntimeConfig(parseServerEnv({ NOVA_MARKET_DATA_SOURCE: "simulation" })).executionMode).toBe("paper");
+    expect(toPublicRuntimeConfig(parseServerEnv({ NOVA_MARKET_DATA_SOURCE: "hyperliquid" })).executionMode).toBe("disabled");
+  });
+});

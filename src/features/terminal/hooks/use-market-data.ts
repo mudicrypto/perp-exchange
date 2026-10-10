@@ -30,13 +30,14 @@ export function useConnectionState(source: MarketDataSource): ConnectionState {
   return state;
 }
 
-const MARKET_REFRESH_MS = 30_000;
+const MARKET_REFRESH_MS = 10_000;
 
 export function useMarkets(source: MarketDataSource) {
   const [markets, setMarkets] = useState<MarketSummary[]>([]);
   const [status, setStatus] = useState<LoadStatus>("loading");
   const [error, setError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
+  const [updatedAt, setUpdatedAt] = useState<number | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -47,6 +48,7 @@ export function useMarkets(source: MarketDataSource) {
           setMarkets(list);
           setStatus("ready");
           setError(null);
+          setUpdatedAt(Date.now());
         })
         .catch((err: unknown) => {
           if (controller.signal.aborted) return;
@@ -62,7 +64,7 @@ export function useMarkets(source: MarketDataSource) {
     };
   }, [source, reloadToken]);
 
-  return { markets, status, error, retry: () => setReloadToken((t) => t + 1) };
+  return { markets, status, error, updatedAt, retry: () => setReloadToken((t) => t + 1) };
 }
 
 /** Components using this hook should be keyed by market id so state resets on switch. */

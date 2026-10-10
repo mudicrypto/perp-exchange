@@ -1,10 +1,10 @@
-import type { AccountConnection, AccountDataSource, Unsubscribe } from "../ports";
+import type { AccountConnection, AccountDataSource, AccountState, Unsubscribe } from "../ports";
 
-/** No account is connected in Milestone 1; the UI shows an explicit empty state. */
+/** No account is connected (live venues in Milestone 1); the UI shows explicit empty states. */
 export class DisconnectedAccountDataSource implements AccountDataSource {
   readonly connection: AccountConnection = { status: "disconnected" };
 
-  subscribeAccount(listener: (snapshot: null) => void): Unsubscribe {
+  subscribeAccount(listener: (state: AccountState | null) => void): Unsubscribe {
     listener(null);
     return () => {};
   }

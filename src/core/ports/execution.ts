@@ -1,20 +1,37 @@
-import type { OrderIntent, OrderStatus } from "../domain";
-
-export type ExecutionMode = "disabled";
-
-export type SubmitResult =
-  | { ok: true; clientOrderId: string; status: OrderStatus }
-  | { ok: false; code: "execution-disabled" | "validation-failed" | "venue-rejected"; message: string };
+import type { Order, OrderIntent, OrderStatus } from "../domain";
 
 /**
- * Routes order intents to a venue (external venue or Nova's own engine).
- * In Milestone 1 only `DisabledExecutionAdapter` exists.
+ * - "disabled": every request is rejected (live venues in this milestone).
+ * - "paper": orders are matched by a local simulator against simulated books.
+ *   Nothing is sent to any real venue.
+ */
+export type ExecutionMode = "disabled" | "paper";
+
+export type SubmitErrorCode =
+  | "execution-disabled"
+  | "validation-failed"
+  | "insufficient-margin"
+  | "no-liquidity"
+  | "would-take-liquidity"
+  | "reduce-only-invalid"
+  | "feed-unavailable"
+  | "not-found"
+  | "venue-rejected";
+
+export type SubmitResult =
+  | { ok: true; order: Order }
+  | { ok: false; code: SubmitErrorCode; message: string; order: Order | null };
+
+/**
+ * Routes order intents to a venue (external venue, Nova's own engine, or the
+ * paper simulator). Results reflect what the venue actually did.
  */
 export interface ExecutionAdapter {
   readonly venueId: string;
   readonly mode: ExecutionMode;
   submit(intent: OrderIntent): Promise<SubmitResult>;
-  cancel(clientOrderId: string): Promise<SubmitResult>;
+  cancel(orderId: string): Promise<SubmitResult>;
+  cancelAll(): Promise<number>;
 }
 
 /** A venue-confirmed event used by order reconciliation (planned M3). */

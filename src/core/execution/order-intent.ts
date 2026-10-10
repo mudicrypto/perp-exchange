@@ -24,34 +24,32 @@ function decimalsOf(value: number): number {
  */
 export function validateOrderIntent(input: unknown, market: Market): IntentValidation {
   const parsed = OrderIntentSchema.safeParse(input);
-  if (!parsed.success) {
-    return {
-      ok: false,
-      issues: parsed.error.issues.map((issue) => ({
+  const issues: IntentIssue[] = parsed.success
+    ? []
+    : parsed.error.issues.map((issue) => ({
         field: (issue.path[0] as keyof OrderIntent | undefined) ?? "form",
         message: issue.message,
-      })),
-    };
-  }
-  const intent = parsed.data;
-  const issues: IntentIssue[] = [];
-  if (intent.marketId !== market.id) {
+      }));
+
+  // Market rules are checked on whatever fields are usable, so the user sees
+  // every problem at once rather than one at a time.
+  const raw = (typeof input === "object" && input !== null ? input : {}) as Partial<Record<keyof OrderIntent, unknown>>;
+  const isNum = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v);
+  if (typeof raw.marketId === "string" && raw.marketId !== market.id) {
     issues.push({ field: "marketId", message: "Order market does not match selected market" });
   }
-  if (decimalsOf(intent.size) > market.sizeDecimals) {
+  if (isNum(raw.size) && raw.size > 0 && decimalsOf(raw.size) > market.sizeDecimals) {
     issues.push({ field: "size", message: `Size allows at most ${market.sizeDecimals} decimals` });
   }
-  if (intent.limitPrice !== null && decimalsOf(intent.limitPrice) > market.priceDecimals) {
-    issues.push({
-      field: "limitPrice",
-      message: `Price allows at most ${market.priceDecimals} decimals`,
-    });
+  if (isNum(raw.limitPrice) && raw.limitPrice > 0 && decimalsOf(raw.limitPrice) > market.priceDecimals) {
+    issues.push({ field: "limitPrice", message: `Price allows at most ${market.priceDecimals} decimals` });
   }
-  if (intent.leverage > market.maxLeverage) {
+  if (isNum(raw.leverage) && raw.leverage > market.maxLeverage) {
     issues.push({ field: "leverage", message: `Max leverage is ${market.maxLeverage}x` });
   }
-  if (intent.marginMode === "cross" && market.isolatedOnly) {
+  if (raw.marginMode === "cross" && market.isolatedOnly) {
     issues.push({ field: "marginMode", message: "This market supports isolated margin only" });
   }
-  return issues.length > 0 ? { ok: false, issues } : { ok: true, intent };
+  if (issues.length > 0 || !parsed.success) return { ok: false, issues };
+  return { ok: true, intent: parsed.data };
 }

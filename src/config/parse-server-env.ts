@@ -7,8 +7,9 @@ const ServerEnvSchema = z
     NOVA_MARKET_DATA_SOURCE: z.enum(["hyperliquid", "simulation"]).default("hyperliquid"),
     NOVA_HYPERLIQUID_NETWORK: z.enum(["mainnet", "testnet"]).default("mainnet"),
     /**
-     * Milestone 1 has no live execution. Any value other than "disabled" is a
-     * configuration error, so trading cannot be switched on by accident.
+     * Live-venue execution. Milestone 1 has none: any value other than
+     * "disabled" is a configuration error, so real trading cannot be switched
+     * on by accident. (The simulated source always uses local paper matching.)
      */
     NOVA_EXECUTION_MODE: z.literal("disabled").default("disabled"),
     NOVA_ALLOW_SIMULATION_IN_PRODUCTION: z.enum(["true", "false"]).default("false"),
@@ -52,6 +53,6 @@ export function toPublicRuntimeConfig(env: ServerEnv): PublicRuntimeConfig {
   return {
     marketDataSource: env.NOVA_MARKET_DATA_SOURCE,
     hyperliquidNetwork: env.NOVA_HYPERLIQUID_NETWORK,
-    executionMode: env.NOVA_EXECUTION_MODE,
+    executionMode: env.NOVA_MARKET_DATA_SOURCE === "simulation" ? "paper" : env.NOVA_EXECUTION_MODE,
   };
 }

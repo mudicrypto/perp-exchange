@@ -3,16 +3,28 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* Nova uses a dark terminal theme by default (html has class="dark"). */
+/*
+ * Nova design tokens
+ * ------------------
+ * Colour tokens are semantic (what a colour *means*), never literal. The app
+ * ships dark-first (html.dark); the light values exist so components stay
+ * theme-agnostic. Market semantics:
+ *   --buy / --sell   long-short, bid-ask, positive-negative PnL
+ *   --warning        estimates, stale data, simulated data
+ *   --private        Private Execution surfaces (never used for "public" orders)
+ * Surfaces step up in elevation: background < surface < surface-raised < popover.
+ */
 :root {
   --radius: 0.5rem;
   --background: oklch(0.985 0 0);
   --foreground: oklch(0.18 0.01 260);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.18 0.01 260);
+  --surface: oklch(1 0 0);
+  --surface-raised: oklch(0.97 0.004 260);
+  --card: var(--surface);
+  --card-foreground: var(--foreground);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.18 0.01 260);
-  --primary: oklch(0.55 0.17 250);
+  --primary: oklch(0.55 0.16 245);
   --primary-foreground: oklch(0.98 0 0);
   --secondary: oklch(0.95 0.005 260);
   --secondary-foreground: oklch(0.2 0.01 260);
@@ -23,41 +35,52 @@
   --destructive: oklch(0.58 0.22 27);
   --border: oklch(0.9 0.005 260);
   --input: oklch(0.9 0.005 260);
-  --ring: oklch(0.55 0.17 250);
+  --ring: oklch(0.55 0.16 245);
   --buy: oklch(0.6 0.15 160);
   --sell: oklch(0.6 0.2 25);
-  --warning: oklch(0.75 0.15 75);
+  --warning: oklch(0.72 0.15 75);
+  --private: oklch(0.6 0.18 300);
 }
 
 .dark {
-  --background: oklch(0.16 0.012 260);
-  --foreground: oklch(0.93 0.005 260);
-  --card: oklch(0.19 0.012 260);
-  --card-foreground: oklch(0.93 0.005 260);
-  --popover: oklch(0.21 0.014 260);
-  --popover-foreground: oklch(0.93 0.005 260);
-  --primary: oklch(0.68 0.15 250);
-  --primary-foreground: oklch(0.15 0.01 260);
-  --secondary: oklch(0.25 0.014 260);
-  --secondary-foreground: oklch(0.93 0.005 260);
-  --muted: oklch(0.24 0.012 260);
-  --muted-foreground: oklch(0.68 0.012 260);
-  --accent: oklch(0.27 0.016 260);
-  --accent-foreground: oklch(0.95 0.005 260);
+  --background: oklch(0.145 0.01 265);
+  --foreground: oklch(0.94 0.005 265);
+  --surface: oklch(0.175 0.012 265);
+  --surface-raised: oklch(0.205 0.014 265);
+  --card: var(--surface);
+  --card-foreground: var(--foreground);
+  --popover: oklch(0.215 0.015 265);
+  --popover-foreground: oklch(0.94 0.005 265);
+  --primary: oklch(0.72 0.14 235);
+  --primary-foreground: oklch(0.15 0.01 265);
+  --secondary: oklch(0.24 0.014 265);
+  --secondary-foreground: oklch(0.94 0.005 265);
+  --muted: oklch(0.23 0.012 265);
+  --muted-foreground: oklch(0.67 0.012 265);
+  --accent: oklch(0.26 0.016 265);
+  --accent-foreground: oklch(0.96 0.005 265);
   --destructive: oklch(0.65 0.2 25);
-  --border: oklch(0.29 0.012 260);
-  --input: oklch(0.3 0.012 260);
-  --ring: oklch(0.68 0.15 250);
-  --buy: oklch(0.72 0.15 160);
+  --border: oklch(0.27 0.012 265);
+  --input: oklch(0.3 0.012 265);
+  --ring: oklch(0.72 0.14 235);
+  --buy: oklch(0.74 0.15 162);
   --sell: oklch(0.68 0.19 22);
-  --warning: oklch(0.8 0.14 80);
+  --warning: oklch(0.82 0.14 82);
+  --private: oklch(0.72 0.15 300);
 }
 
 @theme inline {
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+
+  /* Type scale tuned for dense terminal UIs. */
+  --text-2xs: 0.625rem;
+  --text-2xs--line-height: 0.875rem;
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
   --color-popover: var(--popover);
@@ -77,6 +100,8 @@
   --color-buy: var(--buy);
   --color-sell: var(--sell);
   --color-warning: var(--warning);
+  --color-private: var(--private);
+
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -90,7 +115,32 @@
   body {
     @apply bg-background text-foreground;
   }
+  /* Numbers line up in columns everywhere they matter. */
   .tabular {
     font-variant-numeric: tabular-nums;
+  }
+  ::selection {
+    @apply bg-primary/30;
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+}
+
+@layer utilities {
+  /* Brief highlight when a streamed value changes. */
+  @keyframes flash-buy {
+    from { background-color: color-mix(in oklch, var(--buy) 25%, transparent); }
+    to { background-color: transparent; }
+  }
+  @keyframes flash-sell {
+    from { background-color: color-mix(in oklch, var(--sell) 25%, transparent); }
+    to { background-color: transparent; }
+  }
+  .animate-flash-buy { animation: flash-buy 0.8s ease-out; }
+  .animate-flash-sell { animation: flash-sell 0.8s ease-out; }
+  @media (prefers-reduced-motion: reduce) {
+    .animate-flash-buy, .animate-flash-sell { animation: none; }
   }
 }

@@ -58,6 +58,12 @@ describe("validateOrderIntent", () => {
     expect(validateOrderIntent({ ...base, size: 1e-7 }, market).ok).toBe(false);
   });
 
+  it("reports schema and market-precision problems together", () => {
+    const result = validateOrderIntent({ ...base, limitPrice: null, size: 0.00001 }, market);
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.issues.map((i) => i.field).sort()).toEqual(["limitPrice", "size"]);
+  });
+
   it("rejects post-only market orders", () => {
     expect(validateOrderIntent({ ...base, type: "market", limitPrice: null, timeInForce: "post-only" }, market).ok).toBe(false);
   });

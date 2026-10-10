@@ -61,6 +61,41 @@ Security
 - [x] Server-only config module; browser receives whitelisted public config only
 - [x] No key/seed handling anywhere; UI states Nova will never ask for them
 
+## Milestone 1b — Complete terminal UI (demo environment)
+
+Shell & navigation
+- [x] Header: logo, Trade / Portfolio / Private Execution navigation, data-source badge, connection status
+- [x] Wallet placeholder dialog (no connect flow, no key/seed inputs)
+- [x] Demo controls (simulation only): connection loss, chart data failure, reset demo account
+- [x] Skip link, keyboard-operable controls, accessible names (incl. leverage slider thumb)
+
+Trade page
+- [x] Market sidebar (xl) with search, price, 24h change, volume, arrow-key navigation; popover selector below xl
+- [x] Chart with timeframe controls; loading / error + retry overlays
+- [x] Order book (click a level to set the ticket price), recent trades with initial snapshot
+- [x] Order entry: limit/market, buy/sell, price, quantity with % presets, leverage slider, TIF, reduce-only
+- [x] Review dialog before submission; result banner (fill / resting / rejected with reason)
+- [x] Bottom panel: positions (market close), open orders (cancel / cancel all), order history, fills; market risk info
+- [x] Portfolio summary (equity, available margin, margin in positions/orders, uPnL, realised PnL, fees)
+- [x] Risk summary (gross/net/long/short exposure, effective leverage, maintenance/equity, closest liquidation), labelled as estimates
+- [x] Loading, empty, disconnected and error states
+- [x] Responsive: 4-column (xl), 3-column (lg), stacked mobile with order entry right after the chart
+
+Simulated paper venue (demo only)
+- [x] `PaperEngine`: visible-depth matching, maker/taker fees, IOC/GTC/post-only, reduce-only, 5% market slippage cap,
+      margin checks, isolated positions with averaging / reduce / flip, liquidation at the simulator's own liquidation price
+- [x] Demo account fixtures replayed through the engine (positions, orders, fills, rejected/cancelled history are consistent by construction)
+- [x] Order entry paused while the simulated feed is disconnected
+- [x] Live venues remain `executionMode: "disabled"`; paper mode exists only with `NOVA_MARKET_DATA_SOURCE=simulation`
+
+Other pages
+- [x] Portfolio page sharing account state with the trade page
+- [x] Private Execution page: current venue capabilities, planned modes, commitments — no "make private" control
+
+Design system
+- [x] Semantic colour tokens (buy/sell/warning/private, surface elevation) in `globals.css`
+- [x] Reusable trading primitives in `src/components/trading` (Panel, Stat, SummaryRow, SignedAmount, SideLabel, OrderStatusLabel, EstimateHint)
+
 ## Milestone 2 — Watch-only account data (next)
 - [ ] `HyperliquidAccountDataSource` (public address → `clearinghouseState`, `openOrders`, fills) via server
 - [ ] Address input with validation; never request keys/seeds
@@ -93,3 +128,6 @@ Security
 - Prices are JS numbers. Fine for display and estimates; order wire encoding (M3+) must use
   exact decimal strings.
 - Hyperliquid `l2Book` exposes limited depth; impact estimates only cover visible levels.
+- Simulator: each chart timeframe's history is generated independently (the 1h path also drives "24h change"),
+  so different timeframes do not show the identical path. The demo account resets on page reload.
+- Paper engine fills resting orders in full at the limit price once the book crosses (no queue position modelling).

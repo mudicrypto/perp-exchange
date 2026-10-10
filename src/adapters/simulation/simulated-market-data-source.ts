@@ -30,7 +30,11 @@ export interface SimulatedSourceOptions {
   seed?: number;
   tickMs?: number;
   now?: () => number;
+  /** Artificial request latency so loading states are exercised (default 0). */
+  latencyMs?: number;
 }
+
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 type Listener<T> = StreamHandlers<T>;
 
@@ -51,18 +55,39 @@ export class SimulatedMarketDataSource implements MarketDataSource {
   private readonly candles = new Map<string, { marketId: MarketId; interval: CandleInterval; current: Candle | null; listeners: Set<Listener<Candle>> }>();
   private readonly lastHistoryCandle = new Map<string, Candle | null>();
   private readonly connectionListeners = new Set<(state: ConnectionState) => void>();
+  private readonly latencyMs: number;
+  private connection: ConnectionState;
+  private outageTimer: ReturnType<typeof setTimeout> | null = null;
+  private failNextCandles = false;
 
   constructor(options: SimulatedSourceOptions = {}) {
     this.engine = new SimulationEngine(options.seed ?? 42);
     this.now = options.now ?? Date.now;
     this.tickMs = options.tickMs ?? 500;
+    this.latencyMs = options.latencyMs ?? 0;
+    this.connection = { status: "open", since: this.now() };
+  }
+
+  /** Static market definitions (used by the paper venue). */
+  get markets(): ReadonlyMap<MarketId, SimulatedMarket> {
+    return this.engine.markets;
+  }
+
+  get connectionState(): ConnectionState {
+    return this.connection;
   }
 
   async listMarkets(): Promise<MarketSummary[]> {
+    if (this.latencyMs > 0) await sleep(this.latencyMs);
     return this.engine.summaries(this.now());
   }
 
   async getCandles(marketId: MarketId, interval: CandleInterval): Promise<Candle[]> {
+    if (this.latencyMs > 0) await sleep(this.latencyMs);
+    if (this.failNextCandles) {
+      this.failNextCandles = false;
+      throw new Error("Simulated candle request failure");
+    }
     const market = this.requireMarket(marketId);
     const history = market.history(interval, this.now(), SIM_HISTORY_LENGTH);
     const key = `${marketId}:${interval}`;
@@ -78,7 +103,16 @@ export class SimulatedMarketDataSource implements MarketDataSource {
   }
 
   subscribeTrades(marketId: MarketId, handlers: StreamHandlers<Trade[]>): Unsubscribe {
-    return this.add(this.trades, marketId, handlers);
+    const unsubscribe = this.add(this.trades, marketId, handlers);
+    // Like real venues, start with a snapshot of recent trades (delivered async).
+    const snapshot = this.requireMarket(marketId).recentTrades(this.now(), 30);
+    const timer = setTimeout(() => {
+      if (this.trades.get(marketId)?.has(handlers)) handlers.onData(snapshot);
+    }, 0);
+    return () => {
+      clearTimeout(timer);
+      unsubscribe();
+    };
   }
 
   subscribeMarketStats(marketId: MarketId, handlers: StreamHandlers<MarketStats>): Unsubscribe {
@@ -103,13 +137,51 @@ export class SimulatedMarketDataSource implements MarketDataSource {
 
   subscribeConnection(listener: (state: ConnectionState) => void): Unsubscribe {
     this.connectionListeners.add(listener);
-    listener({ status: "open", since: this.now() });
+    listener(this.connection);
     return () => this.connectionListeners.delete(listener);
+  }
+
+  // ---- demo controls (simulation only) ----
+
+  /**
+   * Simulates a dropped feed: streams stop, the connection reports
+   * reconnecting, then recovers and signals a reset to every stream
+   * (exactly what the live adapter does after a real reconnect).
+   */
+  simulateOutage(durationMs: number): void {
+    if (this.outageTimer) return;
+    const reconnectAt = this.now() + durationMs;
+    this.setConnection({ status: "reconnecting", attempt: 1, nextRetryAt: reconnectAt, reason: "Simulated connection loss" });
+    this.outageTimer = setTimeout(() => {
+      this.outageTimer = null;
+      this.setConnection({ status: "open", since: this.now() });
+      for (const set of [...this.books.values(), ...this.trades.values(), ...this.stats.values()]) {
+        for (const handlers of set) handlers.onReset?.();
+      }
+      for (const entry of this.candles.values()) for (const handlers of entry.listeners) handlers.onReset?.();
+    }, durationMs);
+  }
+
+  /**
+   * Makes the next candle history request fail and asks current chart
+   * subscribers to reload, so the error + retry UI can be exercised.
+   */
+  failNextCandleRequest(): void {
+    this.failNextCandles = true;
+    for (const entry of this.candles.values()) for (const handlers of entry.listeners) handlers.onReset?.();
+  }
+
+  private setConnection(state: ConnectionState): void {
+    this.connection = state;
+    for (const listener of this.connectionListeners) listener(state);
   }
 
   dispose(): void {
     if (this.timer) clearInterval(this.timer);
     this.timer = null;
+    if (this.outageTimer) clearTimeout(this.outageTimer);
+    this.outageTimer = null;
+    this.connection = { status: "open", since: this.now() };
     this.books.clear();
     this.trades.clear();
     this.stats.clear();
@@ -119,6 +191,7 @@ export class SimulatedMarketDataSource implements MarketDataSource {
 
   /** Advance the simulation one tick (public for deterministic tests). */
   tick(): void {
+    if (this.connection.status !== "open") return;
     const time = this.now();
     const active = new Set<MarketId>([...this.books.keys(), ...this.trades.keys(), ...this.stats.keys()]);
     for (const entry of this.candles.values()) active.add(entry.marketId);
