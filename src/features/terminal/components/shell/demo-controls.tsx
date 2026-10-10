@@ -1,6 +1,6 @@
 "use client";
 
-import { FlaskConical, RotateCcw, ServerCrash, WifiOff } from "lucide-react";
+import { Ban, FlaskConical, RotateCcw, ServerCrash, WifiOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { DemoControls } from "../../create-sources";
@@ -27,6 +27,9 @@ export function DemoControlsMenu({ demo }: { demo: DemoControls }) {
           </Button>
           <Button variant="ghost" className="justify-start" data-testid="demo-candle-error" onClick={() => demo.failNextCandleRequest()}>
             <ServerCrash aria-hidden /> Fail next chart data request
+          </Button>
+          <Button variant="ghost" className="justify-start" data-testid="demo-reject-next" onClick={() => demo.rejectNextOrder()}>
+            <Ban aria-hidden /> Reject next order (simulated venue)
           </Button>
           <Button variant="ghost" className="justify-start" data-testid="demo-reset" onClick={() => demo.resetAccount()}>
             <RotateCcw aria-hidden /> Reset demo account

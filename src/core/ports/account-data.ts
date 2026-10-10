@@ -12,10 +12,10 @@ export interface AccountState {
   snapshot: AccountSnapshot;
   /** Newest first. */
   openOrders: readonly Order[];
-  /** Terminal orders (filled / cancelled / rejected), newest first. */
-  orderHistory: readonly Order[];
-  /** Newest first. */
-  fills: readonly Fill[];
+  /** Terminal orders, newest first. Null when the source does not provide history. */
+  orderHistory: readonly Order[] | null;
+  /** Newest first. Null when the source does not provide fills. */
+  fills: readonly Fill[] | null;
 }
 
 /**

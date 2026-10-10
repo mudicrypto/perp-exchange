@@ -44,15 +44,19 @@ boundary, so a venue's response shape never leaks past its adapter directory.
 |---|---|---|
 | Market data | `MarketDataSource` | `HyperliquidMarketDataSource` (live, public), `SimulatedMarketDataSource` (dev) |
 | Market catalog (server) | `MarketCatalogGateway` | `HyperliquidInfoClient`, `SimulatedCatalogGateway` |
-| Account data | `AccountDataSource` | `DisconnectedAccountDataSource` (live), `PaperVenue` (simulation) |
-| Trading / execution | `ExecutionAdapter` | `DisabledExecutionAdapter` (live), `PaperVenue` (simulation only) |
-| Order lifecycle & reconciliation | `OrderLifecycle` (types) | planned M3 |
+| Account data | `AccountDataSource`, `VenueAccountGateway` (server) | `DisconnectedAccountDataSource` (live UI), `SimulationAdapter` (simulation), `HyperliquidInfoClient` (read-only by address) |
+| Trading / execution | `ExecutionAdapter` | `HyperliquidAdapter` (read-only), `SimulationAdapter` (simulation only) |
+| Capabilities | `CapabilityRegistry` | explicit status per venue × capability |
+| Order lifecycle & reconciliation | `OrderStore` + `transitionOrder` | used by the simulator; ready for venue streams |
 | Risk engine | `RiskEngine` | `DefaultRiskEngine` (pure functions) |
 | Private execution | `VenueExecutionCapabilities` | `hyperliquidCapabilities`, `simulationCapabilities` |
 | Persistence | `KeyValueStore` | `BrowserStorageStore`, `MemoryStore` |
 | AuthN / AuthZ | `SessionProvider` | `AnonymousSessionProvider` |
 
 ## Market data flow
+
+Trading domain, lifecycle, adapters and the supported/unsupported matrix:
+[`docs/TRADING.md`](TRADING.md).
 
 Full details of the venue integration (sources, message formats, rate limits, freshness rules,
 limitations): [`docs/integrations/HYPERLIQUID.md`](integrations/HYPERLIQUID.md).

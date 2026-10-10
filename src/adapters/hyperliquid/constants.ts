@@ -39,6 +39,8 @@ export const HYPERLIQUID_DOCUMENTED_WEIGHT_PER_MINUTE = 1200;
 export const NOVA_INFO_WEIGHT_BUDGET_PER_MINUTE = 600;
 export const HYPERLIQUID_INFO_WEIGHT = {
   metaAndAssetCtxs: 20,
+  clearinghouseState: 2,
+  frontendOpenOrders: 20,
   candleSnapshot: 20,
   /** Extra weight per 60 candles returned. */
   candleSnapshotPer60Items: 1,

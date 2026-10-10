@@ -39,19 +39,19 @@ export function SideLabel({ side, position = false }: { side: Side; position?: b
 }
 
 const STATUS_STYLE: Record<OrderStatus, string> = {
-  draft: "text-muted-foreground",
-  "pending-submit": "text-muted-foreground",
+  "pending-new": "text-muted-foreground",
+  "waiting-trigger": "text-warning",
   open: "text-primary",
   "partially-filled": "text-primary",
-  filled: "text-buy",
   "cancel-pending": "text-muted-foreground",
+  filled: "text-buy",
   cancelled: "text-muted-foreground",
   rejected: "text-sell",
-  unknown: "text-warning",
+  expired: "text-muted-foreground",
 };
 
 export function OrderStatusLabel({ status }: { status: OrderStatus }) {
-  return <span className={cn("capitalize", STATUS_STYLE[status])}>{status.replace("-", " ")}</span>;
+  return <span className={cn("capitalize", STATUS_STYLE[status])}>{status.replaceAll("-", " ")}</span>;
 }
 
 /** Marks a number as an estimate and explains how it was derived. */

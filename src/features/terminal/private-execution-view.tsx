@@ -5,6 +5,7 @@ import { Check, LockKeyhole, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Panel } from "@/components/trading/panel";
+import type { CapabilityId } from "@/core/domain";
 import type { PrivateExecutionMode } from "@/core/ports";
 import { describeExecutionVisibility } from "@/core/private-execution";
 import { useTerminal } from "./terminal-context";
@@ -23,6 +24,14 @@ const PLANNED: readonly PlannedMode[] = [
   { mode: "sealed-rfq", name: "Sealed-bid RFQ", hides: "Request from the public book; quotes are private between parties", stillVisible: "Resulting trade (venue-dependent)" },
 ];
 
+const VENUES = ["hyperliquid", "simulation"] as const;
+const PRIVACY_CAPABILITIES: readonly [CapabilityId, string][] = [
+  ["order.hidden", "Hidden orders"],
+  ["order.iceberg", "Iceberg orders"],
+  ["execution.rfq", "Request for quote (RFQ)"],
+  ["execution.batch-auction", "Batch auctions"],
+];
+
 function Yes({ ok, label }: { ok: boolean; label: string }) {
   return (
     <span className="inline-flex items-center gap-1.5">
@@ -38,7 +47,8 @@ function Yes({ ok, label }: { ok: boolean; label: string }) {
  * planned — no control here can mark an order as private.
  */
 export function PrivateExecutionView() {
-  const { capabilities } = useTerminal();
+  const { capabilities: venue, registry } = useTerminal();
+  const capabilities = venue.visibility;
   const disclosure = describeExecutionVisibility(capabilities, null);
   const available = capabilities.supportedPrivateModes.length > 0;
 
@@ -101,6 +111,41 @@ export function PrivateExecutionView() {
               </ul>
             </div>
           </div>
+        </Panel>
+
+        <Panel title="Capability check by venue">
+          <Table data-testid="privacy-capabilities">
+            <TableHeader>
+              <TableRow>
+                <TableHead className="text-xs">Capability</TableHead>
+                {VENUES.map((id) => (
+                  <TableHead key={id} className="text-xs">{registry.venue(id)?.venueName ?? id}</TableHead>
+                ))}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {PRIVACY_CAPABILITIES.map(([capability, label]) => (
+                <TableRow key={capability}>
+                  <TableCell className="text-sm">{label}</TableCell>
+                  {VENUES.map((id) => {
+                    const status = registry.check(id, capability);
+                    return (
+                      <TableCell key={id} className="text-xs whitespace-normal" data-testid={`cap-${id}-${capability}`} data-status={status.status}>
+                        {status.status === "supported" ? (
+                          <Yes ok label="Supported" />
+                        ) : (
+                          <span className="flex flex-col gap-0.5">
+                            <Yes ok={false} label={status.scope === "venue" ? "Not offered by venue" : "Not implemented in Nova"} />
+                            <span className="text-2xs text-muted-foreground">{status.reason}</span>
+                          </span>
+                        )}
+                      </TableCell>
+                    );
+                  })}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </Panel>
 
         <Panel title="Planned modes (Nova venue)">

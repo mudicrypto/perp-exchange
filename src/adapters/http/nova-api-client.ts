@@ -1,5 +1,7 @@
 import { z } from "zod";
 import {
+  AccountSnapshotSchema,
+  OrderSchema,
   CandleListSchema,
   MarketSummarySchema,
   type Candle,
@@ -19,6 +21,13 @@ export const MarketsResponseSchema = z.object({
 export type MarketsResponse = z.infer<typeof MarketsResponseSchema>;
 
 export const CandlesResponseSchema = z.object({ candles: CandleListSchema });
+
+export const VenueAccountResponseSchema = z.object({
+  snapshot: AccountSnapshotSchema,
+  openOrders: z.array(OrderSchema),
+  skipped: z.object({ positions: z.number().int().nonnegative(), orders: z.number().int().nonnegative() }),
+});
+export type VenueAccountResponse = z.infer<typeof VenueAccountResponseSchema>;
 
 export class ApiError extends Error {
   constructor(
@@ -64,6 +73,14 @@ export class NovaApiClient {
     const query = new URLSearchParams({ market: marketId, interval });
     const body = await this.get(`/api/candles?${query.toString()}`, CandlesResponseSchema, signal);
     return body.candles;
+  }
+
+  /** Read-only venue account by public address (live mode only). */
+  async getVenueAccount(address: string, signal?: AbortSignal): Promise<VenueAccountResponse> {
+    const query = new URLSearchParams({ address });
+    const body = await this.get(`/api/venue/account?${query.toString()}`, VenueAccountResponseSchema, signal);
+    if (body.snapshot.origin !== "venue") throw new ApiError("source-mismatch", "Expected venue account data", 200);
+    return body;
   }
 
   private async get<S extends z.ZodType>(path: string, schema: S, signal?: AbortSignal): Promise<z.infer<S>> {

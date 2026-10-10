@@ -1,4 +1,4 @@
-import type { AccountSnapshot, BookLevel, Market, MarketStats, OrderIntent } from "../domain";
+import type { AccountSnapshot, BookLevel, Market, MarketStats, OrderRequest } from "../domain";
 
 export interface BookImpactEstimate {
   /** Volume-weighted average fill price over visible levels. Null if no liquidity. */
@@ -39,7 +39,7 @@ export interface PortfolioRisk {
   shortExposure: number;
   /** grossExposure / equity; null if equity <= 0. */
   effectiveLeverage: number | null;
-  /** maintenanceMargin / equity; null if equity <= 0. */
+  /** maintenanceMargin / equity; null if equity <= 0 or maintenance margin is unknown. */
   marginUtilization: number | null;
   unrealizedPnl: number;
   /** Position closest to its liquidation price (fractional distance from mark). */
@@ -47,7 +47,7 @@ export interface PortfolioRisk {
 }
 
 export interface PreTradeInput {
-  intent: OrderIntent;
+  request: OrderRequest;
   market: Market;
   stats: MarketStats | null;
   book: { bids: BookLevel[]; asks: BookLevel[] } | null;

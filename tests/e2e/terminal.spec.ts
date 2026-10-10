@@ -140,7 +140,7 @@ test.describe("order entry (paper trading)", () => {
 
     await page.getByTestId("submit-order").click();
     const review = page.getByTestId("order-review");
-    await expect(review).toContainText("Simulated paper order");
+    await expect(review).toContainText("Simulated order");
     await expect(review).toContainText("Nothing is sent to a real venue");
     await review.getByTestId("confirm-order").click();
 
@@ -218,6 +218,72 @@ test.describe("order entry (paper trading)", () => {
   });
 });
 
+test.describe("capability-driven order entry", () => {
+  test("places a simulated stop-market order that waits for its trigger, then cancels it", async ({ page }) => {
+    await page.goto("/");
+    await openMarket(page, "ALPHA-PERP");
+    await expect(page.getByTestId("book-ask").first()).toBeVisible();
+    await page.getByTestId("type-trigger").click();
+    await page.getByTestId("type-option-stop-market").click();
+    await page.getByTestId("input-trigger").fill("1100");
+    await page.getByTestId("input-size").fill("0.5");
+    await expect(page.getByTestId("risk-margin")).not.toHaveText("—");
+    await page.getByTestId("submit-order").click();
+    await expect(page.getByTestId("order-review")).toContainText("Trigger price (mark)");
+    await page.getByTestId("confirm-order").click();
+    await expect(page.getByTestId("submit-result")).toContainText("waiting for trigger at 1,100.0");
+
+    await page.getByTestId("tab-orders").click();
+    const row = page.getByTestId("open-order-row").filter({ hasText: "Stop market" });
+    await expect(row).toContainText(/waiting trigger/i);
+    await row.getByRole("button", { name: /Cancel order/ }).click();
+    await expect(page.getByTestId("open-order-row").filter({ hasText: "Stop market" })).toHaveCount(0);
+  });
+
+  test("shows unsupported order types with their reason and never offers them", async ({ page }) => {
+    await page.goto("/");
+    await page.getByTestId("type-trigger").click();
+    await expect(page.getByTestId("type-option-stop-limit")).toHaveAttribute("data-availability", "preview-only");
+    await expect(page.getByTestId("type-option-stop-limit")).toContainText("not implemented in the simulator");
+    await page.keyboard.press("Escape");
+    await page.getByTestId("advanced-types").locator("summary").click();
+    await expect(page.getByTestId("advanced-hidden")).toHaveAttribute("data-availability", "unavailable");
+    await expect(page.getByTestId("advanced-iceberg")).toContainText("iceberg orders are not offered");
+    await expect(page.getByTestId("advanced-execution.rfq")).toContainText("no request-for-quote");
+  });
+
+  test("a preview-only order type validates and previews risk but cannot be submitted", async ({ page }) => {
+    await page.goto("/");
+    await openMarket(page, "ALPHA-PERP");
+    await page.getByTestId("type-trigger").click();
+    await page.getByTestId("type-option-stop-limit").click();
+    await page.getByTestId("input-trigger").fill("1100");
+    await page.getByTestId("input-price").fill("1101");
+    await page.getByTestId("input-size").fill("0.5");
+    await expect(page.getByTestId("type-unsupported")).toContainText("Preview only");
+    await expect(page.getByTestId("risk-margin")).not.toHaveText("—");
+    await expect(page.getByTestId("submit-order")).toBeDisabled();
+    await expect(page.getByTestId("submit-reason")).toContainText("not implemented in the simulator");
+  });
+
+  test("a configured simulated rejection is reported as such", async ({ page }) => {
+    await page.goto("/");
+    await openMarket(page, "GAMMA-PERP");
+    await expect(page.getByTestId("book-ask").first()).toBeVisible();
+    await page.getByTestId("demo-controls").click();
+    await page.getByTestId("demo-reject-next").click();
+    await page.keyboard.press("Escape");
+    await page.getByTestId("type-market").click();
+    await page.getByTestId("input-size").fill("100");
+    await page.getByTestId("submit-order").click();
+    await page.getByTestId("confirm-order").click();
+    await expect(page.getByTestId("submit-result")).toHaveAttribute("data-tone", "bad");
+    await expect(page.getByTestId("submit-result")).toContainText("Simulated venue rejection");
+    await page.getByTestId("tab-history").click();
+    await expect(page.getByTestId("history-row").first()).toContainText(/rejected/i);
+  });
+});
+
 test.describe("portfolio & risk", () => {
   test("shows simulated equity, PnL and labelled risk estimates", async ({ page }) => {
     await page.goto("/");
@@ -253,6 +319,8 @@ test.describe("private execution", () => {
     await expect(page).toHaveURL(/\/private-execution$/);
     await expect(page.getByTestId("private-status")).toContainText("orders placed in Nova today are public");
     await expect(page.getByTestId("planned-modes")).toContainText("Hidden limit orders");
+    await expect(page.getByTestId("cap-hyperliquid-order.hidden")).toHaveAttribute("data-status", "unsupported");
+    await expect(page.getByTestId("cap-simulation-execution.rfq")).toContainText("Not offered by venue");
   });
 });
 
@@ -288,6 +356,14 @@ test.describe("API", () => {
 
     const good = await request.get("/api/candles?market=ALPHA-PERP&interval=1h");
     expect((await good.json()).candles.length).toBeGreaterThan(0);
+  });
+
+  test("venue account reads are validated and unavailable for the simulator", async ({ request }) => {
+    const bad = await request.get("/api/venue/account?address=0x123");
+    expect(bad.status()).toBe(400);
+    const sim = await request.get("/api/venue/account?address=0x0000000000000000000000000000000000000001");
+    expect(sim.status()).toBe(404);
+    expect((await sim.json()).error.code).toBe("unsupported");
   });
 
   test("sends security headers and reports paper mode only for simulation", async ({ request }) => {

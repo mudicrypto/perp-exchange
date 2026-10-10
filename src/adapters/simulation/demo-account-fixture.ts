@@ -5,8 +5,8 @@
  * that handles live paper orders — the fixture cannot be internally
  * inconsistent. Timestamps are relative to session start.
  */
-import type { Market, MarketId, OrderIntent, OrderType, Side, TimeInForce } from "@/core/domain";
-import { PaperEngine } from "./paper-engine";
+import type { Market, MarketId, OrderRequest, Side, TimeInForce } from "@/core/domain";
+import { PaperEngine, type SimulationConfig } from "./paper-engine";
 
 export const DEMO_STARTING_BALANCE = 25_000;
 
@@ -14,7 +14,7 @@ interface FixtureOrder {
   minutesAgo: number;
   marketId: MarketId;
   side: Side;
-  type: OrderType;
+  type: "limit" | "market";
   size: number;
   price: number;
   leverage: number;
@@ -41,28 +41,33 @@ export const DEMO_ACCOUNT_FIXTURE: readonly FixtureEntry[] = [
   { kind: "resting", minutesAgo: 6, marketId: "BETA-PERP", side: "sell", type: "limit", size: 100, price: 43.9, leverage: 5 },
 ];
 
-function toIntent(entry: FixtureOrder): OrderIntent {
-  return {
+function toRequest(entry: FixtureOrder, index: number): OrderRequest {
+  const base = {
+    clientOrderId: `demo-fixture-${index + 1}`,
     marketId: entry.marketId,
     side: entry.side,
-    type: entry.type,
     size: entry.size,
-    limitPrice: entry.type === "limit" ? entry.price : null,
-    timeInForce: entry.timeInForce ?? (entry.type === "market" ? "ioc" : "gtc"),
     reduceOnly: entry.reduceOnly ?? false,
     leverage: entry.leverage,
-    marginMode: "isolated",
+    marginMode: "isolated" as const,
   };
+  return entry.type === "market"
+    ? { ...base, type: "market", maxSlippage: 0.05 }
+    : { ...base, type: "limit", price: entry.price, timeInForce: entry.timeInForce ?? "gtc" };
 }
 
 const MINUTE = 60_000;
 
-export function createDemoPaperEngine(markets: ReadonlyMap<MarketId, Market>, now: number): PaperEngine {
-  const engine = new PaperEngine(markets, DEMO_STARTING_BALANCE);
+export function createDemoPaperEngine(
+  markets: ReadonlyMap<MarketId, Market>,
+  now: number,
+  config: Partial<SimulationConfig> = {},
+): PaperEngine {
+  const engine = new PaperEngine(markets, { ...config, startingBalance: DEMO_STARTING_BALANCE });
   const ordered = [...DEMO_ACCOUNT_FIXTURE].sort((a, b) => b.minutesAgo - a.minutesAgo);
-  for (const entry of ordered) {
+  for (const [index, entry] of ordered.entries()) {
     const time = now - entry.minutesAgo * MINUTE;
-    const intent = toIntent(entry);
+    const intent = toRequest(entry, index);
     switch (entry.kind) {
       case "filled":
         engine.seedFilledOrder(intent, entry.price, entry.liquidity, time);

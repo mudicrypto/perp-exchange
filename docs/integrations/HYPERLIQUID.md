@@ -5,7 +5,9 @@ Status: implemented and unit/E2E tested against recorded-format fixtures and the
 hosts, including the docs site, is blocked there). Run `npm run test:live` anywhere the API is
 reachable before relying on it. See [Verification](#verification).
 
-Scope: public, read-only market data. No authentication, no account data, no order placement.
+Scope: public market data, plus read-only account data by public address (Milestone 3). No
+authentication, no keys, no signing, no order placement. Execution capabilities are listed in
+[`docs/TRADING.md`](../TRADING.md).
 
 ## Sources of truth
 
@@ -37,6 +39,9 @@ Selected with `NOVA_HYPERLIQUID_NETWORK` (default `mainnet`).
 |---|---|---|
 | `{"type":"metaAndAssetCtxs"}` | Perp universe (`name`, `szDecimals`, `maxLeverage`, `onlyIsolated?`, `isDelisted?`) + parallel asset contexts (`markPx`, `oraclePx`, `midPx?`, `funding`, `openInterest`, `prevDayPx`, `dayNtlVlm`, …) | `GET /api/markets` |
 | `{"type":"candleSnapshot","req":{"coin","interval","startTime","endTime"}}` | Candle history (`t`,`T`,`s`,`i`,`o`,`h`,`l`,`c`,`v`,`n`) | `GET /api/candles?market=&interval=` |
+
+| `{"type":"clearinghouseState","user"}` | Positions, margin summary, withdrawable (SDK `user_state`) | `GET /api/venue/account?address=` |
+| `{"type":"frontendOpenOrders","user"}` | Open orders incl. type, tif, trigger, reduce-only (SDK `frontend_open_orders`) | same |
 
 Browser code never calls the venue's REST API directly. The server validates the response with Zod,
 maps it to domain types, caches it briefly (2s), and shares in-flight requests.
@@ -118,7 +123,7 @@ The connection popover shows status, last message, subscriptions, reconnects and
 ## Rate limits
 
 As documented by Hyperliquid (per IP; **not re-verified in this environment**):
-- REST: a 1200 weight/minute budget. Most info requests weigh 20, `l2Book`/`allMids` weigh 2, and
+- REST: a 1200 weight/minute budget. Most info requests weigh 20 (including `frontendOpenOrders`); `l2Book`, `allMids` and `clearinghouseState` weigh 2; and
   `candleSnapshot` adds weight per 60 items returned.
 - WebSocket: up to 1000 subscriptions and 100 connections.
 

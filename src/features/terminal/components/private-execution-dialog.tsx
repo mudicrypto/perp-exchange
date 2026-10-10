@@ -22,7 +22,8 @@ import { useTerminal } from "../terminal-context";
  * do — it never offers a "private" toggle the venue cannot honour.
  */
 export function PrivateExecutionDialog({ children }: { children: ReactNode }) {
-  const { capabilities } = useTerminal();
+  const { capabilities: venue } = useTerminal();
+  const capabilities = venue.visibility;
   const disclosure = describeExecutionVisibility(capabilities, "hidden-limit");
   return (
     <Dialog>

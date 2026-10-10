@@ -1,0 +1,5 @@
+[
+  { "children": [], "coin": "BTC", "isPositionTpsl": false, "isTrigger": false, "limitPx": "59000.0", "oid": 9001, "orderType": "Limit", "origSz": "0.2", "reduceOnly": false, "side": "B", "sz": "0.15", "tif": "Alo", "timestamp": 1700000000100, "triggerCondition": "N/A", "triggerPx": "0.0" },
+  { "children": [], "coin": "ETH", "isPositionTpsl": true, "isTrigger": true, "limitPx": "3300.0", "oid": 9002, "orderType": "Stop Market", "origSz": "1.0", "reduceOnly": true, "side": "B", "sz": "1.0", "tif": null, "timestamp": 1700000000200, "triggerCondition": "Price above 3300", "triggerPx": "3300.0" },
+  { "children": [], "coin": "BTC", "isPositionTpsl": false, "isTrigger": false, "limitPx": "1.0", "oid": 9003, "orderType": "Some Future Type", "origSz": "1.0", "reduceOnly": false, "side": "A", "sz": "1.0", "tif": "Gtc", "timestamp": 1700000000300, "triggerCondition": "N/A", "triggerPx": "0.0" }
+]

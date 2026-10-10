@@ -8,9 +8,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EmptyState } from "@/components/trading/panel";
 import { OrderStatusLabel, SideLabel, SignedAmount, SignedPercent } from "@/components/trading/values";
 import type { Fill, Market, MarketId, Order, Position } from "@/core/domain";
-import type { AccountState, SubmitResult } from "@/core/ports";
+import type { Result } from "@/core/domain";
+import type { AccountState } from "@/core/ports";
+import { ORDER_TYPE_LABEL } from "./order-labels";
 import { displayPriceDecimals, formatAmount, formatDateTime, formatPrice, formatSize } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { newClientOrderId } from "../client-order-id";
 import { useTerminal } from "../terminal-context";
 
 const NO_ACCOUNT =
@@ -83,45 +86,59 @@ export function AccountTables({ compact = false }: { compact?: boolean }) {
         {body((s) => <OpenOrdersTable orders={s.openOrders} />, "No open orders")}
       </TabsContent>
       <TabsContent value="history" className="min-h-0 flex-1 overflow-auto">
-        {body((s) => <OrderHistoryTable orders={s.orderHistory} />, "No order history")}
+        {body(
+          (s) => (s.orderHistory ? <OrderHistoryTable orders={s.orderHistory} /> : <NotProvided what="Order history" />),
+          "No order history",
+        )}
       </TabsContent>
       <TabsContent value="fills" className="min-h-0 flex-1 overflow-auto">
-        {body((s) => <FillsTable fills={s.fills} />, "No fills")}
+        {body((s) => (s.fills ? <FillsTable fills={s.fills} /> : <NotProvided what="Fills" />), "No fills")}
       </TabsContent>
     </Tabs>
   );
 }
 
-function ActionResult({ result }: { result: SubmitResult | null }) {
+/** Shown when the source does not provide a dataset (null), as opposed to an empty one. */
+function NotProvided({ what }: { what: string }) {
+  return <EmptyState title={`${what} not available`}>This account source does not provide {what.toLowerCase()} yet.</EmptyState>;
+}
+
+function ActionResult({ result }: { result: Result<unknown> | null }) {
   if (!result || result.ok) return null;
   return (
-    <p role="alert" className="px-3 py-1 text-xs text-sell">
-      {result.message}
+    <p role="alert" className="px-3 py-1 text-xs text-sell" data-testid="action-error">
+      {result.error.message}
     </p>
   );
 }
 
 export function PositionsTable({ positions, compact = false }: { positions: readonly Position[]; compact?: boolean }) {
-  const { execution } = useTerminal();
+  const { execution, capabilities } = useTerminal();
   const lookup = useMarketLookup();
-  const [result, setResult] = useState<SubmitResult | null>(null);
+  const [result, setResult] = useState<Result<unknown> | null>(null);
   const [pending, setPending] = useState<string | null>(null);
+  const canClose = capabilities.capabilities["action.submit"].status === "supported" && capabilities.capabilities["order.market"].status === "supported";
   if (positions.length === 0) return <EmptyState title="No open positions">Positions you open appear here.</EmptyState>;
 
   const close = async (p: Position) => {
+    const market = lookup(p.marketId);
+    if (!market) return;
     setPending(p.marketId);
     setResult(
-      await execution.submit({
-        marketId: p.marketId,
-        side: p.size > 0 ? "sell" : "buy",
-        type: "market",
-        size: Math.abs(p.size),
-        limitPrice: null,
-        timeInForce: "ioc",
-        reduceOnly: true,
-        leverage: p.leverage,
-        marginMode: p.marginMode,
-      }),
+      await execution.submitOrder(
+        {
+          clientOrderId: newClientOrderId("nova-close"),
+          marketId: p.marketId,
+          side: p.size > 0 ? "sell" : "buy",
+          type: "market",
+          size: Math.abs(p.size),
+          maxSlippage: 0.05,
+          reduceOnly: true,
+          leverage: p.leverage,
+          marginMode: p.marginMode,
+        },
+        execution.describeInstrument(market),
+      ),
     );
     setPending(null);
   };
@@ -139,7 +156,7 @@ export function PositionsTable({ positions, compact = false }: { positions: read
             <H right>Liq. price</H>
             <H right>Margin</H>
             <H right>uPnL (ROE)</H>
-            {!compact && execution.mode === "paper" && <H right>Action</H>}
+            {!compact && canClose && <H right>Action</H>}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -162,7 +179,7 @@ export function PositionsTable({ positions, compact = false }: { positions: read
                 <C right>
                   <SignedAmount value={p.unrealizedPnl} /> <SignedPercent className="text-2xs" value={roe} />
                 </C>
-                {!compact && execution.mode === "paper" && (
+                {!compact && canClose && (
                   <C right>
                     <Button
                       size="sm"
@@ -187,23 +204,27 @@ export function PositionsTable({ positions, compact = false }: { positions: read
 }
 
 function OpenOrdersTable({ orders }: { orders: readonly Order[] }) {
-  const { execution } = useTerminal();
+  const { execution, capabilities } = useTerminal();
   const lookup = useMarketLookup();
-  const [result, setResult] = useState<SubmitResult | null>(null);
+  const [result, setResult] = useState<Result<unknown> | null>(null);
+  const canCancel = capabilities.capabilities["action.cancel"].status === "supported";
+  const canCancelAll = capabilities.capabilities["action.cancel-all"].status === "supported";
   if (orders.length === 0) return <EmptyState title="No open orders">Resting limit orders appear here.</EmptyState>;
   return (
     <>
       <div className="flex items-center justify-between px-3 py-1">
         <ActionResult result={result} />
-        <Button
-          size="sm"
-          variant="ghost"
-          className="ml-auto h-6 text-2xs text-sell"
-          onClick={() => void execution.cancelAll()}
-          data-testid="cancel-all"
-        >
-          Cancel all
-        </Button>
+        {canCancelAll && (
+          <Button
+            size="sm"
+            variant="ghost"
+            className="ml-auto h-6 text-2xs text-sell"
+            onClick={async () => setResult(await execution.cancelAllOrders())}
+            data-testid="cancel-all"
+          >
+            Cancel all
+          </Button>
+        )}
       </div>
       <Table data-testid="open-orders-table">
         <TableHeader>
@@ -213,9 +234,11 @@ function OpenOrdersTable({ orders }: { orders: readonly Order[] }) {
             <H>Side</H>
             <H>Type</H>
             <H right>Price</H>
+            <H right>Trigger</H>
             <H right>Size</H>
             <H right>Filled</H>
-            <H right>Action</H>
+            <H>Status</H>
+            {canCancel && <H right>Action</H>}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -227,24 +250,31 @@ function OpenOrdersTable({ orders }: { orders: readonly Order[] }) {
                 <C className="font-medium">{o.marketId}</C>
                 <C><SideLabel side={o.side} /></C>
                 <C>
-                  {o.type === "limit" ? "Limit" : "Market"} · {o.timeInForce.toUpperCase()}
+                  {ORDER_TYPE_LABEL[o.type]}
+                  {o.timeInForce && ` · ${o.timeInForce.toUpperCase()}`}
                   {o.reduceOnly && <span className="ml-1 text-2xs text-muted-foreground">RO</span>}
                 </C>
-                <C right>{px(m, o.price)}</C>
+                <C right>{o.price === null ? "Market" : px(m, o.price)}</C>
+                <C right>{o.triggerPrice === null ? "—" : px(m, o.triggerPrice)}</C>
                 <C right>{sz(m, o.size)}</C>
                 <C right>{sz(m, o.filledSize)}</C>
-                <C right>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-6 text-2xs"
-                    onClick={async () => setResult(await execution.cancel(o.id))}
-                    aria-label={`Cancel order ${o.id}`}
-                    data-testid={`cancel-${o.id}`}
-                  >
-                    Cancel
-                  </Button>
+                <C>
+                  <OrderStatusLabel status={o.status} />
                 </C>
+                {canCancel && (
+                  <C right>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-6 text-2xs"
+                      onClick={async () => setResult(await execution.cancelOrder({ orderId: o.id }))}
+                      aria-label={`Cancel order ${o.id}`}
+                      data-testid={`cancel-${o.id}`}
+                    >
+                      Cancel
+                    </Button>
+                  </C>
+                )}
               </TableRow>
             );
           })}
@@ -279,7 +309,7 @@ function OrderHistoryTable({ orders }: { orders: readonly Order[] }) {
               <C className="text-muted-foreground">{formatDateTime(o.updatedAt)}</C>
               <C className="font-medium">{o.marketId}</C>
               <C><SideLabel side={o.side} /></C>
-              <C>{o.type === "limit" ? "Limit" : "Market"}</C>
+              <C>{ORDER_TYPE_LABEL[o.type]}</C>
               <C right>{o.price === null ? "Market" : px(m, o.price)}</C>
               <C right>{sz(m, o.size)}</C>
               <C right>

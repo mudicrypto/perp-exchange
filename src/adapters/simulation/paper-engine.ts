@@ -1,28 +1,33 @@
 /**
- * Paper-trading engine for the simulated venue.
+ * Deterministic paper-trading venue for the simulated environment.
  *
- * It matches order intents against *simulated* order books and keeps a
- * fictitious account in SIMUSD. It is deliberately simple (isolated margin,
- * one position per market, visible-depth matching) and is never connected to
- * a real venue: it exists so the demo terminal is fully interactive without
- * pretending that any real-world order was executed.
+ * Matches order requests against *simulated* order books and keeps a
+ * fictitious SIMUSD account (isolated margin, one position per market).
+ * Every order status change goes through `OrderStore` lifecycle events, so
+ * the simulator obeys exactly the same state machine a real venue adapter
+ * must. It never touches a wallet or a real venue.
+ *
+ * Determinism: given the same configuration, books, marks and calls (with
+ * the same timestamps), the engine produces identical ids, fills and states.
  */
-import {
-  isTerminalStatus,
-  type AccountSnapshot,
-  type BookLevel,
-  type Fill,
-  type Liquidity,
-  type Market,
-  type MarketId,
-  type Order,
-  type OrderIntent,
-  type Position,
-  type Side,
+import type {
+  AccountSnapshot,
+  BookLevel,
+  Fill,
+  Liquidity,
+  Market,
+  MarketId,
+  Order,
+  OrderRequest,
+  Position,
+  Result,
+  Side,
+  TradingError,
 } from "@/core/domain";
-import { validateOrderIntent } from "@/core/execution";
-import type { AccountState, SubmitErrorCode, SubmitResult } from "@/core/ports";
+import { isTerminalStatus, isTriggerType, requestLimitPrice, requestTimeInForce, requestTriggerPrice } from "@/core/domain";
+import type { AccountState } from "@/core/ports";
 import { estimateIsolatedLiquidationPrice } from "@/core/risk";
+import { OrderStore, type ApplyOutcome, type OrderEventBody, type OrderStoreChange } from "@/core/trading";
 
 export const PAPER_CURRENCY = "SIMUSD";
 
@@ -35,12 +40,32 @@ export interface PaperFeeSchedule {
 /** Illustrative fee schedule for the simulator (not any venue's real fees). */
 export const PAPER_FEES: PaperFeeSchedule = { taker: 0.00045, maker: 0.00015 };
 
-/** Market orders will not walk the book further than this from the best price. */
-export const MARKET_ORDER_MAX_SLIPPAGE = 0.05;
+export interface SimulationConfig {
+  startingBalance: number;
+  fees: PaperFeeSchedule;
+  /**
+   * "book": match against the simulated book (default).
+   * "none": accept orders but never fill them (to exercise resting/cancel flows).
+   */
+  fillModel: "book" | "none";
+  /** Fraction (0..1] of each visible level available to Nova; < 1 produces partial fills. */
+  liquidityFraction: number;
+}
+
+export const DEFAULT_SIMULATION_CONFIG: SimulationConfig = {
+  startingBalance: 25_000,
+  fees: PAPER_FEES,
+  fillModel: "book",
+  liquidityFraction: 1,
+};
+
+/** Configurable simulated rejections (evaluated before matching). */
+export type RejectionRule =
+  | { kind: "next"; remaining: number; reason: string }
+  | { kind: "every-nth"; n: number; reason: string }
+  | { kind: "market"; marketId: MarketId; reason: string };
 
 const EPSILON = 1e-9;
-const HISTORY_LIMIT = 200;
-const FILL_LIMIT = 500;
 
 interface PaperPosition {
   marketId: MarketId;
@@ -64,192 +89,258 @@ function sign(side: Side): 1 | -1 {
   return side === "buy" ? 1 : -1;
 }
 
+const fail = (error: TradingError): Result<never> => ({ ok: false, error });
+
+/** Simulator orders always carry leverage (it comes from the request). */
+function leverageOf(order: Order): number {
+  if (order.leverage === null) throw new Error(`Simulator order ${order.id} has no leverage`);
+  return order.leverage;
+}
+
 export class PaperEngine {
+  readonly store = new OrderStore();
+  private readonly config: SimulationConfig;
   private balance: number;
   private realizedPnl = 0;
   private feesPaid = 0;
   private readonly positions = new Map<MarketId, PaperPosition>();
-  private readonly openOrders = new Map<string, Order>();
-  private history: Order[] = [];
-  private fills: Fill[] = [];
   private readonly books = new Map<MarketId, Book>();
   private readonly marks = new Map<MarketId, number>();
+  /** Per-order slippage for market-style orders (not part of the Order model). */
+  private readonly slippage = new Map<string, number>();
+  private rejectionRules: RejectionRule[] = [];
   private orderSeq = 0;
   private fillSeq = 0;
+  private eventSeq = 0;
+  private processedCount = 0;
 
   constructor(
     private readonly markets: ReadonlyMap<MarketId, Market>,
-    startingBalance: number,
-    private readonly fees: PaperFeeSchedule = PAPER_FEES,
+    config: Partial<SimulationConfig> = {},
   ) {
-    this.balance = startingBalance;
+    this.config = { ...DEFAULT_SIMULATION_CONFIG, ...config };
+    if (!(this.config.liquidityFraction > 0 && this.config.liquidityFraction <= 1)) {
+      throw new RangeError("liquidityFraction must be in (0, 1]");
+    }
+    this.balance = this.config.startingBalance;
   }
 
-  // ---------------------------------------------------------------- inputs
+  // ------------------------------------------------------------ configuration
+
+  addRejectionRule(rule: RejectionRule): void {
+    this.rejectionRules.push({ ...rule });
+  }
+
+  clearRejectionRules(): void {
+    this.rejectionRules = [];
+  }
+
+  // ------------------------------------------------------------------ inputs
 
   setMark(marketId: MarketId, mark: number, now: number): void {
     this.marks.set(marketId, mark);
+    this.checkTriggers(marketId, mark, now);
     this.checkLiquidation(marketId, now);
   }
 
-  /** New book snapshot: resting orders that are now marketable fill as makers. */
+  /** New book snapshot: resting limit orders that are now marketable fill as makers. */
   setBook(marketId: MarketId, book: Book, now: number): void {
     this.books.set(marketId, book);
+    if (this.config.fillModel === "none") return;
     const bestBid = book.bids[0]?.price;
     const bestAsk = book.asks[0]?.price;
-    for (const order of [...this.openOrders.values()]) {
-      if (order.marketId !== marketId || order.price === null) continue;
-      const crossed =
-        order.side === "buy"
-          ? bestAsk !== undefined && bestAsk <= order.price
-          : bestBid !== undefined && bestBid >= order.price;
+    for (const order of this.store.openOrders()) {
+      if (order.marketId !== marketId || order.price === null || order.status === "waiting-trigger") continue;
+      const crossed = order.side === "buy" ? bestAsk !== undefined && bestAsk <= order.price : bestBid !== undefined && bestBid >= order.price;
       if (!crossed) continue;
       let remaining = order.size - order.filledSize;
       if (order.reduceOnly) {
-        remaining = Math.min(remaining, this.reducibleSize(order.marketId, order.side));
-        if (remaining <= EPSILON) {
-          this.finish(order, "cancelled", "Reduce-only order cancelled: no position left to reduce", now);
+        const reducible = this.reducibleSize(order.marketId, order.side);
+        if (reducible <= EPSILON) {
+          this.emit(order.id, { type: "cancelled", reason: "Reduce-only order cancelled: no position left to reduce" }, now);
           continue;
         }
+        remaining = Math.min(remaining, reducible);
       }
-      this.executeFill(order, order.price, remaining, "maker", now);
-      this.finish(order, order.filledSize >= order.size - EPSILON ? "filled" : "cancelled",
-        order.filledSize >= order.size - EPSILON ? null : "Reduce-only remainder cancelled", now);
+      const fillSize = remaining * this.config.liquidityFraction;
+      this.executeFill(order.id, order.price, fillSize, "maker", now);
+      const after = this.store.get(order.id)!;
+      if (order.reduceOnly && !isTerminalStatus(after.status) && this.reducibleSize(order.marketId, order.side) <= EPSILON) {
+        this.emit(order.id, { type: "cancelled", reason: "Reduce-only remainder cancelled: position closed" }, now);
+      }
     }
   }
 
-  // --------------------------------------------------------------- actions
+  // ----------------------------------------------------------------- actions
 
-  submit(intent: OrderIntent, now: number): SubmitResult {
-    const market = this.markets.get(intent.marketId);
-    const order = this.newOrder(intent, now);
-    if (!market) return this.reject(order, "validation-failed", "Unknown market", now);
-
-    const validation = validateOrderIntent(intent, market);
-    if (!validation.ok) {
-      return this.reject(order, "validation-failed", validation.issues.map((i) => i.message).join("; "), now);
+  /** Registers a request as a pending-new order (no matching yet). */
+  createOrder(request: OrderRequest, now: number): Result<Order> {
+    if (this.store.hasClientOrderId(request.clientOrderId)) {
+      return fail({
+        code: "duplicate-client-order-id",
+        clientOrderId: request.clientOrderId,
+        message: `Client order id ${request.clientOrderId} was already used`,
+      });
     }
-
-    const position = this.positions.get(intent.marketId);
-    if (position && Math.abs(position.leverage - intent.leverage) > EPSILON && !intent.reduceOnly) {
-      return this.reject(
-        order,
-        "validation-failed",
-        `Leverage must match the open position (${position.leverage}x)`,
-        now,
-      );
+    if (!this.markets.has(request.marketId)) {
+      return fail({ code: "validation", issues: [{ field: "marketId", message: "Unknown market" }], message: "Unknown market" });
     }
+    this.orderSeq += 1;
+    const order: Order = {
+      id: `SIM-${String(this.orderSeq).padStart(6, "0")}`,
+      clientOrderId: request.clientOrderId,
+      venueOrderId: null,
+      marketId: request.marketId,
+      side: request.side,
+      type: request.type,
+      price: requestLimitPrice(request),
+      triggerPrice: requestTriggerPrice(request),
+      triggeredAt: null,
+      size: request.size,
+      filledSize: 0,
+      averageFillPrice: null,
+      status: "pending-new",
+      timeInForce: requestTimeInForce(request),
+      reduceOnly: request.reduceOnly,
+      leverage: request.leverage,
+      marginMode: request.marginMode,
+      createdAt: now,
+      updatedAt: now,
+      statusReason: null,
+      lastSequence: null,
+      origin: "simulated",
+    };
+    if ("maxSlippage" in request) this.slippage.set(order.id, request.maxSlippage);
+    this.store.add(order);
+    return { ok: true, value: order };
+  }
 
-    let size = intent.size;
-    if (intent.reduceOnly) {
-      const reducible = this.reducibleSize(intent.marketId, intent.side);
-      if (reducible <= EPSILON) {
-        return this.reject(order, "reduce-only-invalid", "Reduce-only order has no position to reduce", now);
+  /** Decides a pending-new order: reject, rest, trigger-wait, or match. */
+  processOrder(orderId: string, now: number): Result<Order> {
+    const order = this.store.get(orderId);
+    if (!order) return fail({ code: "order-not-found", message: "Order not found" });
+    if (order.status !== "pending-new") return { ok: true, value: order };
+    this.processedCount += 1;
+    const market = this.markets.get(order.marketId)!;
+
+    const injected = this.injectedRejection(order);
+    if (injected) return this.reject(order, { code: "simulated-rejection", message: injected }, now);
+
+    const position = this.positions.get(order.marketId);
+    if (position && !order.reduceOnly && Math.abs(position.leverage - leverageOf(order)) > EPSILON) {
+      const message = `Leverage must match the open position (${position.leverage}x)`;
+      return this.reject(order, { code: "validation", issues: [{ field: "leverage", message }], message }, now);
+    }
+    if (order.reduceOnly && this.reducibleSize(order.marketId, order.side) <= EPSILON) {
+      return this.reject(order, { code: "reduce-only-invalid", message: "Reduce-only order has no position to reduce" }, now);
+    }
+    const book = this.books.get(order.marketId);
+    if (!book) return this.reject(order, { code: "feed-unavailable", message: "No order book available for this market" }, now);
+
+    // ---- trigger orders: validate the trigger, reserve margin, then wait.
+    if (isTriggerType(order.type)) {
+      const mark = this.marks.get(order.marketId);
+      if (mark === undefined) return this.reject(order, { code: "feed-unavailable", message: "No mark price available" }, now);
+      if (this.triggerReached(order, mark)) {
+        const message = `Trigger price ${order.triggerPrice} is already reached (mark ${mark})`;
+        return this.reject(order, { code: "validation", issues: [{ field: "triggerPrice", message }], message }, now);
       }
-      size = Math.min(size, roundTo(reducible, market.sizeDecimals));
-      order.size = size;
+      const marginError = this.checkMargin(order, order.triggerPrice!, now);
+      if (marginError) return this.reject(order, marginError, now);
+      return this.emitResult(order.id, { type: "accepted" }, now);
     }
 
-    const book = this.books.get(intent.marketId);
-    if (!book) return this.reject(order, "feed-unavailable", "No order book available for this market", now);
-
-    const levels = intent.side === "buy" ? book.asks : book.bids;
+    // ---- market / limit orders
+    const levels = order.side === "buy" ? book.asks : book.bids;
     const best = levels[0]?.price;
     const limit =
-      intent.type === "limit"
-        ? intent.limitPrice!
+      order.type === "limit"
+        ? order.price!
         : best === undefined
           ? null
-          : best * (1 + sign(intent.side) * MARKET_ORDER_MAX_SLIPPAGE);
-    const takeable = limit === null ? [] : this.takeableLevels(levels, intent.side, limit, size);
+          : best * (1 + sign(order.side) * (this.slippage.get(order.id) ?? 0.05));
+    const executable = this.executableSize(order);
+    const takeable = limit === null || this.config.fillModel === "none" ? [] : this.takeableLevels(levels, order.side, limit, executable);
     const takeSize = takeable.reduce((sum, l) => sum + l.size, 0);
 
-    if (intent.type === "market" && takeSize <= EPSILON) {
-      return this.reject(order, "no-liquidity", "No liquidity within 5% of the best price", now);
+    if (order.type === "market" && takeSize <= EPSILON) {
+      return this.reject(order, { code: "no-liquidity", message: "No simulated liquidity within the slippage limit" }, now);
     }
-    if (intent.timeInForce === "post-only" && takeSize > EPSILON) {
-      return this.reject(order, "would-take-liquidity", "Post-only order would cross the book", now);
+    if (order.timeInForce === "post-only" && takeSize > EPSILON) {
+      return this.reject(order, { code: "would-take-liquidity", message: "Post-only order would cross the book" }, now);
     }
+    const referencePrice = order.type === "limit" ? order.price! : (takeable.at(-1)?.price ?? best!);
+    const marginError = this.checkMargin(order, referencePrice, now, takeSize);
+    if (marginError) return this.reject(order, marginError, now);
 
-    // Margin check on the exposure-increasing part of the order.
-    const referencePrice = intent.type === "limit" ? intent.limitPrice! : (takeable.at(-1)?.price ?? best!);
-    const increasing = intent.reduceOnly ? 0 : this.increasingSize(intent.marketId, intent.side, size);
-    const required = (increasing * referencePrice) / intent.leverage + size * referencePrice * this.fees.taker;
-    const available = this.snapshot(now).available;
-    if (required > available + EPSILON) {
-      return this.reject(
-        order,
-        "insufficient-margin",
-        `Insufficient margin: requires ${required.toFixed(2)} ${PAPER_CURRENCY}, available ${Math.max(0, available).toFixed(2)}`,
-        now,
-      );
+    this.emit(order.id, { type: "accepted" }, now);
+    for (const level of takeable) this.executeFill(order.id, level.price, level.size, "taker", now);
+    this.finishTakerOrder(order.id, market, now);
+    return { ok: true, value: this.store.get(order.id)! };
+  }
+
+  /** create + process (synchronous submit). */
+  submit(request: OrderRequest, now: number): Result<Order> {
+    const created = this.createOrder(request, now);
+    if (!created.ok) return created;
+    return this.processOrder(created.value.id, now);
+  }
+
+  cancel(orderId: string, now: number, reason = "Cancelled by user"): Result<Order> {
+    const order = this.store.get(orderId);
+    if (!order) return fail({ code: "order-not-found", message: "Order not found" });
+    if (isTerminalStatus(order.status)) {
+      return fail({ code: "order-not-cancellable", status: order.status, message: `Order is already ${order.status}` });
     }
+    if (order.status === "pending-new") {
+      return this.emitResult(order.id, { type: "cancelled", reason }, now);
+    }
+    this.emit(order.id, { type: "cancel-requested" }, now);
+    return this.emitResult(order.id, { type: "cancelled", reason }, now);
+  }
 
-    for (const level of takeable) this.executeFill(order, level.price, level.size, "taker", now);
+  cancelAll(now: number, marketId?: MarketId): number {
+    let count = 0;
+    for (const order of this.store.openOrders()) {
+      if (marketId && order.marketId !== marketId) continue;
+      if (this.cancel(order.id, now).ok) count += 1;
+    }
+    return count;
+  }
 
-    const remaining = order.size - order.filledSize;
-    if (remaining <= EPSILON) {
-      this.finish(order, "filled", null, now);
-    } else if (intent.type === "market" || intent.timeInForce === "ioc") {
-      this.finish(
-        order,
-        "cancelled",
-        order.filledSize > 0 ? "Partially filled; remainder cancelled (IOC)" : "No fill; cancelled (IOC)",
-        now,
-      );
+  subscribe(listener: (change: OrderStoreChange) => void): () => void {
+    return this.store.subscribe(listener);
+  }
+
+  // ---------------------------------------------------------------- fixtures
+
+  /** Replays a historical fill through the normal lifecycle (fixture seeding). */
+  seedFilledOrder(request: OrderRequest, fillPrice: number, liquidity: "maker" | "taker", time: number): Order {
+    const order = this.unwrap(this.createOrder(request, time));
+    this.emit(order.id, { type: "accepted" }, time);
+    this.executeFill(order.id, fillPrice, request.size, liquidity, time);
+    return this.store.get(order.id)!;
+  }
+
+  seedRestingOrder(request: OrderRequest, time: number): Order {
+    const order = this.unwrap(this.createOrder(request, time));
+    this.emit(order.id, { type: "accepted" }, time);
+    return this.store.get(order.id)!;
+  }
+
+  seedTerminalOrder(request: OrderRequest, status: "cancelled" | "rejected", reason: string, time: number, closedAt: number): Order {
+    const order = this.unwrap(this.createOrder(request, time));
+    if (status === "rejected") {
+      this.emit(order.id, { type: "rejected", reason }, closedAt);
     } else {
-      order.status = order.filledSize > 0 ? "partially-filled" : "open";
-      order.updatedAt = now;
-      this.openOrders.set(order.id, order);
+      this.emit(order.id, { type: "accepted" }, time);
+      this.emit(order.id, { type: "cancel-requested" }, closedAt);
+      this.emit(order.id, { type: "cancelled", reason }, closedAt);
     }
-    return { ok: true, order: { ...order } };
+    return this.store.get(order.id)!;
   }
 
-  cancel(orderId: string, now: number): SubmitResult {
-    const order = this.openOrders.get(orderId);
-    if (!order) return { ok: false, code: "not-found", message: "Order is not open", order: null };
-    this.finish(order, "cancelled", "Cancelled by user", now);
-    return { ok: true, order: { ...order } };
-  }
-
-  cancelAll(now: number): number {
-    const ids = [...this.openOrders.keys()];
-    for (const id of ids) this.cancel(id, now);
-    return ids.length;
-  }
-
-  // ------------------------------------------------------------ fixtures
-
-  /**
-   * Replays a historical fill through the same accounting path as live fills
-   * (used to seed the demo account so fixtures are internally consistent).
-   */
-  seedFilledOrder(
-    intent: OrderIntent,
-    fillPrice: number,
-    liquidity: Exclude<Liquidity, "liquidation">,
-    time: number,
-  ): Order {
-    const order = this.newOrder(intent, time);
-    this.executeFill(order, fillPrice, intent.size, liquidity, time);
-    this.finish(order, "filled", null, time);
-    return order;
-  }
-
-  seedRestingOrder(intent: OrderIntent, time: number): Order {
-    const order = this.newOrder(intent, time);
-    order.status = "open";
-    this.openOrders.set(order.id, order);
-    return order;
-  }
-
-  seedTerminalOrder(intent: OrderIntent, status: "cancelled" | "rejected", reason: string, time: number, closedAt: number): Order {
-    const order = this.newOrder(intent, time);
-    this.finish(order, status, reason, closedAt);
-    return order;
-  }
-
-  // -------------------------------------------------------------- outputs
+  // ----------------------------------------------------------------- outputs
 
   snapshot(now: number): AccountSnapshot {
     const positions: Position[] = [];
@@ -276,13 +367,17 @@ export class PaperEngine {
       });
     }
     let orderMargin = 0;
-    for (const o of this.openOrders.values()) {
-      if (o.reduceOnly || o.price === null) continue;
-      orderMargin += ((o.size - o.filledSize) * o.price) / o.leverage;
+    for (const o of this.store.openOrders()) {
+      const price = o.price ?? o.triggerPrice;
+      if (o.reduceOnly || price === null) continue;
+      orderMargin += ((o.size - o.filledSize) * price) / leverageOf(o);
     }
     const equity = this.balance + unrealized;
+    const available = equity - marginUsed - orderMargin;
     return {
+      origin: "simulated",
       currency: PAPER_CURRENCY,
+      balances: [{ asset: PAPER_CURRENCY, total: this.balance, available }],
       balance: this.balance,
       equity,
       unrealizedPnl: unrealized,
@@ -290,7 +385,7 @@ export class PaperEngine {
       feesPaid: this.feesPaid,
       marginUsed,
       orderMargin,
-      available: equity - marginUsed - orderMargin,
+      available,
       maintenanceMargin: maintenance,
       positions: positions.sort((a, b) => a.marketId.localeCompare(b.marketId)),
       observedAt: now,
@@ -300,49 +395,114 @@ export class PaperEngine {
   state(now: number): AccountState {
     return {
       snapshot: this.snapshot(now),
-      openOrders: [...this.openOrders.values()]
-        .sort((a, b) => b.createdAt - a.createdAt)
-        .map((o) => ({ ...o })),
-      orderHistory: this.history.map((o) => ({ ...o })),
-      fills: [...this.fills],
+      openOrders: this.store.openOrders(),
+      orderHistory: this.store.history(),
+      fills: [...this.store.allFills()],
     };
   }
 
-  // ------------------------------------------------------------ internals
+  // --------------------------------------------------------------- internals
 
-  private newOrder(intent: OrderIntent, now: number): Order {
-    this.orderSeq += 1;
+  private unwrap(result: Result<Order>): Order {
+    if (!result.ok) throw new Error(result.error.message);
+    return result.value;
+  }
+
+  private emit(orderId: string, body: OrderEventBody, time: number): ApplyOutcome {
+    this.eventSeq += 1;
+    const outcome = this.store.apply({ ...body, eventId: `SIM-E${this.eventSeq}`, orderId, time } as Parameters<OrderStore["apply"]>[0]);
+    if (outcome.kind === "rejected") {
+      // The simulator must obey the state machine; a violation is a bug.
+      throw new Error(`Simulator produced an invalid transition: ${JSON.stringify(outcome.error)}`);
+    }
+    return outcome;
+  }
+
+  private emitResult(orderId: string, body: OrderEventBody, time: number): Result<Order> {
+    this.emit(orderId, body, time);
+    return { ok: true, value: this.store.get(orderId)! };
+  }
+
+  private reject(order: Order, error: TradingError, now: number): Result<Order> {
+    this.emit(order.id, { type: "rejected", reason: error.message }, now);
+    return { ok: false, error };
+  }
+
+  private injectedRejection(order: Order): string | null {
+    for (const rule of this.rejectionRules) {
+      if (rule.kind === "next" && rule.remaining > 0) {
+        rule.remaining -= 1;
+        return rule.reason;
+      }
+      if (rule.kind === "every-nth" && this.processedCount % rule.n === 0) return rule.reason;
+      if (rule.kind === "market" && rule.marketId === order.marketId) return rule.reason;
+    }
+    return null;
+  }
+
+  private executableSize(order: Order): number {
+    const remaining = order.size - order.filledSize;
+    return order.reduceOnly ? Math.min(remaining, this.reducibleSize(order.marketId, order.side)) : remaining;
+  }
+
+  private finishTakerOrder(orderId: string, market: Market, now: number): void {
+    const order = this.store.get(orderId)!;
+    if (isTerminalStatus(order.status)) return;
+    const remaining = roundTo(order.size - order.filledSize, market.sizeDecimals);
+    if (remaining <= EPSILON) return;
+    const ioc = order.type !== "limit" || order.timeInForce === "ioc";
+    if (order.reduceOnly && this.reducibleSize(order.marketId, order.side) <= EPSILON) {
+      this.emit(orderId, { type: "cancelled", reason: "Reduce-only: remainder exceeds the position; cancelled" }, now);
+    } else if (ioc) {
+      const reason = order.filledSize > 0 ? "Partially filled; remainder cancelled (IOC)" : "No fill; cancelled (IOC)";
+      this.emit(orderId, { type: "cancelled", reason }, now);
+    }
+  }
+
+  private checkMargin(order: Order, referencePrice: number, now: number, takeSize = order.size): TradingError | null {
+    if (order.reduceOnly) return null;
+    const increasing = Math.max(0, order.size - this.reducibleSize(order.marketId, order.side));
+    const required = (increasing * referencePrice) / leverageOf(order) + Math.max(takeSize, 0) * referencePrice * this.config.fees.taker;
+    const available = this.snapshot(now).available;
+    if (required <= available + EPSILON) return null;
     return {
-      id: `P-${String(this.orderSeq).padStart(6, "0")}`,
-      marketId: intent.marketId,
-      side: intent.side,
-      type: intent.type,
-      price: intent.type === "limit" ? intent.limitPrice : null,
-      size: intent.size,
-      filledSize: 0,
-      averageFillPrice: null,
-      status: "pending-submit",
-      timeInForce: intent.timeInForce,
-      reduceOnly: intent.reduceOnly,
-      leverage: intent.leverage,
-      createdAt: now,
-      updatedAt: now,
-      statusReason: null,
+      code: "insufficient-margin",
+      required,
+      available,
+      message: `Insufficient margin: requires ${required.toFixed(2)} ${PAPER_CURRENCY}, available ${Math.max(0, available).toFixed(2)}`,
     };
   }
 
-  private reject(order: Order, code: SubmitErrorCode, message: string, now: number): SubmitResult {
-    this.finish(order, "rejected", message, now);
-    return { ok: false, code, message, order: { ...order } };
+  private triggerReached(order: Order, mark: number): boolean {
+    const trigger = order.triggerPrice!;
+    const isStop = order.type === "stop-market" || order.type === "stop-limit";
+    // Stops fire when price moves against the order direction's "breakout";
+    // take-profits fire when price reaches the favourable level.
+    if (isStop) return order.side === "buy" ? mark >= trigger : mark <= trigger;
+    return order.side === "buy" ? mark <= trigger : mark >= trigger;
   }
 
-  private finish(order: Order, status: "filled" | "cancelled" | "rejected", reason: string | null, now: number): void {
-    order.status = status;
-    order.statusReason = reason;
-    order.updatedAt = now;
-    this.openOrders.delete(order.id);
-    if (isTerminalStatus(status)) {
-      this.history = [{ ...order }, ...this.history].slice(0, HISTORY_LIMIT);
+  private checkTriggers(marketId: MarketId, mark: number, now: number): void {
+    for (const order of this.store.openOrders()) {
+      if (order.marketId !== marketId || order.status !== "waiting-trigger") continue;
+      if (!this.triggerReached(order, mark)) continue;
+      this.emit(order.id, { type: "triggered" }, now);
+      const market = this.markets.get(marketId)!;
+      const book = this.books.get(marketId);
+      const levels = book ? (order.side === "buy" ? book.asks : book.bids) : [];
+      const best = levels[0]?.price;
+      const executable = this.executableSize(order);
+      const takeable =
+        best === undefined || this.config.fillModel === "none" || executable <= EPSILON
+          ? []
+          : this.takeableLevels(levels, order.side, best * (1 + sign(order.side) * (this.slippage.get(order.id) ?? 0.05)), executable);
+      for (const level of takeable) this.executeFill(order.id, level.price, level.size, "taker", now);
+      const after = this.store.get(order.id)!;
+      if (!isTerminalStatus(after.status) && after.filledSize === 0) {
+        this.emit(order.id, { type: "cancelled", reason: "Triggered, but no simulated liquidity within the slippage limit" }, now);
+      } else {
+        this.finishTakerOrder(order.id, market, now);
+      }
     }
   }
 
@@ -353,7 +513,7 @@ export class PaperEngine {
       if (remaining <= EPSILON) break;
       const acceptable = side === "buy" ? level.price <= limit : level.price >= limit;
       if (!acceptable) break;
-      const take = Math.min(remaining, level.size);
+      const take = Math.min(remaining, level.size * this.config.liquidityFraction);
       result.push({ price: level.price, size: take, orders: level.orders });
       remaining -= take;
     }
@@ -366,44 +526,35 @@ export class PaperEngine {
     return Math.sign(position.size) === -sign(side) ? Math.abs(position.size) : 0;
   }
 
-  private increasingSize(marketId: MarketId, side: Side, size: number): number {
-    return Math.max(0, size - this.reducibleSize(marketId, side));
-  }
-
-  private executeFill(order: Order, price: number, size: number, liquidity: Liquidity, now: number): void {
+  private executeFill(orderId: string, price: number, size: number, liquidity: Liquidity, now: number, reason?: string): void {
+    const order = this.store.get(orderId)!;
     const market = this.markets.get(order.marketId);
     const sizeDecimals = market?.sizeDecimals ?? 8;
-    const qty = roundTo(size, sizeDecimals);
+    const qty = Math.min(roundTo(size, sizeDecimals), roundTo(order.size - order.filledSize, sizeDecimals));
     if (qty <= 0) return;
 
-    const realized = this.applyToPosition(order.marketId, order.side, qty, price, order.leverage, sizeDecimals);
-    const feeRate = liquidity === "maker" ? this.fees.maker : this.fees.taker;
+    const realized = this.applyToPosition(order.marketId, order.side, qty, price, leverageOf(order), sizeDecimals);
+    const feeRate = liquidity === "maker" ? this.config.fees.maker : this.config.fees.taker;
     const fee = qty * price * feeRate;
     this.balance += realized - fee;
     this.realizedPnl += realized;
     this.feesPaid += fee;
 
-    const previousNotional = (order.averageFillPrice ?? 0) * order.filledSize;
-    order.filledSize = roundTo(order.filledSize + qty, sizeDecimals);
-    order.averageFillPrice = (previousNotional + qty * price) / order.filledSize;
-    order.updatedAt = now;
-
     this.fillSeq += 1;
-    this.fills = [
-      {
-        id: `F-${String(this.fillSeq).padStart(6, "0")}`,
-        orderId: liquidity === "liquidation" ? null : order.id,
-        marketId: order.marketId,
-        side: order.side,
-        price,
-        size: qty,
-        fee,
-        liquidity,
-        realizedPnl: realized,
-        time: now,
-      },
-      ...this.fills,
-    ].slice(0, FILL_LIMIT);
+    const fill: Fill = {
+      id: `SIM-F${String(this.fillSeq).padStart(6, "0")}`,
+      orderId: order.id,
+      marketId: order.marketId,
+      side: order.side,
+      price,
+      size: qty,
+      fee,
+      liquidity,
+      realizedPnl: realized,
+      time: now,
+      origin: "simulated",
+    };
+    this.emit(order.id, { type: "fill", fill, ...(reason ? { reason } : {}) }, now);
   }
 
   /** Updates the position and returns realised PnL for the closing part. */
@@ -428,13 +579,7 @@ export class PaperEngine {
       this.positions.delete(marketId);
     } else if (Math.sign(newSize) !== Math.sign(current.size)) {
       // Flipped: the remainder opens a new position at the fill price.
-      this.positions.set(marketId, {
-        marketId,
-        size: newSize,
-        entryPrice: price,
-        leverage,
-        margin: (Math.abs(newSize) * price) / leverage,
-      });
+      this.positions.set(marketId, { marketId, size: newSize, entryPrice: price, leverage, margin: (Math.abs(newSize) * price) / leverage });
     } else {
       current.size = newSize;
       current.margin = (Math.abs(newSize) * current.entryPrice) / current.leverage;
@@ -463,28 +608,26 @@ export class PaperEngine {
     if (liq === null) return;
     const breached = p.size > 0 ? mark <= liq : mark >= liq;
     if (!breached) return;
-    const closeSide: Side = p.size > 0 ? "sell" : "buy";
-    const liquidationOrder = this.newOrder(
+    const created = this.createOrder(
       {
+        clientOrderId: `sim-liquidation-${this.orderSeq + 1}`,
         marketId,
-        side: closeSide,
+        side: p.size > 0 ? "sell" : "buy",
         type: "market",
         size: Math.abs(p.size),
-        limitPrice: null,
-        timeInForce: "ioc",
+        maxSlippage: 0.5,
         reduceOnly: true,
         leverage: p.leverage,
         marginMode: "isolated",
       },
       now,
     );
-    this.executeFill(liquidationOrder, mark, Math.abs(p.size), "liquidation", now);
-    this.finish(liquidationOrder, "filled", "Liquidated by the simulator at mark price", now);
-    // Cancel reduce-only orders that no longer have anything to reduce.
-    for (const order of [...this.openOrders.values()]) {
-      if (order.marketId === marketId && order.reduceOnly) {
-        this.finish(order, "cancelled", "Position liquidated", now);
-      }
+    const order = this.unwrap(created);
+    this.emit(order.id, { type: "accepted" }, now);
+    this.executeFill(order.id, mark, Math.abs(p.size), "liquidation", now, "Liquidated by the simulator at mark price");
+    // Reduce-only orders no longer have anything to reduce.
+    for (const open of this.store.openOrders()) {
+      if (open.marketId === marketId && open.reduceOnly) this.cancel(open.id, now, "Position liquidated");
     }
   }
 }

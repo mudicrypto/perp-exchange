@@ -6,6 +6,7 @@ complete trading terminal, and a clearly-labelled demo environment where orders 
 locally by a paper-trading simulator. No real orders, custody, deposits or withdrawals.
 
 - Architecture: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
+- Trading domain & execution adapters (supported/unsupported features): [`docs/TRADING.md`](docs/TRADING.md)
 - Hyperliquid integration: [`docs/integrations/HYPERLIQUID.md`](docs/integrations/HYPERLIQUID.md)
 - Progress and roadmap: [`docs/CHECKLIST.md`](docs/CHECKLIST.md)
 

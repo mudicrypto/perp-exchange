@@ -1,0 +1,11 @@
+{
+  "assetPositions": [
+    { "position": { "coin": "BTC", "entryPx": "60000.0", "leverage": { "type": "cross", "value": 10 }, "liquidationPx": "54321.0", "marginUsed": "610.0", "positionValue": "6100.0", "returnOnEquity": "0.1639", "szi": "0.1", "unrealizedPnl": "100.0" }, "type": "oneWay" },
+    { "position": { "coin": "ETH", "entryPx": "3000.0", "leverage": { "type": "isolated", "value": 5, "rawUsd": "-2400.0" }, "liquidationPx": null, "marginUsed": "580.0", "positionValue": "2900.0", "returnOnEquity": "0.17", "szi": "-1.0", "unrealizedPnl": "100.0" }, "type": "oneWay" },
+    { "position": { "coin": "SOL", "entryPx": "150.0", "leverage": { "type": "cross", "value": 3 }, "liquidationPx": null, "marginUsed": "0.0", "positionValue": "0.0", "returnOnEquity": "0.0", "szi": "0.0", "unrealizedPnl": "0.0" }, "type": "oneWay" },
+    { "position": { "coin": "xyz:TSLA", "entryPx": "250.0", "leverage": { "type": "isolated", "value": 2 }, "liquidationPx": null, "marginUsed": "125.0", "positionValue": "250.0", "returnOnEquity": "0.0", "szi": "1.0", "unrealizedPnl": "0.0" }, "type": "oneWay" }
+  ],
+  "crossMarginSummary": { "accountValue": "10200.0", "totalMarginUsed": "610.0", "totalNtlPos": "6100.0", "totalRawUsd": "4100.0" },
+  "marginSummary": { "accountValue": "10200.0", "totalMarginUsed": "1190.0", "totalNtlPos": "9000.0", "totalRawUsd": "4100.0" },
+  "withdrawable": "9010.0"
+}

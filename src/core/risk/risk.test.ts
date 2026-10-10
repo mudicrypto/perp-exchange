@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { AccountSnapshot, Market, MarketStats, OrderIntent } from "../domain";
+import type { AccountSnapshot, Market, MarketStats, OrderRequest } from "../domain";
 import { DefaultRiskEngine } from "./risk-engine";
 import { estimateBookImpact, estimateIsolatedLiquidationPrice, initialMargin } from "./risk-math";
 
@@ -27,18 +27,13 @@ const stats: MarketStats = {
   observedAt: 0,
 };
 
-const intent = (overrides: Partial<OrderIntent> = {}): OrderIntent => ({
-  marketId: "BTC-PERP",
-  side: "buy",
-  type: "limit",
-  size: 1,
-  limitPrice: 100,
-  timeInForce: "gtc",
-  reduceOnly: false,
-  leverage: 10,
-  marginMode: "isolated",
-  ...overrides,
-});
+type Overrides = { type?: "limit" | "market"; limitPrice?: number | null; timeInForce?: string; size?: number; leverage?: number };
+const intent = (o: Overrides = {}): OrderRequest => {
+  const base = { clientOrderId: "c1", marketId: "BTC-PERP", side: "buy" as const, size: o.size ?? 1, reduceOnly: false, leverage: o.leverage ?? 10, marginMode: "isolated" as const };
+  return (o.type ?? "limit") === "market"
+    ? { ...base, type: "market", maxSlippage: 0.05 }
+    : { ...base, type: "limit", price: o.limitPrice ?? 100, timeInForce: "gtc" };
+};
 
 describe("estimateIsolatedLiquidationPrice", () => {
   it("long at 10x with 2.5% maintenance", () => {
@@ -109,7 +104,7 @@ describe("DefaultRiskEngine.preTrade", () => {
   };
 
   it("computes margin and liquidation for a limit order", () => {
-    const risk = engine.preTrade({ intent: intent(), market, stats, book, dataIsStale: false })!;
+    const risk = engine.preTrade({ request: intent(), market, stats, book, dataIsStale: false })!;
     expect(risk.notional).toBe(100);
     expect(risk.initialMargin).toBe(10);
     expect(risk.estimatedLiquidationPrice).toBeCloseTo(92.3077, 3);
@@ -119,7 +114,7 @@ describe("DefaultRiskEngine.preTrade", () => {
   });
 
   it("uses book VWAP as reference for market orders", () => {
-    const risk = engine.preTrade({ intent: intent({ type: "market", limitPrice: null, timeInForce: "ioc" }), market, stats, book, dataIsStale: false })!;
+    const risk = engine.preTrade({ request: intent({ type: "market", limitPrice: null, timeInForce: "ioc" }), market, stats, book, dataIsStale: false })!;
     expect(risk.referencePrice).toBeCloseTo(100.55);
     expect(risk.bookImpact?.levelsConsumed).toBe(2);
     expect(risk.bookImpact?.priceImpact).toBeCloseTo(0.45 / 100.1, 6);
@@ -130,24 +125,24 @@ describe("DefaultRiskEngine.preTrade", () => {
   it("warns on high impact and on orders beyond visible depth", () => {
     const thin = { bids: book.bids, asks: [{ price: 100.1, size: 0.5, orders: 1 }, { price: 102, size: 1, orders: 1 }] };
     const marketIntent = intent({ type: "market", limitPrice: null, timeInForce: "ioc" });
-    const impact = engine.preTrade({ intent: marketIntent, market, stats, book: thin, dataIsStale: false })!;
+    const impact = engine.preTrade({ request: marketIntent, market, stats, book: thin, dataIsStale: false })!;
     expect(impact.warnings.map((w) => w.code)).toEqual(["high-price-impact"]);
-    const deep = engine.preTrade({ intent: { ...marketIntent, size: 5 }, market, stats, book: thin, dataIsStale: false })!;
+    const deep = engine.preTrade({ request: { ...marketIntent, size: 5 }, market, stats, book: thin, dataIsStale: false })!;
     expect(deep.warnings.map((w) => w.code)).toContain("exceeds-visible-depth");
   });
 
   it("falls back to mark price for market orders without a book", () => {
-    const risk = engine.preTrade({ intent: intent({ type: "market", limitPrice: null, timeInForce: "ioc" }), market, stats, book: null, dataIsStale: true })!;
+    const risk = engine.preTrade({ request: intent({ type: "market", limitPrice: null, timeInForce: "ioc" }), market, stats, book: null, dataIsStale: true })!;
     expect(risk.referencePrice).toBe(100);
     expect(risk.warnings.map((w) => w.code)).toContain("stale-market-data");
   });
 
   it("returns null when no reference price exists", () => {
-    expect(engine.preTrade({ intent: intent({ type: "market", limitPrice: null, timeInForce: "ioc" }), market, stats: null, book: null, dataIsStale: false })).toBeNull();
+    expect(engine.preTrade({ request: intent({ type: "market", limitPrice: null, timeInForce: "ioc" }), market, stats: null, book: null, dataIsStale: false })).toBeNull();
   });
 
   it("warns on excess leverage, near liquidation and crossing limits", () => {
-    const risk = engine.preTrade({ intent: intent({ leverage: 50, limitPrice: 101 }), market, stats, book, dataIsStale: false })!;
+    const risk = engine.preTrade({ request: intent({ leverage: 50, limitPrice: 101 }), market, stats, book, dataIsStale: false })!;
     const codes = risk.warnings.map((w) => w.code);
     expect(codes).toContain("exceeds-max-leverage");
     expect(codes).toContain("liquidation-near");
@@ -158,7 +153,9 @@ describe("DefaultRiskEngine.preTrade", () => {
 describe("DefaultRiskEngine.portfolio", () => {
   const engine = new DefaultRiskEngine();
   const account: AccountSnapshot = {
+    origin: "venue",
     currency: "USDC",
+    balances: [{ asset: "USDC", total: 960, available: 920 }],
     balance: 960,
     equity: 1000,
     unrealizedPnl: 40,

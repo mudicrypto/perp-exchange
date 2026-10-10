@@ -17,8 +17,15 @@ import {
   NOVA_INFO_WEIGHT_BUDGET_PER_MINUTE,
   type HyperliquidNetwork,
 } from "./constants";
-import { mapCandle, mapMetaAndAssetCtxs } from "./mappers";
-import { HlCandleSnapshotSchema, HlMetaAndAssetCtxsSchema } from "./wire-schemas";
+import { mapCandle, mapClearinghouseState, mapFrontendOpenOrder, mapMetaAndAssetCtxs } from "./mappers";
+import {
+  HlAddressSchema,
+  HlCandleSnapshotSchema,
+  HlClearinghouseStateSchema,
+  HlFrontendOpenOrdersSchema,
+  HlMetaAndAssetCtxsSchema,
+} from "./wire-schemas";
+import type { VenueAccountGateway, VenueAccountReadout } from "@/core/ports";
 
 export type VenueErrorCode = "network" | "timeout" | "http" | "invalid-response" | "rate-limited";
 
@@ -56,7 +63,7 @@ export const MAX_CANDLES = 500;
  * validated with Zod, mapped to domain types and briefly cached to stay well
  * within the venue's rate limits.
  */
-export class HyperliquidInfoClient implements MarketCatalogGateway {
+export class HyperliquidInfoClient implements MarketCatalogGateway, VenueAccountGateway {
   readonly descriptor: DataSourceDescriptor;
   private readonly fetchImpl: typeof fetch;
   private readonly timeoutMs: number;
@@ -121,6 +128,37 @@ export class HyperliquidInfoClient implements MarketCatalogGateway {
       signal,
     );
     return raw.map(mapCandle).sort((a, b) => a.openTime - b.openTime);
+  }
+
+  /**
+   * Read-only account state for a public address: positions and balances
+   * (clearinghouseState) plus working orders (frontendOpenOrders).
+   */
+  async getAccount(address: string, signal?: AbortSignal): Promise<VenueAccountReadout> {
+    const user = HlAddressSchema.parse(address).toLowerCase();
+    const [state, orders] = await Promise.all([
+      this.cachedPost(
+        `clearinghouseState:${user}`,
+        { type: "clearinghouseState", user },
+        HlClearinghouseStateSchema,
+        HYPERLIQUID_INFO_WEIGHT.clearinghouseState,
+        signal,
+      ),
+      this.cachedPost(
+        `frontendOpenOrders:${user}`,
+        { type: "frontendOpenOrders", user },
+        HlFrontendOpenOrdersSchema,
+        HYPERLIQUID_INFO_WEIGHT.frontendOpenOrders,
+        signal,
+      ),
+    ]);
+    const { snapshot, skippedPositions } = mapClearinghouseState(state, this.now());
+    const openOrders = orders.map(mapFrontendOpenOrder).filter((o) => o !== null);
+    return {
+      snapshot,
+      openOrders: openOrders.sort((a, b) => b.createdAt - a.createdAt),
+      skipped: { positions: skippedPositions, orders: orders.length - openOrders.length },
+    };
   }
 
   /** Weight consumed in the current window (exposed for health/diagnostics). */

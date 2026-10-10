@@ -8,22 +8,49 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EstimateHint, SummaryRow } from "@/components/trading/values";
-import type { Market, MarketStats, OrderIntent, OrderType, Side, TimeInForce } from "@/core/domain";
-import { EXECUTION_DISABLED_MESSAGE, validateOrderIntent } from "@/core/execution";
+import {
+  ORDER_TYPE_CAPABILITY,
+  OrderRequestSchema,
+  isTriggerType,
+  type CapabilityStatus,
+  type Market,
+  type MarketStats,
+  type Order,
+  type OrderRequest,
+  type OrderType,
+  type Result,
+  type Side,
+  type TimeInForce,
+} from "@/core/domain";
 import type { OrderBookView } from "@/core/market-data";
 import { describeExecutionVisibility } from "@/core/private-execution";
-import type { PreTradeRisk, RiskWarning, SubmitResult } from "@/core/ports";
+import type { PreTradeRisk, RiskWarning } from "@/core/ports";
 import { DefaultRiskEngine } from "@/core/risk";
+import { checkRequestCapabilities } from "@/core/trading";
 import { displayPriceDecimals, formatAmount, formatPercent, formatPrice, formatSize } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { newClientOrderId } from "../client-order-id";
 import { useTerminal } from "../terminal-context";
+import { ORDER_TYPE_LABEL } from "./order-labels";
 import { OrderReviewDialog } from "./order-review-dialog";
 import { PrivateExecutionDialog } from "./private-execution-dialog";
 
 const riskEngine = new DefaultRiskEngine();
 const SIZE_PRESETS = [0.25, 0.5, 0.75, 1] as const;
+const MAX_SLIPPAGE = 0.05;
+
+
+const TRIGGER_TYPES: readonly OrderType[] = ["stop-market", "take-profit-market", "stop-limit", "take-profit-limit"];
+const ADVANCED_TYPES: readonly OrderType[] = ["iceberg", "hidden"];
+
+/** How the ticket treats an order type, derived only from the capability status. */
+export type TypeAvailability = "available" | "preview-only" | "unavailable";
+export function availabilityOf(status: CapabilityStatus): TypeAvailability {
+  if (status.status === "supported") return "available";
+  // The venue offers it but Nova does not (yet): allow validation and risk preview, never submission.
+  return status.scope === "nova" ? "preview-only" : "unavailable";
+}
 
 export function warningText(warning: RiskWarning): string {
   switch (warning.code) {
@@ -47,6 +74,9 @@ function floorTo(value: number, decimals: number): number {
   return Math.floor(value * factor) / factor;
 }
 
+
+const hasLimitPrice = (type: OrderType) => !(type === "market" || type === "stop-market" || type === "take-profit-market");
+
 export interface OrderTicketProps {
   market: Market;
   stats: MarketStats | null;
@@ -60,73 +90,80 @@ export interface OrderTicketProps {
 export function OrderTicket({ market, stats, book, dataIsStale, price, onPriceChange }: OrderTicketProps) {
   const { execution, capabilities, accountState } = useTerminal();
   const ids = useId();
+  const instrument = useMemo(() => execution.describeInstrument(market), [execution, market]);
+  const caps = capabilities.capabilities;
   const position = accountState?.snapshot.positions.find((p) => p.marketId === market.id) ?? null;
+
   const [side, setSide] = useState<Side>("buy");
   const [type, setType] = useState<OrderType>("limit");
   const [size, setSize] = useState("");
+  const [triggerPrice, setTriggerPrice] = useState("");
   const [tif, setTif] = useState<TimeInForce>("gtc");
   const [reduceOnly, setReduceOnly] = useState(false);
   const [leverageState, setLeverage] = useState(() => Math.min(10, market.maxLeverage));
-  const [reviewing, setReviewing] = useState<OrderIntent | null>(null);
-  const [result, setResult] = useState<SubmitResult | null>(null);
+  const [reviewing, setReviewing] = useState<OrderRequest | null>(null);
+  const [result, setResult] = useState<Result<Order> | null>(null);
 
-  // An open position fixes the leverage for this market (isolated margin).
   const leverage = position && !reduceOnly ? position.leverage : leverageState;
   const leverageLocked = position !== null && !reduceOnly;
-  const paper = execution.mode === "paper";
   const decimals = displayPriceDecimals(stats?.markPrice ?? book?.mid, market.priceDecimals);
+  const typeStatus = caps[ORDER_TYPE_CAPABILITY[type]];
+  const typeAvailability = availabilityOf(typeStatus);
 
-  const intentInput = {
+  // ---- build the request the venue adapter will see
+  const base = {
+    clientOrderId: "draft",
     marketId: market.id,
     side,
-    type,
     size: Number(size),
-    limitPrice: type === "limit" ? (price === "" ? null : Number(price)) : null,
-    timeInForce: type === "market" ? "ioc" : tif,
     reduceOnly,
     leverage,
-    marginMode: "isolated",
-  } as const;
+    marginMode: "isolated" as const,
+  };
+  const priceValue = price === "" ? Number.NaN : Number(price);
+  const triggerValue = triggerPrice === "" ? Number.NaN : Number(triggerPrice);
+  const input: Record<string, unknown> = { ...base, type };
+  if (hasLimitPrice(type)) Object.assign(input, { price: priceValue, timeInForce: tif });
+  if (!hasLimitPrice(type)) input.maxSlippage = MAX_SLIPPAGE;
+  if (isTriggerType(type)) input.triggerPrice = triggerValue;
 
   const touched = size !== "";
-  const validation = touched ? validateOrderIntent(intentInput, market) : null;
+  const validation = touched ? execution.validateOrder(input, instrument, { referencePrice: stats?.markPrice }) : null;
+  // A request can be well-formed but not submittable through Nova (preview-only types).
+  const parsed = validation?.ok ? validation.value : touched ? (OrderRequestSchema.safeParse(input).data ?? null) : null;
   const risk: PreTradeRisk | null =
-    validation?.ok === true
-      ? riskEngine.preTrade({
-          intent: validation.intent,
-          market,
-          stats,
-          book: book ? { bids: book.bids, asks: book.asks } : null,
-          dataIsStale,
-        })
+    parsed && !(validation && !validation.ok && validation.error.code === "validation")
+      ? riskEngine.preTrade({ request: parsed, market, stats, book: book ? { bids: book.bids, asks: book.asks } : null, dataIsStale })
       : null;
 
-  const referencePrice =
-    type === "limit" && Number(price) > 0 ? Number(price) : side === "buy" ? book?.bestAsk ?? stats?.markPrice : book?.bestBid ?? stats?.markPrice;
-  const available = accountState?.snapshot.available ?? null;
-  const maxSize =
-    available !== null && referencePrice
-      ? floorTo(Math.max(0, (available * leverage) / (referencePrice * (1 + leverage * 0.001))), market.sizeDecimals)
-      : null;
+  const submitBlocker = (() => {
+    const submit = caps["action.submit"];
+    if (submit.status !== "supported") return submit.reason;
+    if (parsed) return checkRequestCapabilities(parsed, caps)?.message ?? null;
+    return typeStatus.status === "supported" ? null : typeStatus.reason;
+  })();
+  const canSubmit = submitBlocker === null && validation?.ok === true;
 
-  const disclosure = useMemo(() => describeExecutionVisibility(capabilities, null), [capabilities]);
+  const disclosure = useMemo(() => describeExecutionVisibility(capabilities.visibility, null), [capabilities]);
   const reasonId = `${ids}-reason`;
+  const simulated = capabilities.origin === "simulated";
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
     setResult(null);
-    if (!paper || validation?.ok !== true) return;
-    setReviewing(validation.intent);
+    if (canSubmit && validation?.ok) setReviewing({ ...validation.value, clientOrderId: newClientOrderId() });
   };
 
-  const confirm = async (intent: OrderIntent) => {
-    const outcome = await execution.submit(intent);
+  const confirm = async (request: OrderRequest) => {
+    const outcome = await execution.submitOrder(request, instrument);
     setReviewing(null);
     setResult(outcome);
     if (outcome.ok) setSize("");
   };
 
   const sideLabel = side === "buy" ? "Buy / Long" : "Sell / Short";
+  const issues = validation && !validation.ok && validation.error.code === "validation" ? validation.error.issues : [];
+  const unsupportedMessage = validation && !validation.ok && validation.error.code === "unsupported" ? validation.error.message : null;
 
   return (
     <form onSubmit={submit} className="flex h-full flex-col gap-3 overflow-y-auto p-3" data-testid="order-ticket" aria-label="Order entry">
@@ -140,11 +177,7 @@ export function OrderTicket({ market, stats, book, dataIsStale, price, onPriceCh
             onClick={() => setSide(s)}
             className={cn(
               "rounded px-2 py-1.5 text-sm font-semibold transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
-              side === s
-                ? s === "buy"
-                  ? "bg-buy text-black"
-                  : "bg-sell text-black"
-                : "text-muted-foreground hover:text-foreground",
+              side === s ? (s === "buy" ? "bg-buy text-black" : "bg-sell text-black") : "text-muted-foreground hover:text-foreground",
             )}
           >
             {s === "buy" ? "Buy / Long" : "Sell / Short"}
@@ -152,17 +185,28 @@ export function OrderTicket({ market, stats, book, dataIsStale, price, onPriceCh
         ))}
       </div>
 
-      <Tabs value={type} onValueChange={(v) => setType(v as OrderType)}>
-        <TabsList className="w-full">
-          <TabsTrigger value="limit" data-testid="type-limit">Limit</TabsTrigger>
-          <TabsTrigger value="market" data-testid="type-market">Market</TabsTrigger>
-        </TabsList>
-      </Tabs>
+      <OrderTypePicker type={type} onChange={setType} />
 
-      {type === "limit" && (
+      {isTriggerType(type) && (
+        <div className="grid gap-1.5">
+          <Label htmlFor={`${ids}-trigger`} className="text-xs">Trigger price ({market.quote}, mark)</Label>
+          <Input
+            id={`${ids}-trigger`}
+            data-testid="input-trigger"
+            inputMode="decimal"
+            autoComplete="off"
+            className="tabular"
+            placeholder={stats ? formatPrice(stats.markPrice, decimals).replaceAll(",", "") : "0.00"}
+            value={triggerPrice}
+            onChange={(e) => setTriggerPrice(e.target.value)}
+          />
+        </div>
+      )}
+
+      {hasLimitPrice(type) && (
         <div className="grid gap-1.5">
           <div className="flex items-center justify-between">
-            <Label htmlFor={`${ids}-price`} className="text-xs">Price ({market.quote})</Label>
+            <Label htmlFor={`${ids}-price`} className="text-xs">{isTriggerType(type) ? "Limit price" : "Price"} ({market.quote})</Label>
             {book?.mid != null && (
               <button
                 type="button"
@@ -187,41 +231,18 @@ export function OrderTicket({ market, stats, book, dataIsStale, price, onPriceCh
         </div>
       )}
 
-      <div className="grid gap-1.5">
-        <div className="flex items-center justify-between">
-          <Label htmlFor={`${ids}-size`} className="text-xs">Quantity ({market.base})</Label>
-          {maxSize !== null && (
-            <span className="tabular text-2xs text-muted-foreground">Max ≈ {formatSize(maxSize, market.sizeDecimals)}</span>
-          )}
-        </div>
-        <Input
-          id={`${ids}-size`}
-          data-testid="input-size"
-          inputMode="decimal"
-          autoComplete="off"
-          className="tabular"
-          placeholder="0"
-          value={size}
-          onChange={(e) => setSize(e.target.value)}
-          aria-invalid={validation?.ok === false && validation.issues.some((i) => i.field === "size")}
-        />
-        <div className="grid grid-cols-4 gap-1" role="group" aria-label="Quantity presets">
-          {SIZE_PRESETS.map((fraction) => (
-            <Button
-              key={fraction}
-              type="button"
-              size="sm"
-              variant="secondary"
-              className="h-6 text-2xs"
-              disabled={maxSize === null || maxSize <= 0}
-              data-testid={`size-preset-${fraction * 100}`}
-              onClick={() => maxSize !== null && setSize(String(floorTo(maxSize * fraction, market.sizeDecimals)))}
-            >
-              {fraction * 100}%
-            </Button>
-          ))}
-        </div>
-      </div>
+      <QuantityField
+        id={`${ids}-size`}
+        market={market}
+        size={size}
+        onSize={setSize}
+        invalid={issues.some((i) => i.field === "size")}
+        maxSize={(() => {
+          const available = accountState?.snapshot.available ?? null;
+          const ref = hasLimitPrice(type) && priceValue > 0 ? priceValue : isTriggerType(type) && triggerValue > 0 ? triggerValue : side === "buy" ? book?.bestAsk : book?.bestBid;
+          return available !== null && ref ? floorTo(Math.max(0, (available * leverage) / (ref * (1 + leverage * 0.001))), market.sizeDecimals) : null;
+        })()}
+      />
 
       <div className="grid gap-2">
         <div className="flex items-center justify-between">
@@ -239,35 +260,44 @@ export function OrderTicket({ market, stats, book, dataIsStale, price, onPriceCh
           onValueChange={([v]) => v !== undefined && setLeverage(v)}
           data-testid="leverage-slider"
         />
-        {leverageLocked && (
-          <p className="text-2xs text-muted-foreground">Locked to the open position&apos;s {position.leverage}x.</p>
-        )}
+        {leverageLocked && <p className="text-2xs text-muted-foreground">Locked to the open position&apos;s {position.leverage}x.</p>}
       </div>
 
       <div className="flex items-center justify-between gap-2">
-        {type === "limit" ? (
+        {hasLimitPrice(type) ? (
           <Select value={tif} onValueChange={(v) => setTif(v as TimeInForce)}>
             <SelectTrigger size="sm" className="h-8 w-36 text-xs" aria-label="Time in force" data-testid="select-tif">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="gtc">Good till cancel</SelectItem>
-              <SelectItem value="ioc">Immediate or cancel</SelectItem>
-              <SelectItem value="post-only">Post only</SelectItem>
+              {(["gtc", "ioc", "post-only"] as const).map((value) => {
+                const status = caps[`tif.${value}` as const];
+                return (
+                  <SelectItem key={value} value={value} disabled={availabilityOf(status) === "unavailable"}>
+                    {{ gtc: "Good till cancel", ioc: "Immediate or cancel", "post-only": "Post only" }[value]}
+                  </SelectItem>
+                );
+              })}
             </SelectContent>
           </Select>
         ) : (
-          <span className="text-2xs text-muted-foreground">Max slippage 5% from best price</span>
+          <span className="text-2xs text-muted-foreground">Max slippage {formatPercent(MAX_SLIPPAGE, 0)} from best price</span>
         )}
         <div className="flex items-center gap-1.5">
-          <Checkbox id={`${ids}-ro`} checked={reduceOnly} onCheckedChange={(v) => setReduceOnly(v === true)} data-testid="reduce-only" />
+          <Checkbox
+            id={`${ids}-ro`}
+            checked={reduceOnly}
+            onCheckedChange={(v) => setReduceOnly(v === true)}
+            disabled={availabilityOf(caps["order.reduce-only"]) === "unavailable"}
+            data-testid="reduce-only"
+          />
           <Label htmlFor={`${ids}-ro`} className="text-xs font-normal">Reduce only</Label>
         </div>
       </div>
 
-      {validation?.ok === false && (
+      {issues.length > 0 && (
         <ul className="space-y-1 text-xs text-sell" data-testid="ticket-errors" role="alert">
-          {validation.issues.map((issue) => (
+          {issues.map((issue) => (
             <li key={`${issue.field}:${issue.message}`}>{issue.message}</li>
           ))}
         </ul>
@@ -277,13 +307,15 @@ export function OrderTicket({ market, stats, book, dataIsStale, price, onPriceCh
         <h3 className="mb-1 flex items-center justify-between text-xs font-semibold">
           Order preview
           <EstimateHint>
-            Assumes an isolated position funded with exactly the initial margin. Market orders use visible book depth only.
-            Excludes fees, funding and tiered margin requirements.
+            Assumes an isolated position funded with exactly the initial margin. Market orders use visible book depth
+            only; trigger orders use the trigger price. Excludes fees, funding and tiered margin requirements.
           </EstimateHint>
         </h3>
         {risk ? (
           <dl>
-            <SummaryRow label={type === "market" ? "Est. avg fill" : "Limit price"}>{formatPrice(risk.referencePrice, decimals)}</SummaryRow>
+            <SummaryRow label={type === "market" ? "Est. avg fill" : isTriggerType(type) && !hasLimitPrice(type) ? "Trigger price" : "Limit price"}>
+              {formatPrice(risk.referencePrice, decimals)}
+            </SummaryRow>
             <SummaryRow label="Order value" testId="risk-notional">{formatAmount(risk.notional)} {market.quote}</SummaryRow>
             <SummaryRow label="Initial margin" testId="risk-margin">
               <span className="font-semibold">{formatAmount(risk.initialMargin)}</span> {market.quote}
@@ -292,12 +324,8 @@ export function OrderTicket({ market, stats, book, dataIsStale, price, onPriceCh
               <span className="font-semibold">{formatPrice(risk.estimatedLiquidationPrice, decimals)}</span>
             </SummaryRow>
             <SummaryRow label="Distance to liquidation">{formatPercent(risk.liquidationDistance, 2)}</SummaryRow>
-            {risk.bookImpact && (
-              <SummaryRow label="Est. price impact" testId="risk-impact">{formatPercent(risk.bookImpact.priceImpact, 3)}</SummaryRow>
-            )}
-            {available !== null && (
-              <SummaryRow label="Available margin" testId="risk-available">{formatAmount(available)} {market.quote}</SummaryRow>
-            )}
+            {risk.bookImpact && <SummaryRow label="Est. price impact" testId="risk-impact">{formatPercent(risk.bookImpact.priceImpact, 3)}</SummaryRow>}
+            {accountState && <SummaryRow label="Available margin" testId="risk-available">{formatAmount(accountState.snapshot.available)} {market.quote}</SummaryRow>}
             {risk.warnings.length > 0 && (
               <ul className="mt-1.5 space-y-1 text-xs text-warning" data-testid="risk-warnings">
                 {risk.warnings.map((w) => (
@@ -311,17 +339,13 @@ export function OrderTicket({ market, stats, book, dataIsStale, price, onPriceCh
           </dl>
         ) : (
           <p className="text-xs text-muted-foreground">
-            Enter a quantity{type === "limit" ? " and price" : ""} to preview margin and liquidation risk.
+            Enter a quantity{hasLimitPrice(type) ? " and price" : ""}
+            {isTriggerType(type) ? " and trigger price" : ""} to preview margin and liquidation risk.
           </p>
         )}
       </section>
 
-      <section
-        aria-label="Execution visibility"
-        data-testid="execution-visibility"
-        data-level={disclosure.level}
-        className="flex items-start justify-between gap-2 rounded-md border p-2.5"
-      >
+      <section aria-label="Execution visibility" data-testid="execution-visibility" data-level={disclosure.level} className="flex items-start justify-between gap-2 rounded-md border p-2.5">
         <div className="min-w-0">
           <p className="flex items-center gap-1.5 text-xs font-semibold">
             <Eye className="size-3.5" aria-hidden /> {disclosure.headline}
@@ -337,26 +361,34 @@ export function OrderTicket({ market, stats, book, dataIsStale, price, onPriceCh
 
       <div className="mt-auto space-y-1.5">
         {result && <SubmitResultBanner result={result} market={market} onDismiss={() => setResult(null)} />}
+        {typeAvailability !== "available" && (
+          <p className="rounded-md border border-warning/30 bg-warning/10 p-2 text-2xs text-warning" data-testid="type-unsupported" role="status">
+            {ORDER_TYPE_LABEL[type]} orders: {typeStatus.status === "unsupported" ? typeStatus.reason : ""}
+            {typeAvailability === "preview-only" ? " Preview only." : ""}
+          </p>
+        )}
+        {unsupportedMessage && typeAvailability === "available" && <p className="text-2xs text-warning">{unsupportedMessage}</p>}
         <Button
           type="submit"
-          className={cn("w-full font-semibold", paper && (side === "buy" ? "bg-buy text-black hover:bg-buy/90" : "bg-sell text-black hover:bg-sell/90"))}
-          disabled={!paper || validation?.ok !== true}
+          className={cn("w-full font-semibold", canSubmit && (side === "buy" ? "bg-buy text-black hover:bg-buy/90" : "bg-sell text-black hover:bg-sell/90"))}
+          disabled={!canSubmit}
           aria-describedby={reasonId}
           data-testid="submit-order"
         >
-          {paper ? `Review ${sideLabel}` : sideLabel} {market.base}
+          {submitBlocker === null ? `Review ${sideLabel}` : sideLabel} {market.base}
         </Button>
-        <p id={reasonId} className="text-center text-2xs text-muted-foreground">
-          {paper ? "Paper trading: matched locally against simulated data. Nothing is sent to a real venue." : EXECUTION_DISABLED_MESSAGE}
+        <p id={reasonId} className="text-center text-2xs text-muted-foreground" data-testid="submit-reason">
+          {submitBlocker ?? (simulated ? "Simulated venue: matched locally against simulated data. Nothing is sent to a real venue." : "")}
         </p>
       </div>
 
       {reviewing && risk && (
         <OrderReviewDialog
-          intent={reviewing}
+          request={reviewing}
           market={market}
           risk={risk}
           disclosure={disclosure}
+          simulated={simulated}
           onCancel={() => setReviewing(null)}
           onConfirm={() => confirm(reviewing)}
         />
@@ -365,28 +397,165 @@ export function OrderTicket({ market, stats, book, dataIsStale, price, onPriceCh
   );
 }
 
-function SubmitResultBanner({ result, market, onDismiss }: { result: SubmitResult; market: Market; onDismiss: () => void }) {
-  const decimals = displayPriceDecimals(result.order?.averageFillPrice ?? result.order?.price, market.priceDecimals);
+function OrderTypePicker({ type, onChange }: { type: OrderType; onChange: (type: OrderType) => void }) {
+  const { capabilities } = useTerminal();
+  const caps = capabilities.capabilities;
+  const option = (t: OrderType) => {
+    const status = caps[ORDER_TYPE_CAPABILITY[t]];
+    const availability = availabilityOf(status);
+    return { t, availability, reason: status.status === "unsupported" ? status.reason : null };
+  };
+  const primary = (["limit", "market"] as const).map(option);
+  const trigger = TRIGGER_TYPES.map(option);
+  const advanced = ADVANCED_TYPES.map(option);
+  const triggerActive = TRIGGER_TYPES.includes(type);
+
+  return (
+    <div className="grid gap-1.5">
+      <div className="grid grid-cols-3 gap-1 rounded-md bg-muted p-1" role="group" aria-label="Order type">
+        {primary.map(({ t, availability, reason }) => (
+          <button
+            key={t}
+            type="button"
+            aria-pressed={type === t}
+            disabled={availability === "unavailable"}
+            title={reason ?? undefined}
+            data-testid={`type-${t}`}
+            data-availability={availability}
+            onClick={() => onChange(t)}
+            className={cn(
+              "rounded px-2 py-1 text-xs font-medium focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-40",
+              type === t ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {ORDER_TYPE_LABEL[t]}
+          </button>
+        ))}
+        <Select
+          value={triggerActive ? type : ""}
+          onValueChange={(v) => onChange(v as OrderType)}
+        >
+          <SelectTrigger
+            size="sm"
+            className={cn("h-7 border-0 px-2 text-xs shadow-none", triggerActive ? "bg-background" : "bg-transparent text-muted-foreground")}
+            aria-label="Trigger order type"
+            data-testid="type-trigger"
+          >
+            {/* Explicit children: show only the label, not the item's description. */}
+            <SelectValue placeholder="Trigger">{triggerActive ? ORDER_TYPE_LABEL[type] : undefined}</SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            {trigger.map(({ t, availability, reason }) => (
+              <SelectItem key={t} value={t} disabled={availability === "unavailable"} data-testid={`type-option-${t}`} data-availability={availability}>
+                <span className="flex flex-col">
+                  <span>{ORDER_TYPE_LABEL[t]}{availability === "preview-only" ? " · preview only" : ""}</span>
+                  {reason && availability !== "available" && <span className="max-w-60 text-2xs whitespace-normal text-muted-foreground">{reason}</span>}
+                </span>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <details className="text-2xs text-muted-foreground" data-testid="advanced-types">
+        <summary className="cursor-pointer select-none hover:text-foreground">Other order types &amp; execution styles</summary>
+        <ul className="mt-1 space-y-1">
+          {advanced.map(({ t, availability, reason }) => (
+            <li key={t} data-testid={`advanced-${t}`} data-availability={availability}>
+              <span className="font-medium text-foreground">{ORDER_TYPE_LABEL[t]}:</span> {availability === "available" ? "supported" : reason}
+            </li>
+          ))}
+          {(["execution.rfq", "order.twap"] as const).map((cap) => {
+            const status = caps[cap];
+            return (
+              <li key={cap} data-testid={`advanced-${cap}`} data-availability={availabilityOf(status)}>
+                <span className="font-medium text-foreground">{cap === "execution.rfq" ? "RFQ" : "TWAP"}:</span>{" "}
+                {status.status === "supported" ? "supported" : status.reason}
+              </li>
+            );
+          })}
+        </ul>
+      </details>
+    </div>
+  );
+}
+
+function QuantityField({
+  id,
+  market,
+  size,
+  onSize,
+  invalid,
+  maxSize,
+}: {
+  id: string;
+  market: Market;
+  size: string;
+  onSize: (value: string) => void;
+  invalid: boolean;
+  maxSize: number | null;
+}) {
+  return (
+    <div className="grid gap-1.5">
+      <div className="flex items-center justify-between">
+        <Label htmlFor={id} className="text-xs">Quantity ({market.base})</Label>
+        {maxSize !== null && <span className="tabular text-2xs text-muted-foreground">Max ≈ {formatSize(maxSize, market.sizeDecimals)}</span>}
+      </div>
+      <Input id={id} data-testid="input-size" inputMode="decimal" autoComplete="off" className="tabular" placeholder="0" value={size} onChange={(e) => onSize(e.target.value)} aria-invalid={invalid} />
+      <div className="grid grid-cols-4 gap-1" role="group" aria-label="Quantity presets">
+        {SIZE_PRESETS.map((fraction) => (
+          <Button
+            key={fraction}
+            type="button"
+            size="sm"
+            variant="secondary"
+            className="h-6 text-2xs"
+            disabled={maxSize === null || maxSize <= 0}
+            data-testid={`size-preset-${fraction * 100}`}
+            onClick={() => maxSize !== null && onSize(String(floorTo(maxSize * fraction, market.sizeDecimals)))}
+          >
+            {fraction * 100}%
+          </Button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SubmitResultBanner({ result, market, onDismiss }: { result: Result<Order>; market: Market; onDismiss: () => void }) {
   let tone: "ok" | "info" | "bad" = "bad";
   let text: string;
   if (!result.ok) {
-    text = `Rejected: ${result.message}`;
+    text = result.error.code === "unsupported" ? `Not supported: ${result.error.message}` : `Rejected: ${result.error.message}`;
   } else {
-    const o = result.order;
+    const o = result.value;
+    const prefix = o.origin === "simulated" ? "Simulated " : "";
+    const decimals = displayPriceDecimals(o.averageFillPrice ?? o.price ?? o.triggerPrice, market.priceDecimals);
     const filled = formatSize(o.filledSize, market.sizeDecimals);
     const avg = formatPrice(o.averageFillPrice, decimals);
-    if (o.status === "filled") {
-      tone = "ok";
-      text = `Simulated fill: ${filled} ${market.base} @ ${avg}.`;
-    } else if (o.status === "open" || o.status === "partially-filled") {
-      tone = "info";
-      text =
-        o.filledSize > 0
-          ? `Simulated fill ${filled} ${market.base} @ ${avg}; rest is resting at ${formatPrice(o.price, decimals)}.`
-          : `Order resting at ${formatPrice(o.price, decimals)} (simulated book).`;
-    } else {
-      tone = o.filledSize > 0 ? "info" : "bad";
-      text = `${o.filledSize > 0 ? `Simulated fill ${filled} ${market.base} @ ${avg}. ` : ""}${o.statusReason ?? "Cancelled"}.`;
+    switch (o.status) {
+      case "filled":
+        tone = "ok";
+        text = `${prefix}fill: ${filled} ${market.base} @ ${avg}.`;
+        break;
+      case "open":
+      case "partially-filled":
+        tone = "info";
+        text =
+          o.filledSize > 0
+            ? `${prefix}fill ${filled} ${market.base} @ ${avg}; rest is resting at ${formatPrice(o.price, decimals)}.`
+            : `Order resting at ${formatPrice(o.price, decimals)}${o.origin === "simulated" ? " (simulated book)" : ""}.`;
+        break;
+      case "waiting-trigger":
+        tone = "info";
+        text = `${ORDER_TYPE_LABEL[o.type]} order waiting for trigger at ${formatPrice(o.triggerPrice, decimals)}${o.origin === "simulated" ? " (simulated mark)" : ""}.`;
+        break;
+      case "pending-new":
+        tone = "info";
+        text = "Order submitted; waiting for the venue to acknowledge.";
+        break;
+      default:
+        tone = o.filledSize > 0 ? "info" : "bad";
+        text = `${o.filledSize > 0 ? `${prefix}fill ${filled} ${market.base} @ ${avg}. ` : ""}${o.statusReason ?? o.status}.`;
     }
   }
   const Icon = tone === "ok" ? CheckCircle2 : tone === "bad" ? XCircle : AlertTriangle;

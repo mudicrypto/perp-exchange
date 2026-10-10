@@ -12,23 +12,26 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { SummaryRow } from "@/components/trading/values";
-import type { Market, OrderIntent } from "@/core/domain";
+import { isTriggerType, requestTimeInForce, requestTriggerPrice, type Market, type OrderRequest } from "@/core/domain";
 import type { PreTradeRisk } from "@/core/ports";
 import type { ExecutionDisclosure } from "@/core/private-execution";
 import { displayPriceDecimals, formatAmount, formatPercent, formatPrice, formatSize } from "@/lib/format";
+import { ORDER_TYPE_LABEL } from "./order-labels";
 
 const TIF_LABEL = { gtc: "Good till cancel", ioc: "Immediate or cancel", "post-only": "Post only" } as const;
 
-/** Explicit confirmation step before a (paper) order is sent to the venue adapter. */
+/** Explicit confirmation step before an order is sent to the execution adapter. */
 export function OrderReviewDialog({
-  intent,
+  request: intent,
   market,
   risk,
   disclosure,
+  simulated,
   onConfirm,
   onCancel,
 }: {
-  intent: OrderIntent;
+  request: OrderRequest;
+  simulated: boolean;
   market: Market;
   risk: PreTradeRisk;
   disclosure: ExecutionDisclosure;
@@ -49,17 +52,22 @@ export function OrderReviewDialog({
           </DialogTitle>
           <DialogDescription className="flex items-start gap-1.5 text-warning">
             <FlaskConical className="mt-0.5 size-3.5 shrink-0" aria-hidden />
-            Simulated paper order. It is matched locally against the simulated order book using fictitious{" "}
-            {market.quote}. Nothing is sent to a real venue.
+            {simulated
+              ? `Simulated order. It is matched locally against the simulated order book using fictitious ${market.quote}. Nothing is sent to a real venue.`
+              : "This order will be sent to the venue."}
           </DialogDescription>
         </DialogHeader>
         <dl className="rounded-md border p-3">
           <SummaryRow label="Market">{market.id}</SummaryRow>
           <SummaryRow label="Type">
-            {intent.type === "limit" ? `Limit · ${TIF_LABEL[intent.timeInForce]}` : "Market (IOC)"}
+            {ORDER_TYPE_LABEL[intent.type]}
+            {requestTimeInForce(intent) ? ` · ${TIF_LABEL[requestTimeInForce(intent)!]}` : intent.type === "market" ? " (IOC)" : ""}
             {intent.reduceOnly ? " · Reduce only" : ""}
           </SummaryRow>
-          <SummaryRow label={intent.type === "limit" ? "Limit price" : "Est. avg fill"}>{formatPrice(risk.referencePrice, decimals)}</SummaryRow>
+          {isTriggerType(intent.type) && (
+            <SummaryRow label="Trigger price (mark)">{formatPrice(requestTriggerPrice(intent), decimals)}</SummaryRow>
+          )}
+          <SummaryRow label={intent.type === "market" ? "Est. avg fill" : "Reference price"}>{formatPrice(risk.referencePrice, decimals)}</SummaryRow>
           <SummaryRow label="Order value">{formatAmount(risk.notional)} {market.quote}</SummaryRow>
           <SummaryRow label="Leverage">{intent.leverage}x isolated</SummaryRow>
           <SummaryRow label="Initial margin">{formatAmount(risk.initialMargin)} {market.quote}</SummaryRow>
@@ -88,7 +96,7 @@ export function OrderReviewDialog({
               }
             }}
           >
-            {submitting ? "Submitting…" : "Place paper order"}
+            {submitting ? "Submitting…" : simulated ? "Place simulated order" : "Place order"}
           </Button>
         </DialogFooter>
       </DialogContent>

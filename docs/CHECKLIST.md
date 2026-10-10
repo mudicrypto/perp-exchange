@@ -111,20 +111,36 @@ Design system
 - [ ] Re-check rate-limit figures and schemas against the official docs pages
 - [ ] Record real WS/REST fixtures from a live session to replace hand-written ones
 
-## Milestone 3 — Watch-only account data (next)
+## Milestone 3 — Venue-independent trading domain and execution adapters
+- [x] Domain models: Instrument, OrderRequest (8 types), Order + statuses, Fill, Position, Balance/AccountSnapshot, TradingError/Result, capabilities
+- [x] `origin: "simulated" | "venue"` on orders, fills and account snapshots; unreported venue fields are `null`
+- [x] Pure order-lifecycle reducer + `OrderStore` (duplicate events/fills, stale sequences, invalid transitions, overfill)
+- [x] Venue-independent validation (unsupported-first, then all rule issues; significant figures, decimals, leverage, margin modes, min value)
+- [x] `ExecutionAdapter` port: capabilities, describeInstrument, validate, submit, cancel, cancel-all, open orders, positions, account state, order/fill streams
+- [x] `CapabilityRegistry` with explicit status for every capability; unknown venues unsupported
+- [x] SimulationAdapter: deterministic, configurable fills (book/none, liquidity fraction), rejection rules, ack latency, stop/TP market triggers
+- [x] HyperliquidAdapter: SDK-verified order model + price rules for validation; read-only account by public address; submit/cancel/streams explicitly unsupported
+- [x] `GET /api/venue/account?address=` (validated, weight-budgeted, venue-only)
+- [x] Ticket driven by the registry (available / preview-only / unavailable with reasons); actions gated by capabilities
+- [x] `docs/TRADING.md` with a supported/unsupported matrix checked by a test
+- [ ] Wire Hyperliquid watch-only account into the UI (adapter is ready; needs address entry UX)
+- [ ] Hyperliquid `orderUpdates` / `userFills` streams (read-only)
+- [ ] Verify account-read schemas with `npm run test:live` against a real address
+
+## Milestone 4 — Watch-only account UI
 - [ ] `HyperliquidAccountDataSource` (public address → `clearinghouseState`, `openOrders`, fills) via server
 - [ ] Address input with validation; never request keys/seeds
 - [ ] Positions/orders/fills tables; portfolio risk panel wired to `DefaultRiskEngine.portfolio`
 - [ ] Tiered margin tables from venue meta in liquidation estimates
 - [ ] Fee schedule in pre-trade estimates
 
-## Milestone 4 — Order lifecycle & reconciliation (no live submission)
+## Milestone 5 — Order lifecycle & reconciliation against live venue streams
 - [ ] Order state machine over `ORDER_STATUSES` with venue-confirmed transitions only
 - [ ] Reconciliation of local intents against venue order/fill streams (idempotent, sequence-aware)
 - [ ] Persistence adapter (server-side DB) for order journal and audit log
 - [ ] Venue-specific validation (e.g. Hyperliquid 5-significant-figure prices)
 
-## Milestone 5 — Testnet execution (explicitly configured, separately confirmed)
+## Milestone 6 — Testnet execution (explicitly configured, separately confirmed, security-reviewed)
 - [ ] Wallet connection (signing in the user's wallet; no key custody)
 - [ ] Testnet-only execution adapter behind config + per-session confirmation
 - [ ] Authorization (`orders:submit`) enforced server-side

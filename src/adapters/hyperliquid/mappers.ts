@@ -1,4 +1,12 @@
 import {
+  AccountSnapshotSchema,
+  OrderSchema,
+  PositionSchema,
+  type AccountSnapshot,
+  type Order,
+  type OrderType,
+  type Position,
+  type TimeInForce,
   CandleSchema,
   MarketSchema,
   MarketStatsSchema,
@@ -20,6 +28,8 @@ import {
 } from "./constants";
 import type {
   HlAllMids,
+  HlClearinghouseState,
+  HlFrontendOpenOrder,
   HlCandle,
   HlL2Book,
   HlMetaAndAssetCtxs,
@@ -168,4 +178,109 @@ export function mapAllMids(
     mids.set(id, value);
   }
   return { prices: { mids, observedAt }, skipped };
+}
+
+// ------------------------------------------------------------------ account reads
+
+/**
+ * Hyperliquid's frontend `orderType` strings Nova can map. Any other value
+ * is reported as unmapped (the order is skipped, never guessed).
+ */
+const HL_ORDER_TYPES: Record<string, OrderType> = {
+  Limit: "limit",
+  Market: "market",
+  "Stop Market": "stop-market",
+  "Stop Limit": "stop-limit",
+  "Take Profit Market": "take-profit-market",
+  "Take Profit Limit": "take-profit-limit",
+};
+
+const HL_TIF: Record<string, TimeInForce> = { Gtc: "gtc", Ioc: "ioc", Alo: "post-only" };
+
+export function mapFrontendOpenOrder(order: HlFrontendOpenOrder): Order | null {
+  const type = HL_ORDER_TYPES[order.orderType];
+  if (!type || !isSupportedCoin(order.coin)) return null;
+  const size = num(order.origSz);
+  const remaining = num(order.sz);
+  const filled = Math.max(0, size - remaining);
+  const trigger = num(order.triggerPx);
+  const limitStyle = type === "limit" || type === "stop-limit" || type === "take-profit-limit";
+  return OrderSchema.parse({
+    id: `hl-${order.oid}`,
+    // Hyperliquid's `cloid` is not part of the documented frontendOpenOrders shape.
+    clientOrderId: `hl-${order.oid}`,
+    venueOrderId: String(order.oid),
+    marketId: marketIdFromBase(order.coin),
+    side: order.side === "B" ? "buy" : "sell",
+    type,
+    price: limitStyle ? num(order.limitPx) : null,
+    triggerPrice: order.isTrigger && trigger > 0 ? trigger : null,
+    triggeredAt: null,
+    size,
+    filledSize: filled,
+    averageFillPrice: null,
+    status: order.isTrigger ? "waiting-trigger" : filled > 0 ? "partially-filled" : "open",
+    timeInForce: order.tif ? (HL_TIF[order.tif] ?? null) : null,
+    reduceOnly: order.reduceOnly,
+    leverage: null,
+    marginMode: null,
+    createdAt: order.timestamp,
+    updatedAt: order.timestamp,
+    statusReason: null,
+    lastSequence: null,
+    origin: "venue",
+  });
+}
+
+export function mapClearinghouseState(
+  state: HlClearinghouseState,
+  observedAt: number,
+): { snapshot: AccountSnapshot; skippedPositions: number } {
+  const positions: Position[] = [];
+  let skippedPositions = 0;
+  let unrealized = 0;
+  for (const { position: p } of state.assetPositions) {
+    const size = num(p.szi);
+    if (size === 0) continue;
+    if (!isSupportedCoin(p.coin) || !p.entryPx) {
+      skippedPositions += 1;
+      continue;
+    }
+    const pnl = num(p.unrealizedPnl);
+    unrealized += pnl;
+    positions.push(
+      PositionSchema.parse({
+        marketId: marketIdFromBase(p.coin),
+        size,
+        entryPrice: num(p.entryPx),
+        leverage: p.leverage.value,
+        marginMode: p.leverage.type,
+        marginUsed: num(p.marginUsed),
+        liquidationPrice: positiveOrNull(p.liquidationPx),
+        // Not documented in clearinghouseState; Nova does not derive it.
+        markPrice: null,
+        unrealizedPnl: pnl,
+      }),
+    );
+  }
+  const equity = num(state.marginSummary.accountValue);
+  const available = num(state.withdrawable);
+  const snapshot = AccountSnapshotSchema.parse({
+    origin: "venue",
+    currency: HYPERLIQUID_QUOTE,
+    balances: [{ asset: HYPERLIQUID_QUOTE, total: equity, available }],
+    // Fields Hyperliquid's documented response does not provide stay null.
+    balance: null,
+    equity,
+    unrealizedPnl: unrealized,
+    realizedPnl: null,
+    feesPaid: null,
+    marginUsed: num(state.marginSummary.totalMarginUsed),
+    orderMargin: null,
+    available,
+    maintenanceMargin: null,
+    positions,
+    observedAt,
+  });
+  return { snapshot, skippedPositions };
 }

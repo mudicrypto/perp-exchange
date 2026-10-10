@@ -1,4 +1,4 @@
-import type { AccountSnapshot } from "../domain";
+import { isTriggerType, requestLimitPrice, requestTriggerPrice, type AccountSnapshot } from "../domain";
 import type {
   PortfolioRisk,
   PreTradeInput,
@@ -23,17 +23,18 @@ export const DEFAULT_RISK_THRESHOLDS: RiskThresholds = {
 export class DefaultRiskEngine implements RiskEngine {
   constructor(private readonly thresholds: RiskThresholds = DEFAULT_RISK_THRESHOLDS) {}
 
-  preTrade({ intent, market, stats, book, dataIsStale }: PreTradeInput): PreTradeRisk | null {
+  preTrade({ request: intent, market, stats, book, dataIsStale }: PreTradeInput): PreTradeRisk | null {
     const warnings: RiskWarning[] = [];
     const consumed = book ? (intent.side === "buy" ? book.asks : book.bids) : null;
     const bookImpact =
       intent.type === "market" && consumed ? estimateBookImpact(consumed, intent.size) : null;
 
+    // Limit-style orders use their limit price; trigger-market orders their
+    // trigger price; market orders the book VWAP (or mark as a fallback).
+    const limitPrice = requestLimitPrice(intent);
     const referencePrice =
-      intent.type === "limit"
-        ? intent.limitPrice
-        : (bookImpact?.averagePrice ?? stats?.markPrice ?? null);
-    if (referencePrice === null || referencePrice === undefined) return null;
+      limitPrice ?? requestTriggerPrice(intent) ?? bookImpact?.averagePrice ?? stats?.markPrice ?? null;
+    if (referencePrice === null) return null;
 
     const notional = intent.size * referencePrice;
     const margin = initialMargin(notional, intent.leverage);
@@ -58,13 +59,13 @@ export class DefaultRiskEngine implements RiskEngine {
       warnings.push({ code: "liquidation-near", distance: liquidationDistance });
     }
     if (dataIsStale) warnings.push({ code: "stale-market-data" });
-    if (intent.type === "limit" && intent.limitPrice !== null && book) {
+    if (limitPrice !== null && !isTriggerType(intent.type) && book) {
       const bestAsk = book.asks[0]?.price;
       const bestBid = book.bids[0]?.price;
       const crosses =
         intent.side === "buy"
-          ? bestAsk !== undefined && intent.limitPrice >= bestAsk
-          : bestBid !== undefined && intent.limitPrice <= bestBid;
+          ? bestAsk !== undefined && limitPrice >= bestAsk
+          : bestBid !== undefined && limitPrice <= bestBid;
       if (crosses) warnings.push({ code: "limit-crosses-book" });
     }
 
@@ -104,7 +105,7 @@ export class DefaultRiskEngine implements RiskEngine {
       longExposure: long,
       shortExposure: short,
       effectiveLeverage: positiveEquity ? gross / account.equity : null,
-      marginUtilization: positiveEquity ? account.maintenanceMargin / account.equity : null,
+      marginUtilization: positiveEquity && account.maintenanceMargin !== null ? account.maintenanceMargin / account.equity : null,
       unrealizedPnl: unrealized,
       closestLiquidation: closest,
     };

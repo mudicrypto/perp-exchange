@@ -72,4 +72,12 @@ describe(`Hyperliquid ${network} live contract`, () => {
     const mids = messages.find((m) => m.kind === "allMids");
     if (mids?.kind === "allMids") expect(mapAllMids(mids.data, Date.now()).prices.mids.get("BTC-PERP")).toBeGreaterThan(0);
   });
+
+  // Read-only account check against a public address you choose (no keys involved).
+  it.skipIf(!process.env.NOVA_LIVE_ADDRESS)("clearinghouseState + frontendOpenOrders match Nova's schemas", { timeout: TIMEOUT }, async () => {
+    const client = new HyperliquidInfoClient({ network });
+    const readout = await client.getAccount(process.env.NOVA_LIVE_ADDRESS!);
+    console.info("positions:", readout.snapshot.positions.length, "open orders:", readout.openOrders.length, "skipped:", readout.skipped);
+    expect(readout.snapshot.origin).toBe("venue");
+  });
 });

@@ -117,3 +117,64 @@ export const HlWsEnvelopeSchema = z.object({
   channel: z.string(),
   data: z.unknown().optional(),
 });
+
+// ------------------------------------------------------------------ account reads
+// Source: official python-sdk `info.py` docstrings for `user_state`
+// (info type "clearinghouseState") and `frontend_open_orders`
+// (info type "frontendOpenOrders").
+
+export const HlAddressSchema = z.string().regex(/^0x[0-9a-fA-F]{40}$/, "Expected a 42-character hex address");
+
+const HlMarginSummarySchema = z.object({
+  accountValue: HlDecimal,
+  totalMarginUsed: HlDecimal,
+  totalNtlPos: HlDecimal,
+  totalRawUsd: HlDecimal,
+});
+
+export const HlAssetPositionSchema = z.object({
+  position: z.object({
+    coin: z.string(),
+    entryPx: HlPositiveDecimal.nullable().optional(),
+    leverage: z.object({
+      type: z.enum(["cross", "isolated"]),
+      value: z.number().positive(),
+      rawUsd: HlDecimal.optional(),
+    }),
+    liquidationPx: HlPositiveDecimal.nullable().optional(),
+    marginUsed: HlDecimal,
+    positionValue: HlDecimal,
+    returnOnEquity: HlDecimal,
+    szi: HlDecimal,
+    unrealizedPnl: HlDecimal,
+  }),
+  type: z.string(),
+});
+
+export const HlClearinghouseStateSchema = z.object({
+  assetPositions: z.array(HlAssetPositionSchema),
+  crossMarginSummary: HlMarginSummarySchema,
+  marginSummary: HlMarginSummarySchema,
+  withdrawable: HlDecimal,
+});
+export type HlClearinghouseState = z.infer<typeof HlClearinghouseStateSchema>;
+
+export const HlFrontendOpenOrderSchema = z.object({
+  coin: z.string(),
+  isPositionTpsl: z.boolean(),
+  isTrigger: z.boolean(),
+  limitPx: HlPositiveDecimal,
+  oid: z.number().int().nonnegative(),
+  orderType: z.string(),
+  origSz: HlPositiveDecimal,
+  reduceOnly: z.boolean(),
+  side: z.enum(["A", "B"]),
+  /** Remaining size. */
+  sz: HlPositiveDecimal,
+  tif: z.string().nullable().optional(),
+  timestamp: z.number().int().nonnegative(),
+  triggerCondition: z.string(),
+  triggerPx: HlPositiveDecimal,
+});
+export type HlFrontendOpenOrder = z.infer<typeof HlFrontendOpenOrderSchema>;
+export const HlFrontendOpenOrdersSchema = z.array(HlFrontendOpenOrderSchema);
