@@ -1,0 +1,20 @@
+[
+  {
+    "universe": [
+      { "name": "BTC", "szDecimals": 5, "maxLeverage": 40, "marginTableId": 56 },
+      { "name": "ETH", "szDecimals": 4, "maxLeverage": 25, "marginTableId": 55 },
+      { "name": "OLDCOIN", "szDecimals": 0, "maxLeverage": 3, "isDelisted": true },
+      { "name": "ISO", "szDecimals": 1, "maxLeverage": 10, "onlyIsolated": true },
+      { "name": "xyz:TSLA", "szDecimals": 3, "maxLeverage": 10 }
+    ],
+    "marginTables": [],
+    "collateralToken": 0
+  },
+  [
+    { "funding": "0.0000125", "openInterest": "1234.56789", "prevDayPx": "60000.0", "dayNtlVlm": "987654321.12", "premium": "0.0001", "oraclePx": "61000.0", "markPx": "61010.0", "midPx": "61009.5", "impactPxs": ["61009.0", "61010.0"], "dayBaseVlm": "16000.1" },
+    { "funding": "-0.00002", "openInterest": "50000.1", "prevDayPx": "3000.0", "dayNtlVlm": "450000000.0", "premium": "-0.0002", "oraclePx": "2950.1", "markPx": "2950.5", "midPx": null, "impactPxs": null, "dayBaseVlm": "150000.0" },
+    { "funding": "0.0", "openInterest": "0.0", "prevDayPx": "1.0", "dayNtlVlm": "0.0", "premium": null, "oraclePx": "1.0", "markPx": "1.0", "midPx": null, "impactPxs": null, "dayBaseVlm": "0.0" },
+    { "funding": "0.00001", "openInterest": "10.0", "prevDayPx": "5.0", "dayNtlVlm": "1000.0", "premium": "0.0", "oraclePx": "5.1", "markPx": "5.1", "midPx": "5.1", "impactPxs": null, "dayBaseVlm": "200.0" },
+    { "funding": "0.00001", "openInterest": "10.0", "prevDayPx": "250.0", "dayNtlVlm": "1000.0", "premium": "0.0", "oraclePx": "251.0", "markPx": "251.0", "midPx": "251.0", "impactPxs": null, "dayBaseVlm": "4.0" }
+  ]
+]

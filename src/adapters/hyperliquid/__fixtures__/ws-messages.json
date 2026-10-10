@@ -1,0 +1,9 @@
+{
+  "subscriptionResponse": { "channel": "subscriptionResponse", "data": { "method": "subscribe", "subscription": { "type": "l2Book", "coin": "BTC" } } },
+  "l2Book": { "channel": "l2Book", "data": { "coin": "BTC", "time": 1700000000500, "levels": [ [ { "px": "61000.0", "sz": "1.5", "n": 3 }, { "px": "60999.0", "sz": "2.0", "n": 1 } ], [ { "px": "61001.0", "sz": "0.75", "n": 2 }, { "px": "61002.0", "sz": "4.0", "n": 5 } ] ] } },
+  "trades": { "channel": "trades", "data": [ { "coin": "BTC", "side": "B", "px": "61001.0", "sz": "0.1", "time": 1700000000600, "hash": "0x0000000000000000000000000000000000000000000000000000000000000001", "tid": 1001, "users": ["0x0000000000000000000000000000000000000001", "0x0000000000000000000000000000000000000002"] }, { "coin": "BTC", "side": "A", "px": "61000.0", "sz": "0.2", "time": 1700000000700, "hash": "0x0000000000000000000000000000000000000000000000000000000000000002", "tid": 1002, "users": ["0x0000000000000000000000000000000000000003", "0x0000000000000000000000000000000000000004"] } ] },
+  "candle": { "channel": "candle", "data": { "t": 1700000000000, "T": 1700000059999, "s": "BTC", "i": "1m", "o": "61000.0", "c": "61003.0", "h": "61010.0", "l": "60990.0", "v": "12.9", "n": 125 } },
+  "activeAssetCtx": { "channel": "activeAssetCtx", "data": { "coin": "BTC", "ctx": { "funding": "0.0000125", "openInterest": "1234.5", "prevDayPx": "60000.0", "dayNtlVlm": "987654321.12", "premium": "0.0001", "oraclePx": "61000.0", "markPx": "61010.0", "midPx": "61009.5", "impactPxs": ["61009.0", "61010.0"], "dayBaseVlm": "16000.1" } } },
+  "pong": { "channel": "pong" },
+  "error": { "channel": "error", "data": "Invalid subscription" }
+}
