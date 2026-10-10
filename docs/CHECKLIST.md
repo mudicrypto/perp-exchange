@@ -127,27 +127,54 @@ Design system
 - [ ] Hyperliquid `orderUpdates` / `userFills` streams (read-only)
 - [ ] Verify account-read schemas with `npm run test:live` against a real address
 
-## Milestone 4 — Watch-only account UI
+## Milestone 4 — Private execution
+Phase A — workspace and capability discovery
+- [x] `/private-execution` workspace: mode selector (hidden / iceberg / RFQ / encrypted), venue capability indicator, size + limit price, displayed quantity (iceberg), counterparty selection + reveal-side option (RFQ)
+- [x] Full privacy disclosure (party × data matrix) with required confirmation; confirmation resets when the mode changes
+- [x] Execution status, private order history (shown publicly / refills) and fills
+- [x] Unavailable state for unsupported modes (encrypted is "Planned"; every private mode is unavailable on Hyperliquid)
+- [x] Ticket dialog lists each private mode's availability on the active venue
+
+Phase B — privacy model
+- [x] `core/privacy`: execution modes, parties, data classes, exposure cells, `VenuePrivacy` profiles
+- [x] `validateVenuePrivacy` consistency rules; the registry refuses inconsistent venues
+- [x] `describeExecution` derives every disclosure from capabilities + profiles only
+- [x] Matrices per venue × mode in `docs/PRIVACY.md`, checked against the code by a test
+- [x] Data minimisation: no limit price or identity sent for RFQ; random session id; retention ≤ 5 min after completion; allow-listed audit log (tested)
+- [x] Server-side authorization for RFQ (session ownership, addressed counterparties, same-origin mutations) — unit and E2E HTTP tests
+
+Phase C — implementation boundaries
+- [x] Simulator implements hidden and iceberg orders (public book excludes hidden, shows only iceberg slices; slice refills counted)
+- [x] Simulated public book includes the account's displayed orders; fills print on the simulated tape without ids; the engine matches the raw book (no self-matching)
+- [x] `PrivateExecutionService`: refuses unsupported modes and inconsistent venues before any adapter call (Hyperliquid spy test), requires a confirmation that matches the derived disclosure, refuses RFQ/encrypted as orders
+- [x] Private RFQ against simulated counterparties: `RfqDesk` (core) + `/api/session`, `/api/rfq/*` routes + validated browser client; accepted quotes booked as `rfq` orders after a side-effect-free margin check
+- [x] Encrypted orders marked planned; no venue may declare them supported (enforced)
+- [x] Requirements for a native private matching engine documented (`docs/PRIVACY.md`)
+- [ ] RFQ persistence beyond a single in-memory process (needed before any multi-instance deployment)
+- [ ] Production counterparty authentication (per-counterparty credentials, rotation, mTLS/signing)
+- [ ] Independent review of privacy claims (required before any private mode is offered with real funds)
+
+## Milestone 5 — Watch-only account UI
 - [ ] `HyperliquidAccountDataSource` (public address → `clearinghouseState`, `openOrders`, fills) via server
 - [ ] Address input with validation; never request keys/seeds
 - [ ] Positions/orders/fills tables; portfolio risk panel wired to `DefaultRiskEngine.portfolio`
 - [ ] Tiered margin tables from venue meta in liquidation estimates
 - [ ] Fee schedule in pre-trade estimates
 
-## Milestone 5 — Order lifecycle & reconciliation against live venue streams
+## Milestone 6 — Order lifecycle & reconciliation against live venue streams
 - [ ] Order state machine over `ORDER_STATUSES` with venue-confirmed transitions only
 - [ ] Reconciliation of local intents against venue order/fill streams (idempotent, sequence-aware)
 - [ ] Persistence adapter (server-side DB) for order journal and audit log
 - [ ] Venue-specific validation (e.g. Hyperliquid 5-significant-figure prices)
 
-## Milestone 6 — Testnet execution (explicitly configured, separately confirmed, security-reviewed)
+## Milestone 7 — Testnet execution (explicitly configured, separately confirmed, security-reviewed)
 - [ ] Wallet connection (signing in the user's wallet; no key custody)
 - [ ] Testnet-only execution adapter behind config + per-session confirmation
 - [ ] Authorization (`orders:submit`) enforced server-side
 
 ## Later
 - [ ] Nova matching engine behind `ExecutionAdapter` + `MarketDataSource`
-- [ ] Private execution modes on Nova's venue: hidden limit, iceberg, batch auctions, sealed RFQ
+- [ ] Private execution modes on Nova's venue: hidden limit, iceberg, batch auctions, sealed RFQ, encrypted order flow (requirements in `docs/PRIVACY.md`)
 - [ ] Independent review of privacy guarantees before any is advertised
 - [ ] Custody, deposits/withdrawals (out of scope until legal/compliance review)
 
@@ -161,4 +188,9 @@ Design system
 - Hyperliquid `l2Book` exposes limited depth; impact estimates only cover visible levels.
 - Simulator: each chart timeframe's history is generated independently (the 1h path also drives "24h change"),
   so different timeframes do not show the identical path. The demo account resets on page reload.
-- Paper engine fills resting orders in full at the limit price once the book crosses (no queue position modelling).
+- Paper engine fills resting orders in full at the limit price once the book crosses (no queue position modelling);
+  hidden orders get the same priority as displayed ones, and icebergs fill at most one slice per book update.
+- The RFQ service is in-memory and single-process; a server restart drops open requests. Simulated desks price
+  around the public mid the browser supplies.
+- Simulated account state lives in the browser: a reload resets it, and RFQ trades booked there are not
+  reconciled with the server's RFQ record.

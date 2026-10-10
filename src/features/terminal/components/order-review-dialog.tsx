@@ -14,7 +14,7 @@ import {
 import { SummaryRow } from "@/components/trading/values";
 import { isTriggerType, requestTimeInForce, requestTriggerPrice, type Market, type OrderRequest } from "@/core/domain";
 import type { PreTradeRisk } from "@/core/ports";
-import type { ExecutionDisclosure } from "@/core/private-execution";
+import type { ExecutionDisclosure } from "@/core/privacy";
 import { displayPriceDecimals, formatAmount, formatPercent, formatPrice, formatSize } from "@/lib/format";
 import { ORDER_TYPE_LABEL } from "./order-labels";
 

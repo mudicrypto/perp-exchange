@@ -34,6 +34,8 @@ export const CAPABILITY_IDS = [
   // Execution styles
   "execution.rfq",
   "execution.batch-auction",
+  /** Protocol-level encrypted orders (planned; no venue may declare it supported yet). */
+  "execution.encrypted",
   // Margin
   "margin.isolated",
   "margin.cross",
@@ -61,6 +63,7 @@ export const ORDER_TYPE_CAPABILITY: Record<OrderType, CapabilityId> = {
   "take-profit-limit": "order.take-profit-limit",
   iceberg: "order.iceberg",
   hidden: "order.hidden",
+  rfq: "execution.rfq",
 };
 
 export const TIF_CAPABILITY: Record<TimeInForce, CapabilityId> = {

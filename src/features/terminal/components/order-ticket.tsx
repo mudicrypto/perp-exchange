@@ -24,7 +24,7 @@ import {
   type TimeInForce,
 } from "@/core/domain";
 import type { OrderBookView } from "@/core/market-data";
-import { describeExecutionVisibility } from "@/core/private-execution";
+import { describeExecution } from "@/core/privacy";
 import type { PreTradeRisk, RiskWarning } from "@/core/ports";
 import { DefaultRiskEngine } from "@/core/risk";
 import { checkRequestCapabilities } from "@/core/trading";
@@ -144,7 +144,7 @@ export function OrderTicket({ market, stats, book, dataIsStale, price, onPriceCh
   })();
   const canSubmit = submitBlocker === null && validation?.ok === true;
 
-  const disclosure = useMemo(() => describeExecutionVisibility(capabilities.visibility, null), [capabilities]);
+  const disclosure = useMemo(() => describeExecution(capabilities.capabilities, capabilities.privacy, "public-limit"), [capabilities]);
   const reasonId = `${ids}-reason`;
   const simulated = capabilities.origin === "simulated";
 
@@ -461,7 +461,7 @@ function OrderTypePicker({ type, onChange }: { type: OrderType; onChange: (type:
         <ul className="mt-1 space-y-1">
           {advanced.map(({ t, availability, reason }) => (
             <li key={t} data-testid={`advanced-${t}`} data-availability={availability}>
-              <span className="font-medium text-foreground">{ORDER_TYPE_LABEL[t]}:</span> {availability === "available" ? "supported" : reason}
+              <span className="font-medium text-foreground">{ORDER_TYPE_LABEL[t]}:</span> {availability === "available" ? "supported; place it from the Private Execution workspace" : reason}
             </li>
           ))}
           {(["execution.rfq", "order.twap"] as const).map((cap) => {
@@ -469,7 +469,7 @@ function OrderTypePicker({ type, onChange }: { type: OrderType; onChange: (type:
             return (
               <li key={cap} data-testid={`advanced-${cap}`} data-availability={availabilityOf(status)}>
                 <span className="font-medium text-foreground">{cap === "execution.rfq" ? "RFQ" : "TWAP"}:</span>{" "}
-                {status.status === "supported" ? "supported" : status.reason}
+                {status.status === "supported" ? (cap === "execution.rfq" ? "supported; request quotes from the Private Execution workspace" : "supported") : status.reason}
               </li>
             );
           })}

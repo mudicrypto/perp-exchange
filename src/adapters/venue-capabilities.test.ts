@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { CAPABILITY_IDS, type CapabilityId, type Market } from "@/core/domain";
-import { describeExecutionVisibility } from "@/core/private-execution";
+import { describeExecution, EXECUTION_MODES, MODE_CAPABILITY, validateVenuePrivacy } from "@/core/privacy";
 import { createCapabilityRegistry } from "@/features/terminal/create-sources";
 import { HYPERLIQUID_ORDER_MODEL, hyperliquidCapabilities } from "./hyperliquid/capabilities";
 import { HyperliquidAdapter } from "./hyperliquid/hyperliquid-adapter";
@@ -35,11 +35,19 @@ describe("capability detection", () => {
     expect(status("simulation", "margin.cross")).toMatchObject({ status: "unsupported", scope: "nova" });
   });
 
-  it("nobody advertises hidden, iceberg, RFQ or batch-auction execution", () => {
+  it("Hyperliquid offers no hidden, iceberg or RFQ execution; nobody offers batch auctions or encrypted orders", () => {
+    for (const cap of ["order.hidden", "order.iceberg", "execution.rfq", "execution.batch-auction"] as const) {
+      expect(status("hyperliquid", cap), cap).toMatchObject({ status: "unsupported", scope: "venue" });
+    }
     for (const venue of ["simulation", "hyperliquid"]) {
-      for (const cap of ["order.hidden", "order.iceberg", "execution.rfq", "execution.batch-auction"] as const) {
-        expect(status(venue, cap), `${venue} ${cap}`).toMatchObject({ status: "unsupported", scope: "venue" });
-      }
+      expect(status(venue, "execution.batch-auction")).toMatchObject({ status: "unsupported", scope: "venue" });
+      expect(status(venue, "execution.encrypted")).toMatchObject({ status: "unsupported", scope: "nova", reason: expect.stringMatching(/^Planned/) });
+    }
+  });
+
+  it("the simulator implements hidden, iceberg and RFQ execution", () => {
+    for (const cap of ["order.hidden", "order.iceberg", "execution.rfq"] as const) {
+      expect(registry.supports("simulation", cap), cap).toBe(true);
     }
   });
 
@@ -59,9 +67,37 @@ describe("capability detection", () => {
     expect(HYPERLIQUID_ORDER_MODEL["order.hidden"]).toMatchObject({ status: "unsupported", scope: "venue" });
   });
 
-  it("privacy disclosures stay public on both venues", () => {
-    expect(describeExecutionVisibility(hyperliquidCapabilities.visibility, "hidden-limit").level).toBe("public");
-    expect(describeExecutionVisibility(simulationCapabilities.visibility, "iceberg").level).toBe("public");
+  it("both venues' privacy declarations are consistent with their capabilities", () => {
+    expect(validateVenuePrivacy(hyperliquidCapabilities.capabilities, hyperliquidCapabilities.privacy)).toEqual([]);
+    expect(validateVenuePrivacy(simulationCapabilities.capabilities, simulationCapabilities.privacy)).toEqual([]);
+  });
+
+  it("disclosures match each venue's actual capabilities for every mode", () => {
+    for (const venue of [hyperliquidCapabilities, simulationCapabilities]) {
+      for (const mode of EXECUTION_MODES) {
+        const disclosure = describeExecution(venue.capabilities, venue.privacy, mode);
+        const supportedCap = venue.capabilities[MODE_CAPABILITY[mode]].status === "supported";
+        expect(disclosure.executable, `${venue.venueId} ${mode}`).toBe(supportedCap);
+        if (disclosure.level === "unavailable") expect(disclosure.rows).toEqual([]);
+      }
+    }
+  });
+
+  it("Hyperliquid: public orders are disclosed as public and attributable; private modes are unavailable", () => {
+    const pub = describeExecution(hyperliquidCapabilities.capabilities, hyperliquidCapabilities.privacy, "public-limit");
+    expect(pub.level).toBe("public");
+    expect(pub.profile?.["public-observers"]["account-identity"].exposure).toBe("visible");
+    for (const mode of ["hidden", "iceberg", "rfq", "encrypted"] as const) {
+      expect(describeExecution(hyperliquidCapabilities.capabilities, hyperliquidCapabilities.privacy, mode).level).toBe("unavailable");
+    }
+  });
+
+  it("simulator: hidden is pre-trade private, iceberg partially displayed, RFQ private to selected counterparties", () => {
+    const d = (mode: (typeof EXECUTION_MODES)[number]) => describeExecution(simulationCapabilities.capabilities, simulationCapabilities.privacy, mode);
+    expect(d("hidden").level).toBe("pre-trade-private");
+    expect(d("iceberg").level).toBe("partially-displayed");
+    expect(d("rfq").level).toBe("pre-trade-private");
+    expect(d("encrypted")).toMatchObject({ level: "unavailable", executable: false });
   });
 });
 

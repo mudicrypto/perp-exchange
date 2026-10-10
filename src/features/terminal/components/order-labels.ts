@@ -9,4 +9,5 @@ export const ORDER_TYPE_LABEL: Record<OrderType, string> = {
   "take-profit-limit": "Take-profit limit",
   iceberg: "Iceberg",
   hidden: "Hidden",
+  rfq: "RFQ trade",
 };

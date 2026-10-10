@@ -5,30 +5,47 @@ import {
   venueUnsupported,
   type CapabilityMap,
 } from "@/core/domain";
-import type { VenueExecutionCapabilities } from "@/core/ports";
+import { allData, cell, type VenuePrivacy } from "@/core/privacy";
 import type { VenueCapabilities } from "@/core/trading";
 import { HYPERLIQUID_VENUE_ID } from "./constants";
-
-/**
- * Hyperliquid is a transparent venue: resting orders appear in the public L2
- * book and trades settle on its public L1, attributable to account addresses.
- */
-export const hyperliquidVisibility: VenueExecutionCapabilities = {
-  venueId: HYPERLIQUID_VENUE_ID,
-  venueName: "Hyperliquid",
-  restingOrderVisibility: "public-book",
-  fillVisibility: "public-ledger",
-  publicAccountAttribution: true,
-  supportedPrivateModes: [],
-  notes: [
-    "Nova cannot hide orders that Hyperliquid publishes. Private execution modes will require Nova's own venue.",
-  ],
-};
 
 const SUBMISSION_DISABLED =
   "Hyperliquid offers this, but Nova's order signing and submission are disabled until a separate security-reviewed milestone.";
 const NOT_A_VENUE_TYPE =
   "Not one of Hyperliquid's order types (official SDK: limit with Gtc/Ioc/Alo, and trigger tp/sl orders). Resting orders are public in the L2 book.";
+const ENCRYPTED_PLANNED =
+  "Planned. Encrypted orders need a protocol-level design (e.g. threshold-encrypted order flow) that does not exist in Nova; it is not a UI setting.";
+
+/**
+ * Hyperliquid is a transparent venue: resting orders appear in the public L2
+ * book, and trades are published with buyer and seller addresses (official
+ * SDK `Trade.users`). Only the public-limit mode exists there.
+ */
+export const hyperliquidPrivacy: VenuePrivacy = {
+  venueId: HYPERLIQUID_VENUE_ID,
+  venueName: "Hyperliquid",
+  notes: ["Nova cannot hide orders that Hyperliquid publishes. Private modes require a venue that supports them."],
+  profiles: {
+    "public-limit": {
+      "public-observers": {
+        "order-details": cell("visible", "Price and size are published in Hyperliquid's public L2 book."),
+        "account-identity": cell("visible", "trades carry buyer and seller addresses"),
+        "execution-details": cell("visible", "Fills are published on the public trade feed and ledger."),
+        "subsequent-trades": cell("visible", "Your address's trade history is public and linkable."),
+      },
+      "matching-engine": allData("visible"),
+      "venue-operator": allData("visible"),
+      "rfq-counterparties": allData("not-applicable"),
+      "nova-backend": {
+        "order-details": cell("not-applicable", "Nova does not relay Hyperliquid orders in this milestone."),
+        "account-identity": cell("partial", "Only an address you look up through the read-only account endpoint; not stored."),
+        "execution-details": cell("not-applicable"),
+        "subsequent-trades": cell("not-applicable"),
+      },
+      "other-nova-users": allData("visible", "Other Nova users are public observers too."),
+    },
+  },
+};
 
 /**
  * Hyperliquid's own order model, as defined by the official Python SDK
@@ -60,6 +77,7 @@ export const HYPERLIQUID_ORDER_MODEL: CapabilityMap = defineCapabilities({
   "stream.fills": supported(),
   "execution.rfq": venueUnsupported("Hyperliquid has no request-for-quote order flow."),
   "execution.batch-auction": venueUnsupported("Hyperliquid matches continuously in a central limit order book."),
+  "execution.encrypted": notImplemented(ENCRYPTED_PLANNED),
   "margin.isolated": supported(),
   "margin.cross": supported(),
 });
@@ -72,7 +90,7 @@ export const hyperliquidCapabilities: VenueCapabilities = {
   venueId: HYPERLIQUID_VENUE_ID,
   venueName: "Hyperliquid",
   origin: "venue",
-  visibility: hyperliquidVisibility,
+  privacy: hyperliquidPrivacy,
   capabilities: defineCapabilities({
     "order.limit": notImplemented(SUBMISSION_DISABLED),
     "order.market": notImplemented(SUBMISSION_DISABLED),
@@ -97,6 +115,7 @@ export const hyperliquidCapabilities: VenueCapabilities = {
     "stream.fills": notImplemented("Not implemented yet (Hyperliquid offers a userFills subscription)."),
     "execution.rfq": venueUnsupported("Hyperliquid has no request-for-quote order flow."),
     "execution.batch-auction": venueUnsupported("Hyperliquid matches continuously in a central limit order book."),
+    "execution.encrypted": notImplemented(ENCRYPTED_PLANNED),
     "margin.isolated": notImplemented(SUBMISSION_DISABLED),
     "margin.cross": notImplemented(SUBMISSION_DISABLED),
   }),

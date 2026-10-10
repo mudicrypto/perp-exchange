@@ -247,9 +247,11 @@ test.describe("capability-driven order entry", () => {
     await expect(page.getByTestId("type-option-stop-limit")).toContainText("not implemented in the simulator");
     await page.keyboard.press("Escape");
     await page.getByTestId("advanced-types").locator("summary").click();
-    await expect(page.getByTestId("advanced-hidden")).toHaveAttribute("data-availability", "unavailable");
-    await expect(page.getByTestId("advanced-iceberg")).toContainText("iceberg orders are not offered");
-    await expect(page.getByTestId("advanced-execution.rfq")).toContainText("no request-for-quote");
+    // The simulator supports private types, but only through the Private Execution workspace.
+    await expect(page.getByTestId("advanced-hidden")).toHaveAttribute("data-availability", "available");
+    await expect(page.getByTestId("advanced-iceberg")).toContainText("Private Execution workspace");
+    await expect(page.getByTestId("advanced-execution.rfq")).toContainText("Private Execution workspace");
+    await expect(page.getByTestId("type-hidden")).toHaveCount(0);
   });
 
   test("a preview-only order type validates and previews risk but cannot be submitted", async ({ page }) => {
@@ -309,18 +311,16 @@ test.describe("portfolio & risk", () => {
 });
 
 test.describe("private execution", () => {
-  test("ticket entry point is honest about venue visibility", async ({ page }) => {
+  test("ticket orders are disclosed as public; the dialog lists what the venue supports", async ({ page }) => {
     await page.goto("/");
     await expect(page.getByTestId("execution-visibility")).toHaveAttribute("data-level", "public");
     await page.getByTestId("open-private-execution").click();
     const dialog = page.getByTestId("private-execution-dialog");
-    await expect(dialog).toContainText("Not available on Simulator");
+    await expect(dialog.locator('[data-mode="hidden"]')).toHaveAttribute("data-executable", "true");
+    await expect(dialog.locator('[data-mode="encrypted"]')).toHaveAttribute("data-executable", "false");
     await dialog.getByTestId("private-execution-learn-more").click();
     await expect(page).toHaveURL(/\/private-execution$/);
-    await expect(page.getByTestId("private-status")).toContainText("orders placed in Nova today are public");
-    await expect(page.getByTestId("planned-modes")).toContainText("Hidden limit orders");
-    await expect(page.getByTestId("cap-hyperliquid-order.hidden")).toHaveAttribute("data-status", "unsupported");
-    await expect(page.getByTestId("cap-simulation-execution.rfq")).toContainText("Not offered by venue");
+    await expect(page.getByTestId("private-simulated-banner")).toBeVisible();
   });
 });
 

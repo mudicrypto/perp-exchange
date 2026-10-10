@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ConfigError, parseServerEnv, toPublicRuntimeConfig } from "./parse-server-env";
+import { ConfigError, parseServerEnv, rfqCounterpartyTokens, toPublicRuntimeConfig } from "./parse-server-env";
 import { PublicRuntimeConfigSchema } from "./runtime-config";
 
 describe("parseServerEnv", () => {
@@ -53,5 +53,19 @@ describe("toPublicRuntimeConfig execution mode", () => {
   it("uses local paper matching only for simulated data", () => {
     expect(toPublicRuntimeConfig(parseServerEnv({ NOVA_MARKET_DATA_SOURCE: "simulation" })).executionMode).toBe("paper");
     expect(toPublicRuntimeConfig(parseServerEnv({ NOVA_MARKET_DATA_SOURCE: "hyperliquid" })).executionMode).toBe("disabled");
+  });
+});
+
+describe("RFQ counterparty tokens", () => {
+  it("parses id=token pairs and never exposes them in the public config", () => {
+    const token = "t".repeat(32);
+    const env = parseServerEnv({ NOVA_MARKET_DATA_SOURCE: "simulation", NOVA_RFQ_COUNTERPARTY_TOKENS: `sim-desk-c=${token}` });
+    expect(rfqCounterpartyTokens(env).get("sim-desk-c")).toBe(token);
+    expect(JSON.stringify(toPublicRuntimeConfig(env))).not.toContain(token);
+  });
+
+  it("rejects short or malformed tokens", () => {
+    expect(() => parseServerEnv({ NOVA_RFQ_COUNTERPARTY_TOKENS: "sim-desk-c=short" })).toThrow(ConfigError);
+    expect(() => parseServerEnv({ NOVA_RFQ_COUNTERPARTY_TOKENS: "nonsense" })).toThrow(ConfigError);
   });
 });

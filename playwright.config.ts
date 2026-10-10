@@ -36,6 +36,8 @@ export default defineConfig({
     env: {
       NOVA_MARKET_DATA_SOURCE: "simulation",
       NOVA_ALLOW_SIMULATION_IN_PRODUCTION: "true",
+      // Test-only credentials for two simulated RFQ counterparties (see tests/e2e/private-execution.spec.ts).
+      NOVA_RFQ_COUNTERPARTY_TOKENS: "sim-desk-b=e2e-desk-b-token-0000000000000,sim-desk-c=e2e-desk-c-token-0000000000000",
     },
   },
 });

@@ -10,7 +10,7 @@ import {
   type OrderRequest,
   type TradingError,
 } from "../domain";
-import type { VenueExecutionCapabilities } from "../ports/private-execution";
+import { validateVenuePrivacy, type VenuePrivacy } from "../privacy";
 
 export interface VenueCapabilities {
   venueId: string;
@@ -18,8 +18,8 @@ export interface VenueCapabilities {
   /** "simulated" venues never touch real funds or real order books. */
   origin: "simulated" | "venue";
   capabilities: CapabilityMap;
-  /** What the venue publishes about orders and fills (drives privacy disclosures). */
-  visibility: VenueExecutionCapabilities;
+  /** Who can see what, per execution mode (drives every privacy disclosure). */
+  privacy: VenuePrivacy;
 }
 
 const UNKNOWN_VENUE = (venueId: string): CapabilityStatus => ({
@@ -35,6 +35,10 @@ export class CapabilityRegistry {
   register(venue: VenueCapabilities): void {
     for (const id of CAPABILITY_IDS) {
       if (!venue.capabilities[id]) throw new Error(`${venue.venueId} does not declare capability ${id}`);
+    }
+    const issues = validateVenuePrivacy(venue.capabilities, venue.privacy);
+    if (issues.length > 0) {
+      throw new Error(`${venue.venueId} has inconsistent privacy declarations: ${issues.map((i) => `[${i.mode ?? "venue"}] ${i.message}`).join("; ")}`);
     }
     this.venues.set(venue.venueId, venue);
   }

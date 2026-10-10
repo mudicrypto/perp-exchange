@@ -11,9 +11,9 @@ capability registry, and two execution adapters:
 | Model | File | Notes |
 |---|---|---|
 | `Instrument` | `instrument.ts` | `Market` plus the venue's trading rules: significant figures, integer exemption, min order value, margin modes, status |
-| `OrderRequest` | `order.ts` | Discriminated union by `type`: `limit`, `market`, `stop-market`, `take-profit-market`, `stop-limit`, `take-profit-limit`, `iceberg`, `hidden`. Always carries a caller-chosen `clientOrderId` (idempotency) |
+| `OrderRequest` | `order.ts` | Discriminated union by `type`: `limit`, `market`, `stop-market`, `take-profit-market`, `stop-limit`, `take-profit-limit`, `iceberg` (with `displaySize`), `hidden`. Always carries a caller-chosen `clientOrderId` (idempotency). `OrderType` also has `rfq`, for bilateral trades booked from an accepted RFQ quote; it is never a request type |
 | `Order` / `OrderStatus` | `order.ts` | Lifecycle state, fills, trigger time, `lastSequence`, **`origin: "simulated" \| "venue"`** |
-| `Fill` | `order.ts` | Unique `id` (de-duplication), liquidity (`maker`/`taker`/`liquidation`), fee, realised PnL, `origin` |
+| `Fill` | `order.ts` | Unique `id` (de-duplication), liquidity (`maker`/`taker`/`liquidation`/`rfq`), fee, realised PnL, `origin` |
 | `Position`, `Balance`, `AccountSnapshot` | `account.ts` | Snapshot has `origin`. Fields a venue does not report are **`null`**, never derived |
 | `TradingError`, `Result<T>` | `errors.ts` | Typed errors. Includes `unsupported` (names the capability and who lacks it) and `simulated-rejection` |
 | `CapabilityId`, `CapabilityStatus` | `capabilities.ts` | `supported`, or `unsupported` with `scope: "venue" \| "nova"` and a reason |
@@ -46,7 +46,7 @@ working states ──expired──▶ expired
 
 | Method | Purpose |
 |---|---|
-| `getCapabilities()` | Explicit status for every `CapabilityId`, plus the venue's visibility disclosure |
+| `getCapabilities()` | Explicit status for every `CapabilityId`, plus the venue's privacy profiles (`VenuePrivacy`, see [PRIVACY.md](PRIVACY.md)) |
 | `describeInstrument(market)` | Adds the venue's trading rules to a market |
 | `validateOrder(input, instrument, ctx?)` | Synchronous validation. The unsupported-feature check runs first, then every rule issue is reported together |
 | `submitOrder(request, instrument)` | Submit (validated again by the adapter) |
@@ -70,7 +70,7 @@ venues are unsupported. The UI uses it as follows:
     preview work, submission is disabled with the reason
   - types the venue doesn't offer are disabled and list their reason
 - **Account tables** show Close / Cancel / Cancel all only when the matching action is supported.
-- **Private Execution page** shows hidden / iceberg / RFQ / batch-auction status for every registered venue.
+- **Private Execution workspace** derives each mode's availability and disclosure from the active venue (see [PRIVACY.md](PRIVACY.md)).
 
 ### Supported and unsupported features
 
@@ -86,8 +86,8 @@ This table is checked against the code by `src/adapters/capability-docs.test.ts`
 | `order.stop-limit` | 🚧 not in Nova | 🚧 not in Nova |
 | `order.take-profit-market` | ✅ supported | 🚧 not in Nova |
 | `order.take-profit-limit` | 🚧 not in Nova | 🚧 not in Nova |
-| `order.iceberg` | ⛔ venue doesn't offer | ⛔ venue doesn't offer |
-| `order.hidden` | ⛔ venue doesn't offer | ⛔ venue doesn't offer |
+| `order.iceberg` | ✅ supported | ⛔ venue doesn't offer |
+| `order.hidden` | ✅ supported | ⛔ venue doesn't offer |
 | `order.twap` | 🚧 not in Nova | 🚧 not in Nova |
 | `tif.gtc` | ✅ supported | 🚧 not in Nova |
 | `tif.ioc` | ✅ supported | 🚧 not in Nova |
@@ -101,8 +101,9 @@ This table is checked against the code by `src/adapters/capability-docs.test.ts`
 | `read.account` | ✅ supported | ✅ supported |
 | `stream.order-updates` | ✅ supported | 🚧 not in Nova |
 | `stream.fills` | ✅ supported | 🚧 not in Nova |
-| `execution.rfq` | ⛔ venue doesn't offer | ⛔ venue doesn't offer |
+| `execution.rfq` | ✅ supported | ⛔ venue doesn't offer |
 | `execution.batch-auction` | ⛔ venue doesn't offer | ⛔ venue doesn't offer |
+| `execution.encrypted` | 🚧 not in Nova | 🚧 not in Nova |
 | `margin.isolated` | ✅ supported | 🚧 not in Nova |
 | `margin.cross` | 🚧 not in Nova | 🚧 not in Nova |
 <!-- capability-matrix:end -->
@@ -123,8 +124,18 @@ This table is checked against the code by `src/adapters/capability-docs.test.ts`
 - **Implements:** limit (GTC/IOC/post-only), market (IOC with a slippage bound), stop-market and
   take-profit-market (triggered on the simulated mark), reduce-only, isolated margin, cancel /
   cancel-all, its own liquidation, order and fill streams.
-- **Does not implement:** stop-limit / take-profit-limit, TWAP, cross margin (🚧 above); iceberg,
-  hidden, RFQ, batch auctions (⛔).
+- **Private order types (Milestone 4):**
+  - `hidden`: rests and matches like a limit order but is excluded from the simulated public book
+  - `iceberg`: shows only `displaySize` at its price; fills at most one displayed slice per book
+    update, then refills (refills are counted and shown)
+  - `rfq` trades: booked with `recordRfqTrade` at the price the RFQ service confirmed, after the same
+    leverage and margin checks (`checkRfqTrade` runs them first, without side effects)
+- **Public data reflects the account:** the simulated public book adds the account's displayed
+  resting orders (`PaperEngine.publicLiquidity`), and every fill prints on the simulated trade tape
+  without account or order ids. The engine matches against the raw synthetic book
+  (`subscribeVenueBook`), so it never matches the account against itself.
+- **Does not implement:** stop-limit / take-profit-limit, TWAP, cross margin, encrypted orders (🚧
+  above); batch auctions (⛔).
 - **Demo controls:** reject next order, reset account, connection loss, chart failure.
 
 ## HyperliquidAdapter (`src/adapters/hyperliquid/hyperliquid-adapter.ts`)

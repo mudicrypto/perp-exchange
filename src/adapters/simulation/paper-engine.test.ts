@@ -301,3 +301,82 @@ describe("demo account fixture", () => {
     expect(state.orderHistory!.length + state.openOrders.length).toBe(DEMO_ACCOUNT_FIXTURE.length);
   });
 });
+
+describe("PaperEngine private order types", () => {
+  const setup = () => {
+    const engine = new PaperEngine(markets, { startingBalance: 100_000 });
+    engine.setBook("ALPHA-PERP", book, NOW);
+    engine.setMark("ALPHA-PERP", 1000, NOW);
+    return engine;
+  };
+  const hiddenReq = (price: number, o: Parameters<typeof base>[0] = {}): OrderRequest => ({ ...base(o), type: "hidden", price, timeInForce: "gtc" });
+  const icebergReq = (price: number, displaySize: number, o: Parameters<typeof base>[0] = {}): OrderRequest => ({
+    ...base(o),
+    type: "iceberg",
+    price,
+    displaySize,
+    timeInForce: "gtc",
+  });
+
+  it("publishes resting limit orders in full but never hidden orders", () => {
+    const engine = setup();
+    engine.submit(limitReq(990, { size: 2 }), NOW);
+    const hidden = engine.submit(hiddenReq(990, { size: 5 }), NOW);
+    expect(hidden).toMatchObject({ ok: true, value: { status: "open", type: "hidden" } });
+    const pub = engine.publicLiquidity("ALPHA-PERP");
+    expect(pub.bids).toEqual([{ price: 990, size: 2, orders: 1 }]);
+    expect(pub.asks).toEqual([]);
+  });
+
+  it("hidden orders still match as makers when the book crosses them", () => {
+    const engine = setup();
+    const hidden = engine.submit(hiddenReq(995, { size: 1 }), NOW);
+    if (!hidden.ok) throw new Error("expected ok");
+    engine.setBook("ALPHA-PERP", { bids: [{ price: 994, size: 1, orders: 1 }], asks: [{ price: 995, size: 3, orders: 1 }] }, NOW + 1);
+    expect(engine.store.get(hidden.value.id)).toMatchObject({ status: "filled", averageFillPrice: 995 });
+    expect(engine.store.allFills().filter((f) => f.orderId === hidden.value.id)[0]).toMatchObject({ liquidity: "maker" });
+  });
+
+  it("an iceberg shows only its displayed slice, fills one slice per book update and refills", () => {
+    const engine = setup();
+    const ice = engine.submit(icebergReq(995, 0.5, { size: 2 }), NOW);
+    if (!ice.ok) throw new Error("expected ok");
+    expect(engine.publicLiquidity("ALPHA-PERP").bids).toEqual([{ price: 995, size: 0.5, orders: 1 }]);
+
+    const crossing = { bids: [{ price: 994, size: 1, orders: 1 }], asks: [{ price: 995, size: 10, orders: 1 }] };
+    engine.setBook("ALPHA-PERP", crossing, NOW + 1);
+    expect(engine.store.get(ice.value.id)).toMatchObject({ status: "partially-filled", filledSize: 0.5 });
+    expect(engine.icebergState(ice.value.id)).toEqual({ displaySize: 0.5, displayed: 0.5, refills: 1 });
+    expect(engine.publicLiquidity("ALPHA-PERP").bids).toEqual([{ price: 995, size: 0.5, orders: 1 }]);
+
+    for (let i = 2; i <= 4; i += 1) engine.setBook("ALPHA-PERP", crossing, NOW + i);
+    expect(engine.store.get(ice.value.id)).toMatchObject({ status: "filled", filledSize: 2 });
+    expect(engine.icebergState(ice.value.id)?.refills).toBe(3);
+    expect(engine.publicLiquidity("ALPHA-PERP").bids).toEqual([]);
+  });
+
+  it("an iceberg's last slice is never larger than what remains", () => {
+    const engine = setup();
+    const ice = engine.submit(icebergReq(995, 0.7, { size: 1 }), NOW);
+    if (!ice.ok) throw new Error("expected ok");
+    engine.setBook("ALPHA-PERP", { bids: [], asks: [{ price: 995, size: 10, orders: 1 }] }, NOW + 1);
+    expect(engine.icebergState(ice.value.id)).toMatchObject({ displayed: 0.3, refills: 1 });
+    expect(engine.publicLiquidity("ALPHA-PERP").bids).toEqual([{ price: 995, size: 0.3, orders: 1 }]);
+  });
+
+  it("books RFQ trades at the agreed price without touching the book, after margin checks", () => {
+    const engine = setup();
+    const before = engine.publicLiquidity("ALPHA-PERP");
+    const trade = { clientOrderId: "rfq-1", marketId: "ALPHA-PERP", side: "buy" as const, size: 2, price: 1001.2, leverage: 10 };
+    expect(engine.rfqTradeError(trade, NOW)).toBeNull();
+    const result = engine.recordRfqTrade(trade, NOW);
+    expect(result).toMatchObject({ ok: true, value: { type: "rfq", status: "filled", averageFillPrice: 1001.2 } });
+    if (!result.ok) return;
+    expect(engine.store.allFills().filter((f) => f.orderId === result.value.id)).toEqual([expect.objectContaining({ liquidity: "rfq", price: 1001.2, size: 2 })]);
+    expect(engine.snapshot(NOW).positions[0]).toMatchObject({ marketId: "ALPHA-PERP", size: 2, entryPrice: 1001.2 });
+    expect(engine.publicLiquidity("ALPHA-PERP")).toEqual(before);
+    expect(engine.recordRfqTrade(trade, NOW)).toMatchObject({ ok: false, error: { code: "duplicate-client-order-id" } });
+    expect(engine.rfqTradeError({ ...trade, clientOrderId: "rfq-2", size: 10_000 }, NOW)).toMatchObject({ code: "insufficient-margin" });
+    expect(engine.rfqTradeError({ ...trade, clientOrderId: "rfq-3", leverage: 5 }, NOW)).toMatchObject({ code: "validation" });
+  });
+});

@@ -12,7 +12,7 @@ import type {
 import { unsupportedError, validateOrderRequest, type ValidationContext, type VenueCapabilities } from "@/core/trading";
 import { simulationCapabilities } from "./capabilities";
 import { createDemoPaperEngine } from "./demo-account-fixture";
-import type { PaperEngine, SimulationConfig } from "./paper-engine";
+import type { IcebergState, PaperEngine, RfqTradeRequest, SimulationConfig } from "./paper-engine";
 import type { SimulatedMarketDataSource } from "./simulated-market-data-source";
 import { SIMULATION_VENUE_ID } from "./simulation-engine";
 
@@ -163,6 +163,31 @@ export class SimulationAdapter implements ExecutionAdapter, AccountDataSource {
     this.detachFeeds();
   }
 
+  // ------------------------------------------------------- private execution
+
+  /**
+   * Books a trade agreed through the simulated RFQ desk on the paper
+   * account. Only for executions the RFQ service confirmed.
+   */
+  recordRfqTrade(trade: RfqTradeRequest): Result<Order> {
+    if (simulationCapabilities.capabilities["execution.rfq"].status !== "supported") {
+      return fail({ code: "unsupported", capability: "execution.rfq", scope: "venue", message: "RFQ is not supported" });
+    }
+    const result = this.engine.recordRfqTrade(trade, this.now());
+    this.emitAccount();
+    return result;
+  }
+
+  /** Would `recordRfqTrade` succeed? (checked before accepting a quote) */
+  checkRfqTrade(trade: RfqTradeRequest): TradingError | null {
+    return this.engine.rfqTradeError(trade, this.now());
+  }
+
+  /** Displayed slice and refill count of an iceberg order (null otherwise). */
+  icebergState(orderId: string): IcebergState | null {
+    return this.engine.icebergState(orderId);
+  }
+
   // -------------------------------------------------------------- demo controls
 
   /** Restores the demo account to its fixture state. */
@@ -183,8 +208,14 @@ export class SimulationAdapter implements ExecutionAdapter, AccountDataSource {
     const engine = createDemoPaperEngine(this.markets, this.now(), this.config);
     this.detachEngine = engine.subscribe(({ order, fill }) => {
       for (const l of this.orderListeners) l(order);
-      if (fill) for (const l of this.fillListeners) l(fill);
+      if (fill) {
+        for (const l of this.fillListeners) l(fill);
+        // Every execution prints on the simulated public tape, anonymously.
+        const aggressor = fill.liquidity === "maker" ? (fill.side === "buy" ? "sell" : "buy") : fill.side;
+        this.source.printTrade({ marketId: fill.marketId, side: aggressor, price: fill.price, size: fill.size, venueTime: fill.time });
+      }
     });
+    this.source.setParticipantLiquidity((marketId) => engine.publicLiquidity(marketId));
     return engine;
   }
 
@@ -201,7 +232,7 @@ export class SimulationAdapter implements ExecutionAdapter, AccountDataSource {
   private attachFeeds(): void {
     for (const marketId of this.markets.keys()) {
       this.feedUnsubscribers.push(
-        this.source.subscribeOrderBook(marketId, {
+        this.source.subscribeVenueBook(marketId, {
           onData: (book) => {
             this.engine.setBook(marketId, book, this.now());
             this.scheduleAccountEmit();

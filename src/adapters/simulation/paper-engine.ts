@@ -91,6 +91,36 @@ function sign(side: Side): 1 | -1 {
 
 const fail = (error: TradingError): Result<never> => ({ ok: false, error });
 
+/** Order types that carry a limit price and may rest on the simulated book. */
+function isRestingType(type: Order["type"]): boolean {
+  return type === "limit" || type === "iceberg" || type === "hidden";
+}
+
+/** What other participants of the simulated venue can see of resting orders. */
+export interface PublicLiquidity {
+  bids: BookLevel[];
+  asks: BookLevel[];
+}
+
+/** Iceberg bookkeeping (not part of the venue-independent Order model). */
+export interface IcebergState {
+  displaySize: number;
+  /** Size currently displayed in the public book. */
+  displayed: number;
+  /** Times the displayed slice was replenished after being consumed. */
+  refills: number;
+}
+
+/** A bilateral trade agreed through the simulated RFQ desk. */
+export interface RfqTradeRequest {
+  clientOrderId: string;
+  marketId: MarketId;
+  side: Side;
+  size: number;
+  price: number;
+  leverage: number;
+}
+
 /** Simulator orders always carry leverage (it comes from the request). */
 function leverageOf(order: Order): number {
   if (order.leverage === null) throw new Error(`Simulator order ${order.id} has no leverage`);
@@ -108,6 +138,7 @@ export class PaperEngine {
   private readonly marks = new Map<MarketId, number>();
   /** Per-order slippage for market-style orders (not part of the Order model). */
   private readonly slippage = new Map<string, number>();
+  private readonly icebergs = new Map<string, IcebergState>();
   private rejectionRules: RejectionRule[] = [];
   private orderSeq = 0;
   private fillSeq = 0;
@@ -162,9 +193,14 @@ export class PaperEngine {
         }
         remaining = Math.min(remaining, reducible);
       }
+      const iceberg = this.icebergs.get(order.id);
+      // An iceberg only exposes its displayed slice to the book per update.
+      if (iceberg) remaining = Math.min(remaining, iceberg.displayed);
       const fillSize = remaining * this.config.liquidityFraction;
+      const filledBefore = order.filledSize;
       this.executeFill(order.id, order.price, fillSize, "maker", now);
       const after = this.store.get(order.id)!;
+      if (iceberg) this.consumeSlice(iceberg, after, after.filledSize - filledBefore);
       if (order.reduceOnly && !isTerminalStatus(after.status) && this.reducibleSize(order.marketId, order.side) <= EPSILON) {
         this.emit(order.id, { type: "cancelled", reason: "Reduce-only remainder cancelled: position closed" }, now);
       }
@@ -185,32 +221,26 @@ export class PaperEngine {
     if (!this.markets.has(request.marketId)) {
       return fail({ code: "validation", issues: [{ field: "marketId", message: "Unknown market" }], message: "Unknown market" });
     }
-    this.orderSeq += 1;
-    const order: Order = {
-      id: `SIM-${String(this.orderSeq).padStart(6, "0")}`,
-      clientOrderId: request.clientOrderId,
-      venueOrderId: null,
-      marketId: request.marketId,
-      side: request.side,
-      type: request.type,
-      price: requestLimitPrice(request),
-      triggerPrice: requestTriggerPrice(request),
-      triggeredAt: null,
-      size: request.size,
-      filledSize: 0,
-      averageFillPrice: null,
-      status: "pending-new",
-      timeInForce: requestTimeInForce(request),
-      reduceOnly: request.reduceOnly,
-      leverage: request.leverage,
-      marginMode: request.marginMode,
-      createdAt: now,
-      updatedAt: now,
-      statusReason: null,
-      lastSequence: null,
-      origin: "simulated",
-    };
+    const order = this.newOrder(
+      {
+        clientOrderId: request.clientOrderId,
+        marketId: request.marketId,
+        side: request.side,
+        type: request.type,
+        price: requestLimitPrice(request),
+        triggerPrice: requestTriggerPrice(request),
+        size: request.size,
+        timeInForce: requestTimeInForce(request),
+        reduceOnly: request.reduceOnly,
+        leverage: request.leverage,
+        marginMode: request.marginMode,
+      },
+      now,
+    );
     if ("maxSlippage" in request) this.slippage.set(order.id, request.maxSlippage);
+    if (request.type === "iceberg") {
+      this.icebergs.set(order.id, { displaySize: request.displaySize, displayed: Math.min(request.displaySize, request.size), refills: 0 });
+    }
     this.store.add(order);
     return { ok: true, value: order };
   }
@@ -254,7 +284,7 @@ export class PaperEngine {
     const levels = order.side === "buy" ? book.asks : book.bids;
     const best = levels[0]?.price;
     const limit =
-      order.type === "limit"
+      isRestingType(order.type)
         ? order.price!
         : best === undefined
           ? null
@@ -269,14 +299,18 @@ export class PaperEngine {
     if (order.timeInForce === "post-only" && takeSize > EPSILON) {
       return this.reject(order, { code: "would-take-liquidity", message: "Post-only order would cross the book" }, now);
     }
-    const referencePrice = order.type === "limit" ? order.price! : (takeable.at(-1)?.price ?? best!);
+    const referencePrice = isRestingType(order.type) ? order.price! : (takeable.at(-1)?.price ?? best!);
     const marginError = this.checkMargin(order, referencePrice, now, takeSize);
     if (marginError) return this.reject(order, marginError, now);
 
     this.emit(order.id, { type: "accepted" }, now);
     for (const level of takeable) this.executeFill(order.id, level.price, level.size, "taker", now);
     this.finishTakerOrder(order.id, market, now);
-    return { ok: true, value: this.store.get(order.id)! };
+    const iceberg = this.icebergs.get(order.id);
+    const placed = this.store.get(order.id)!;
+    // Whatever rests after the taker part shows a fresh displayed slice.
+    if (iceberg) iceberg.displayed = Math.min(iceberg.displaySize, roundTo(placed.size - placed.filledSize, market.sizeDecimals));
+    return { ok: true, value: placed };
   }
 
   /** create + process (synchronous submit). */
@@ -306,6 +340,72 @@ export class PaperEngine {
       if (this.cancel(order.id, now).ok) count += 1;
     }
     return count;
+  }
+
+  /**
+   * Records a trade agreed bilaterally through the simulated RFQ desk. It
+   * never touches the book: the order is created, accepted and filled at the
+   * agreed price in one step (liquidity "rfq"), after the usual margin checks.
+   */
+  recordRfqTrade(trade: RfqTradeRequest, now: number): Result<Order> {
+    const error = this.rfqTradeError(trade, now);
+    if (error) return fail(error);
+    const order = this.newOrder(
+      { clientOrderId: trade.clientOrderId, marketId: trade.marketId, side: trade.side, type: "rfq", price: trade.price, triggerPrice: null, size: trade.size, timeInForce: null, reduceOnly: false, leverage: trade.leverage, marginMode: "isolated" },
+      now,
+    );
+    this.store.add(order);
+    this.emit(order.id, { type: "accepted" }, now);
+    this.executeFill(order.id, trade.price, trade.size, "rfq", now);
+    return { ok: true, value: this.store.get(order.id)! };
+  }
+
+  /** Dry run of `recordRfqTrade` (checked before accepting a quote). */
+  rfqTradeError(trade: RfqTradeRequest, now: number): TradingError | null {
+    if (this.store.hasClientOrderId(trade.clientOrderId)) {
+      return { code: "duplicate-client-order-id", clientOrderId: trade.clientOrderId, message: `Client order id ${trade.clientOrderId} was already used` };
+    }
+    if (!this.markets.has(trade.marketId)) return { code: "validation", issues: [{ field: "marketId", message: "Unknown market" }], message: "Unknown market" };
+    if (!(trade.size > 0 && trade.price > 0 && trade.leverage > 0)) {
+      return { code: "validation", issues: [{ field: "size", message: "Size, price and leverage must be positive" }], message: "Invalid RFQ trade" };
+    }
+    const position = this.positions.get(trade.marketId);
+    if (position && Math.abs(position.leverage - trade.leverage) > EPSILON) {
+      const message = `Leverage must match the open position (${position.leverage}x)`;
+      return { code: "validation", issues: [{ field: "leverage", message }], message };
+    }
+    return this.checkMargin({ ...trade, reduceOnly: false }, trade.price, now);
+  }
+
+  /**
+   * What the simulated venue publishes of *this account's* resting orders:
+   * limit orders in full, icebergs only their displayed slice, hidden
+   * orders not at all. The simulated public book is built from this.
+   */
+  publicLiquidity(marketId: MarketId): PublicLiquidity {
+    const bids = new Map<number, BookLevel>();
+    const asks = new Map<number, BookLevel>();
+    for (const order of this.store.openOrders()) {
+      if (order.marketId !== marketId || order.price === null || order.status === "waiting-trigger" || order.status === "pending-new") continue;
+      if (order.type === "hidden" || !isRestingType(order.type)) continue;
+      const decimals = this.markets.get(marketId)?.sizeDecimals ?? 8;
+      const remaining = roundTo(order.size - order.filledSize, decimals);
+      const shown = order.type === "iceberg" ? Math.min(remaining, this.icebergs.get(order.id)?.displayed ?? 0) : remaining;
+      if (shown <= EPSILON) continue;
+      const side = order.side === "buy" ? bids : asks;
+      const level = side.get(order.price);
+      if (level) side.set(order.price, { price: order.price, size: roundTo(level.size + shown, decimals), orders: (level.orders ?? 0) + 1 });
+      else side.set(order.price, { price: order.price, size: shown, orders: 1 });
+    }
+    return {
+      bids: [...bids.values()].sort((a, b) => b.price - a.price),
+      asks: [...asks.values()].sort((a, b) => a.price - b.price),
+    };
+  }
+
+  icebergState(orderId: string): IcebergState | null {
+    const state = this.icebergs.get(orderId);
+    return state ? { ...state } : null;
   }
 
   subscribe(listener: (change: OrderStoreChange) => void): () => void {
@@ -403,6 +503,38 @@ export class PaperEngine {
 
   // --------------------------------------------------------------- internals
 
+  private newOrder(
+    fields: Pick<Order, "clientOrderId" | "marketId" | "side" | "type" | "price" | "triggerPrice" | "size" | "timeInForce" | "reduceOnly" | "leverage" | "marginMode">,
+    now: number,
+  ): Order {
+    this.orderSeq += 1;
+    return {
+      ...fields,
+      id: `SIM-${String(this.orderSeq).padStart(6, "0")}`,
+      venueOrderId: null,
+      triggeredAt: null,
+      filledSize: 0,
+      averageFillPrice: null,
+      status: "pending-new",
+      createdAt: now,
+      updatedAt: now,
+      statusReason: null,
+      lastSequence: null,
+      origin: "simulated",
+    };
+  }
+
+  /** After a maker fill: shrink the displayed slice and replenish it once consumed. */
+  private consumeSlice(iceberg: IcebergState, order: Order, filled: number): void {
+    const decimals = this.markets.get(order.marketId)?.sizeDecimals ?? 8;
+    iceberg.displayed = Math.max(0, roundTo(iceberg.displayed - filled, decimals));
+    const remaining = roundTo(order.size - order.filledSize, decimals);
+    if (iceberg.displayed <= EPSILON && remaining > EPSILON && !isTerminalStatus(order.status)) {
+      iceberg.displayed = Math.min(iceberg.displaySize, remaining);
+      iceberg.refills += 1;
+    }
+  }
+
   private unwrap(result: Result<Order>): Order {
     if (!result.ok) throw new Error(result.error.message);
     return result.value;
@@ -450,7 +582,7 @@ export class PaperEngine {
     if (isTerminalStatus(order.status)) return;
     const remaining = roundTo(order.size - order.filledSize, market.sizeDecimals);
     if (remaining <= EPSILON) return;
-    const ioc = order.type !== "limit" || order.timeInForce === "ioc";
+    const ioc = !isRestingType(order.type) || order.timeInForce === "ioc";
     if (order.reduceOnly && this.reducibleSize(order.marketId, order.side) <= EPSILON) {
       this.emit(orderId, { type: "cancelled", reason: "Reduce-only: remainder exceeds the position; cancelled" }, now);
     } else if (ioc) {
@@ -459,10 +591,16 @@ export class PaperEngine {
     }
   }
 
-  private checkMargin(order: Order, referencePrice: number, now: number, takeSize = order.size): TradingError | null {
+  private checkMargin(
+    order: Pick<Order, "reduceOnly" | "size" | "marketId" | "side"> & { leverage: number | null },
+    referencePrice: number,
+    now: number,
+    takeSize = order.size,
+  ): TradingError | null {
     if (order.reduceOnly) return null;
+    if (order.leverage === null) throw new Error("Simulator order has no leverage");
     const increasing = Math.max(0, order.size - this.reducibleSize(order.marketId, order.side));
-    const required = (increasing * referencePrice) / leverageOf(order) + Math.max(takeSize, 0) * referencePrice * this.config.fees.taker;
+    const required = (increasing * referencePrice) / order.leverage + Math.max(takeSize, 0) * referencePrice * this.config.fees.taker;
     const available = this.snapshot(now).available;
     if (required <= available + EPSILON) return null;
     return {

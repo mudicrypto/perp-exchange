@@ -13,6 +13,15 @@ const ServerEnvSchema = z
      */
     NOVA_EXECUTION_MODE: z.literal("disabled").default("disabled"),
     NOVA_ALLOW_SIMULATION_IN_PRODUCTION: z.enum(["true", "false"]).default("false"),
+    /**
+     * Bearer tokens for the *simulated* RFQ counterparties' API, as
+     * `counterpartyId=token,...` (tokens ≥ 24 chars). Server-only; unset means
+     * counterparties can only auto-quote. Ignored outside simulation mode.
+     */
+    NOVA_RFQ_COUNTERPARTY_TOKENS: z
+      .string()
+      .regex(/^[a-z0-9-]+=[A-Za-z0-9_-]{24,}(,[a-z0-9-]+=[A-Za-z0-9_-]{24,})*$/, "Expected id=token[,id=token] with tokens of at least 24 characters")
+      .optional(),
   })
   .superRefine((env, ctx) => {
     if (
@@ -47,6 +56,16 @@ export function parseServerEnv(env: Record<string, string | undefined>): ServerE
     throw new ConfigError(`Invalid server configuration:\n${details.join("\n")}`);
   }
   return parsed.data;
+}
+
+/** Parsed counterparty tokens (server-only). */
+export function rfqCounterpartyTokens(env: ServerEnv): Map<string, string> {
+  const tokens = new Map<string, string>();
+  for (const pair of env.NOVA_RFQ_COUNTERPARTY_TOKENS?.split(",") ?? []) {
+    const [id, token] = pair.split("=") as [string, string];
+    tokens.set(id, token);
+  }
+  return tokens;
 }
 
 export function toPublicRuntimeConfig(env: ServerEnv): PublicRuntimeConfig {

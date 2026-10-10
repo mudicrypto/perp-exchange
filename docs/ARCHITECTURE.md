@@ -1,6 +1,6 @@
 # Nova Exchange — Architecture
 
-Status: Milestone 1 (read-only market data terminal). See `docs/CHECKLIST.md` for progress.
+Status: Milestone 4 (private execution on the simulated venue). See `docs/CHECKLIST.md` for progress.
 
 ## Goals that shape the design
 
@@ -24,7 +24,9 @@ src/
     market-data/          Order book / trade / candle state with ordering + de-duplication
     risk/                 Pure risk math: margin, liquidation estimates, book-walk impact, portfolio
     execution/            Order intent validation, safety gate, disabled execution adapter
-    private-execution/    Venue visibility capabilities + honest disclosures
+    privacy/              Execution modes, privacy profiles, consistency rules, disclosures
+    rfq/                  RFQ model, redacted views and the authorization-enforcing RfqDesk
+    trading/              Order lifecycle, validation, capability registry, PrivateExecutionService
   adapters/               Implementations of ports
     hyperliquid/          Wire schemas (Zod), mappers, server-side info client, browser WS source
     simulation/           Deterministic simulated market data (development only, always labelled)
@@ -49,7 +51,8 @@ boundary, so a venue's response shape never leaks past its adapter directory.
 | Capabilities | `CapabilityRegistry` | explicit status per venue × capability |
 | Order lifecycle & reconciliation | `OrderStore` + `transitionOrder` | used by the simulator; ready for venue streams |
 | Risk engine | `RiskEngine` | `DefaultRiskEngine` (pure functions) |
-| Private execution | `VenueExecutionCapabilities` | `hyperliquidCapabilities`, `simulationCapabilities` |
+| Private execution | `VenuePrivacy` (in `VenueCapabilities`), `PrivateExecutionService` | profiles in `hyperliquidCapabilities`, `simulationCapabilities` |
+| RFQ | `RfqDesk` (core) | `server/rfq` + `/api/rfq/*` (simulation only), `RfqClient` (browser) |
 | Persistence | `KeyValueStore` | `BrowserStorageStore`, `MemoryStore` |
 | AuthN / AuthZ | `SessionProvider` | `AnonymousSessionProvider` |
 
@@ -103,14 +106,18 @@ surface elevation); reusable trading primitives live in `components/trading`.
 
 ## Private execution
 
-Private execution is a product pillar, but privacy is a property of the **venue**, not the UI.
-Each venue declares `VenueExecutionCapabilities` (order-book visibility, fill visibility, hidden
-order support). The order ticket renders a disclosure derived from those capabilities.
+Privacy is a property of the **venue and protocol**, not the UI. Full model: [`docs/PRIVACY.md`](PRIVACY.md).
 
-* Hyperliquid publishes resting orders in its public L2 book and fills on a public ledger, so Nova
-  shows orders routed there as **public**. Nova will never label such an order hidden/private.
-* Genuinely private modes (hidden/iceberg orders, batch auctions, sealed-bid RFQ, encrypted order
-  flow) require Nova's own matching engine and are tracked as future milestones in the checklist.
+* Each venue declares a `VenuePrivacy` profile (party × data exposure) for every execution mode it
+  offers. The `CapabilityRegistry` refuses venues whose profiles are incomplete or inconsistent.
+  Every disclosure is derived from these declarations by `describeExecution`.
+* Hyperliquid publishes resting orders and attributes trades to addresses, so only `public-limit`
+  exists there. Nova never labels an order routed there hidden or private.
+* The simulator implements hidden and iceberg orders and a private RFQ desk, and its public book
+  and tape reflect them, so the disclosures can be tested.
+* `PrivateExecutionService` routes hidden and iceberg orders. It refuses unsupported modes before
+  calling an adapter. RFQ goes through the server's `RfqDesk`, which enforces authorization.
+  Encrypted execution is planned only.
 
 ## Security
 

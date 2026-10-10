@@ -50,8 +50,8 @@ describe("SimulationAdapter", () => {
 
   it("validates before submitting and returns explicit unsupported errors", async () => {
     const { adapter, gamma } = setup();
-    const hidden = { ...marketOrder(), type: "hidden", price: 0.8, timeInForce: "gtc" } as unknown as OrderRequest;
-    expect(await adapter.submitOrder(hidden, gamma)).toMatchObject({ ok: false, error: { code: "unsupported", capability: "order.hidden", scope: "venue" } });
+    const iceberg = { ...marketOrder(), type: "iceberg", price: 0.8, displaySize: 100, timeInForce: "gtc" } as unknown as OrderRequest;
+    expect(await adapter.submitOrder(iceberg, gamma)).toMatchObject({ ok: false, error: { code: "validation" } });
     const stopLimit = { ...marketOrder(), type: "stop-limit", triggerPrice: 0.9, price: 0.91, timeInForce: "gtc" } as unknown as OrderRequest;
     expect(await adapter.submitOrder(stopLimit, gamma)).toMatchObject({ ok: false, error: { code: "unsupported", scope: "nova" } });
     expect(await adapter.submitOrder(marketOrder({ marginMode: "cross" }), gamma)).toMatchObject({ ok: false, error: { capability: "margin.cross" } });

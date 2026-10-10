@@ -1,5 +1,6 @@
 import {
   CANDLE_INTERVAL_MS,
+  type BookLevel,
   type Candle,
   type CandleInterval,
   type MarketId,
@@ -40,6 +41,24 @@ const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve,
 
 type Listener<T> = StreamHandlers<T>;
 
+/** Resting liquidity other participants of the simulated venue display. */
+export type ParticipantLiquidity = (marketId: MarketId) => { bids: readonly BookLevel[]; asks: readonly BookLevel[] };
+
+/** Adds displayed participant liquidity to a book side (best first). */
+function mergeSide(levels: readonly BookLevel[], extra: readonly BookLevel[], descending: boolean): BookLevel[] {
+  const merged = new Map<number, BookLevel>();
+  for (const level of [...levels, ...extra]) {
+    const existing = merged.get(level.price);
+    merged.set(
+      level.price,
+      existing
+        ? { price: level.price, size: existing.size + level.size, orders: existing.orders === null || level.orders === null ? null : existing.orders + level.orders }
+        : { ...level },
+    );
+  }
+  return [...merged.values()].sort((a, b) => (descending ? b.price - a.price : a.price - b.price));
+}
+
 /**
  * In-browser simulated market data. Same interface as the live source, so
  * the terminal exercises identical code paths, but the descriptor kind is
@@ -52,6 +71,10 @@ export class SimulatedMarketDataSource implements MarketDataSource {
   private readonly tickMs: number;
   private timer: ReturnType<typeof setInterval> | null = null;
   private readonly books = new Map<MarketId, Set<Listener<OrderBookSnapshot>>>();
+  /** Raw synthetic liquidity for the paper venue's matching engine. */
+  private readonly venueBooks = new Map<MarketId, Set<Listener<OrderBookSnapshot>>>();
+  private participants: ParticipantLiquidity | null = null;
+  private printSeq = 0;
   private readonly trades = new Map<MarketId, Set<Listener<Trade[]>>>();
   private readonly stats = new Map<MarketId, Set<Listener<MarketStats>>>();
   private readonly candles = new Map<string, { marketId: MarketId; interval: CandleInterval; current: Candle | null; listeners: Set<Listener<Candle>> }>();
@@ -107,6 +130,35 @@ export class SimulatedMarketDataSource implements MarketDataSource {
     return this.add(this.books, marketId, handlers);
   }
 
+  /**
+   * The synthetic counterparty liquidity the paper venue matches against.
+   * Unlike `subscribeOrderBook` it excludes the paper account's own resting
+   * orders, so the simulator never matches an account against itself.
+   */
+  subscribeVenueBook(marketId: MarketId, handlers: StreamHandlers<OrderBookSnapshot>): Unsubscribe {
+    return this.add(this.venueBooks, marketId, handlers);
+  }
+
+  /**
+   * Registers the paper venue's displayed resting orders. They are merged
+   * into the *public* book exactly as the venue displays them (the paper
+   * engine decides: limit in full, iceberg slice only, hidden never).
+   */
+  setParticipantLiquidity(provider: ParticipantLiquidity | null): void {
+    this.participants = provider;
+  }
+
+  /**
+   * Prints executions on the simulated public trade tape. Prints carry only
+   * market, aggressor side, price, size and time; never an account or order id.
+   */
+  printTrade(trade: Omit<Trade, "id">): void {
+    if (this.connection.status !== "open") return;
+    this.printSeq += 1;
+    const print: Trade = { ...trade, id: `sim-print-${this.printSeq}` };
+    for (const l of this.trades.get(trade.marketId) ?? []) l.onData([print]);
+  }
+
   subscribeTrades(marketId: MarketId, handlers: StreamHandlers<Trade[]>): Unsubscribe {
     const unsubscribe = this.add(this.trades, marketId, handlers);
     // Like real venues, start with a snapshot of recent trades (delivered async).
@@ -153,7 +205,8 @@ export class SimulatedMarketDataSource implements MarketDataSource {
       lastInvalidReason: null,
       lastVenueError: null,
       activeSubscriptions:
-        this.books.size + this.trades.size + this.stats.size + this.candles.size + (this.midListeners.size > 0 ? 1 : 0),
+        this.books.size +
+        this.venueBooks.size + this.trades.size + this.stats.size + this.candles.size + (this.midListeners.size > 0 ? 1 : 0),
       reconnects: this.outages,
     };
   }
@@ -179,7 +232,7 @@ export class SimulatedMarketDataSource implements MarketDataSource {
       this.outageTimer = null;
       this.outages += 1;
       this.setConnection({ status: "open", since: this.now() });
-      for (const set of [...this.books.values(), ...this.trades.values(), ...this.stats.values()]) {
+      for (const set of [...this.books.values(), ...this.venueBooks.values(), ...this.trades.values(), ...this.stats.values()]) {
         for (const handlers of set) handlers.onReset?.();
       }
       for (const entry of this.candles.values()) for (const handlers of entry.listeners) handlers.onReset?.();
@@ -208,6 +261,8 @@ export class SimulatedMarketDataSource implements MarketDataSource {
     this.outageTimer = null;
     this.connection = { status: "open", since: this.now() };
     this.books.clear();
+    this.venueBooks.clear();
+    this.participants = null;
     this.trades.clear();
     this.stats.clear();
     this.candles.clear();
@@ -220,7 +275,7 @@ export class SimulatedMarketDataSource implements MarketDataSource {
     if (this.connection.status !== "open") return;
     const time = this.now();
     this.lastTickAt = time;
-    const active = new Set<MarketId>([...this.books.keys(), ...this.trades.keys(), ...this.stats.keys()]);
+    const active = new Set<MarketId>([...this.books.keys(), ...this.venueBooks.keys(), ...this.trades.keys(), ...this.stats.keys()]);
     for (const entry of this.candles.values()) active.add(entry.marketId);
     // The market list needs every market to move, not just subscribed ones.
     if (this.midListeners.size > 0) for (const id of this.engine.markets.keys()) active.add(id);
@@ -230,7 +285,17 @@ export class SimulatedMarketDataSource implements MarketDataSource {
       if (!market) continue;
       market.step();
       const book = market.book(time);
-      for (const l of this.books.get(marketId) ?? []) l.onData(book);
+      // The engine sees counterparty liquidity first; the public book then
+      // reflects the account's orders as they rest after this update.
+      for (const l of this.venueBooks.get(marketId) ?? []) l.onData(book);
+      const listeners = this.books.get(marketId);
+      if (listeners && listeners.size > 0) {
+        const shown = this.participants?.(marketId);
+        const publicBook = shown
+          ? { ...book, bids: mergeSide(book.bids, shown.bids, true), asks: mergeSide(book.asks, shown.asks, false) }
+          : book;
+        for (const l of listeners) l.onData(publicBook);
+      }
       const trades = market.maybeTrades(time);
       if (trades.length > 0) for (const l of this.trades.get(marketId) ?? []) l.onData(trades);
       const stats = market.stats(time);

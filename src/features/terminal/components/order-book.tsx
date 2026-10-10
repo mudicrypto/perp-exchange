@@ -31,6 +31,8 @@ function Row({
       title="Use this price"
       className="relative grid h-5 w-full grid-cols-3 items-center px-3 text-left text-xs hover:bg-accent/60"
       data-testid={`book-${side}`}
+      data-price={row.price}
+      data-size={row.size}
     >
       <div
         aria-hidden

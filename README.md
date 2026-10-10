@@ -3,11 +3,14 @@
 A perpetual futures trading terminal focused on risk transparency, analytics and — longer term —
 private execution. **Milestone 1:** real-time public market data (read-only for live venues), a
 complete trading terminal, and a clearly-labelled demo environment where orders are matched
-locally by a paper-trading simulator. No real orders, custody, deposits or withdrawals.
+locally by a paper-trading simulator. **Milestone 4:** a Private Execution workspace (hidden,
+iceberg and private RFQ on the simulated venue, encrypted orders planned) with a privacy matrix
+for every mode. No real orders, custody, deposits or withdrawals.
 
 - Architecture: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
 - Trading domain & execution adapters (supported/unsupported features): [`docs/TRADING.md`](docs/TRADING.md)
 - Hyperliquid integration: [`docs/integrations/HYPERLIQUID.md`](docs/integrations/HYPERLIQUID.md)
+- Private execution & privacy model: [`docs/PRIVACY.md`](docs/PRIVACY.md)
 - Progress and roadmap: [`docs/CHECKLIST.md`](docs/CHECKLIST.md)
 
 ## Quick start
@@ -63,5 +66,9 @@ Playwright uses Chromium. If your environment provides a browser at a custom pat
 - Simulated data is always labelled (banner + badge) and uses fictitious markets (ALPHA, BETA, GAMMA).
 - Every external payload is validated with Zod; invalid payloads are dropped, never rendered.
 - Account panels show explicit empty states; no placeholder balances or positions.
-- Order visibility disclosures come from the venue's declared capabilities. Orders routed to
-  Hyperliquid are shown as public because Hyperliquid publishes its order book and fills.
+- Order visibility disclosures come from the venue's declared, consistency-checked privacy
+  profiles. Orders routed to Hyperliquid are shown as public because Hyperliquid publishes its order
+  book and fills. Private modes are refused before reaching any venue that cannot honour them.
+- RFQ requests are authorised on the server (only the requester and the selected counterparties
+  can read them). They never carry your limit price, and they are deleted ≤ 5 minutes after
+  completion.

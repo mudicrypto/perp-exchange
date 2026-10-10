@@ -21,6 +21,8 @@ export const ORDER_TYPES = [
   "take-profit-limit",
   "iceberg",
   "hidden",
+  /** A bilateral trade executed from an accepted RFQ quote (never submitted as a request). */
+  "rfq",
 ] as const;
 export const OrderTypeSchema = z.enum(ORDER_TYPES);
 export type OrderType = z.infer<typeof OrderTypeSchema>;
@@ -176,7 +178,7 @@ export type Order = z.infer<typeof OrderSchema>;
 
 // ---------------------------------------------------------------------- fills
 
-export const LiquiditySchema = z.enum(["maker", "taker", "liquidation"]);
+export const LiquiditySchema = z.enum(["maker", "taker", "liquidation", "rfq"]);
 export type Liquidity = z.infer<typeof LiquiditySchema>;
 
 export const FillSchema = z.object({

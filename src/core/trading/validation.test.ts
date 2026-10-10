@@ -10,6 +10,7 @@ import {
   type CapabilityStatus,
   type Market,
 } from "../domain";
+import { allData, type PrivacyProfile } from "../privacy";
 import { CapabilityRegistry, checkRequestCapabilities, requiredCapabilities, type VenueCapabilities } from "./capability-registry";
 import { fitsSignificantFigures, validateOrderRequest } from "./validation";
 
@@ -103,13 +104,28 @@ describe("validateOrderRequest", () => {
   });
 });
 
+const TRANSPARENT: Partial<Record<CapabilityId, CapabilityStatus>> = {
+  "order.hidden": venueUnsupported("no"),
+  "order.iceberg": venueUnsupported("no"),
+  "execution.rfq": venueUnsupported("no"),
+  "execution.encrypted": notImplemented("planned"),
+};
+const publicProfile: PrivacyProfile = {
+  "public-observers": allData("visible"),
+  "matching-engine": allData("visible"),
+  "venue-operator": allData("visible"),
+  "rfq-counterparties": allData("not-applicable"),
+  "nova-backend": allData("not-visible"),
+  "other-nova-users": allData("visible"),
+};
+
 describe("capability registry", () => {
   const venue = (id: string, overrides: Partial<Record<CapabilityId, CapabilityStatus>>): VenueCapabilities => ({
     venueId: id,
     venueName: id,
     origin: "venue",
-    capabilities: caps(overrides),
-    visibility: { venueId: id, venueName: id, restingOrderVisibility: "public-book", fillVisibility: "public-tape", publicAccountAttribution: false, supportedPrivateModes: [], notes: [] },
+    capabilities: caps({ ...TRANSPARENT, ...overrides }),
+    privacy: { venueId: id, venueName: id, profiles: { "public-limit": publicProfile }, notes: [] },
   });
 
   it("answers supports/check per venue, and unknown venues are unsupported", () => {
