@@ -97,6 +97,38 @@ test.describe("market data", () => {
   });
 });
 
+test.describe("market data status", () => {
+  test("connection details show the data source, subscriptions and message health", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.getByTestId("book-ask").first()).toBeVisible();
+    await page.getByTestId("connection-button").click();
+    const details = page.getByTestId("connection-details");
+    await expect(details).toContainText("Simulated data generated in this browser");
+    await expect(page.getByTestId("diag-status")).toContainText("Connected");
+    await expect(page.getByTestId("diag-invalid")).toHaveText("0");
+    await expect(page.getByTestId("diag-subscriptions")).not.toHaveText("0");
+  });
+
+  test("market list shows streamed mids and the market header shows stream status", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.getByTestId("list-freshness")).toContainText("Live mids");
+    await expect(page.getByTestId("market-sidebar")).toContainText("Mid");
+    await expect(page.getByTestId("stats-stream")).toHaveAttribute("data-stream-status", "live");
+  });
+
+  test("panels report disconnection with the age of the last update", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.getByTestId("book-panel")).toHaveAttribute("data-stream-status", "live");
+    await page.getByTestId("demo-controls").click();
+    await page.getByTestId("demo-outage").click();
+    await page.keyboard.press("Escape");
+    await expect(page.getByTestId("book-panel")).toHaveAttribute("data-stream-status", "disconnected");
+    await expect(page.getByTestId("book-panel").getByTestId("stream-badge")).toContainText("Disconnected");
+    await expect(page.getByTestId("stats-stream")).toHaveAttribute("data-stream-status", "disconnected");
+    await expect(page.getByTestId("book-panel")).toHaveAttribute("data-stream-status", "live", { timeout: 15_000 });
+  });
+});
+
 test.describe("order entry (paper trading)", () => {
   test("previews risk, requires review, and fills a simulated market order", async ({ page }) => {
     await page.goto("/");

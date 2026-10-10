@@ -10,8 +10,19 @@ export function jsonError(status: number, code: string, message: string): Respon
 export function errorResponse(error: unknown): Response {
   if (error instanceof VenueError) {
     console.warn(`Venue request failed (${error.code}): ${error.message}`);
+    if (error.code === "rate-limited") {
+      const retryAfter = Math.max(1, Math.ceil((error.retryAfterMs ?? 10_000) / 1000));
+      return Response.json(
+        { error: { code: "venue-rate-limited", message: "Market data requests are temporarily rate limited." } },
+        { status: 503, headers: { "cache-control": "no-store", "retry-after": String(retryAfter) } },
+      );
+    }
     const status = error.code === "timeout" ? 504 : 502;
-    return jsonError(status, `venue-${error.code}`, "Market data venue is unavailable or returned invalid data.");
+    const message =
+      error.code === "invalid-response"
+        ? "Market data venue returned data that failed validation."
+        : "Market data venue is unavailable.";
+    return jsonError(status, `venue-${error.code}`, message);
   }
   if (error instanceof ConfigError) {
     console.error(error.message);

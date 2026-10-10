@@ -3,11 +3,11 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import type { PublicRuntimeConfig } from "@/config/runtime-config";
-import type { MarketId, MarketSummary } from "@/core/domain";
+import type { MarketId, MarketSummary, MidPrices } from "@/core/domain";
 import type { AccountState, ConnectionState } from "@/core/ports";
 import { BrowserStorageStore } from "@/lib/storage";
 import { createTerminalServices, type TerminalServices } from "./create-sources";
-import { useConnectionState, useMarkets, type LoadStatus } from "./hooks/use-market-data";
+import { useAllMids, useConnectionState, useMarkets, type LoadStatus } from "./hooks/use-market-data";
 
 export const STORE_KEYS = { market: "market", interval: "interval", ticketSize: "ticket" } as const;
 
@@ -20,6 +20,9 @@ export interface TerminalContextValue extends TerminalServices {
   marketsError: string | null;
   marketsUpdatedAt: number | null;
   retryMarkets: () => void;
+  /** Live mid prices for all markets (one shared venue subscription). */
+  mids: MidPrices | null;
+  midsError: string | null;
   selected: MarketSummary | null;
   selectMarket: (id: MarketId) => void;
   /** null = no account (live venues in this milestone) or not loaded yet. */
@@ -52,6 +55,7 @@ export function TerminalProvider({ runtime, children }: { runtime: PublicRuntime
   const connection = useConnectionState(services.marketData);
   const { markets, status, error, updatedAt, retry } = useMarkets(services.marketData);
   const accountState = useAccountState(services);
+  const { mids, error: midsError } = useAllMids(services.marketData);
   const [selectedId, setSelectedId] = useState<string | null>(() =>
     typeof window === "undefined" ? null : store.get(STORE_KEYS.market),
   );
@@ -83,6 +87,8 @@ export function TerminalProvider({ runtime, children }: { runtime: PublicRuntime
     marketsError: error,
     marketsUpdatedAt: updatedAt,
     retryMarkets: retry,
+    mids,
+    midsError,
     selected,
     selectMarket: (id) => {
       setSelectedId(id);

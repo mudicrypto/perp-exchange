@@ -6,6 +6,7 @@ complete trading terminal, and a clearly-labelled demo environment where orders 
 locally by a paper-trading simulator. No real orders, custody, deposits or withdrawals.
 
 - Architecture: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
+- Hyperliquid integration: [`docs/integrations/HYPERLIQUID.md`](docs/integrations/HYPERLIQUID.md)
 - Progress and roadmap: [`docs/CHECKLIST.md`](docs/CHECKLIST.md)
 
 ## Quick start
@@ -50,6 +51,7 @@ No secrets are needed. Nova never asks for seed phrases or private keys.
 | `npm test` | Vitest unit tests |
 | `npm run build` | Production build |
 | `npm run test:e2e` | Playwright (builds must exist; runs `next start` in simulation mode) |
+| `npm run test:live` | Live contract test against Hyperliquid's public API (needs network access; read-only) |
 | `npm run check` | typecheck + lint + unit tests + build |
 
 Playwright uses Chromium. If your environment provides a browser at a custom path, set

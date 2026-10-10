@@ -81,3 +81,50 @@ describe("HyperliquidInfoClient", () => {
     expect(body.req.endTime - body.req.startTime).toBeLessThanOrEqual(501 * 60_000);
   });
 });
+
+describe("HyperliquidInfoClient rate limiting", () => {
+  it("maps HTTP 429 to rate-limited and does not retry it", async () => {
+    const fetchImpl = vi.fn(async () => jsonResponse({}, 429));
+    await expect(client(fetchImpl).listMarkets()).rejects.toMatchObject({ code: "rate-limited", status: 429 });
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
+  it("refuses to call the venue once Nova's own weight budget is spent", async () => {
+    let now = 1_000;
+    const fetchImpl = vi.fn(async () => jsonResponse(metaFixture));
+    const c = new HyperliquidInfoClient({
+      network: "mainnet",
+      fetchImpl,
+      sleep: async () => {},
+      now: () => now,
+      cacheTtlMs: 0,
+      weightBudgetPerMinute: 40, // two metaAndAssetCtxs calls (weight 20 each)
+    });
+    await c.listMarkets();
+    now += 1;
+    await c.listMarkets();
+    now += 1;
+    const error = await c.listMarkets().catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(VenueError);
+    expect((error as VenueError).code).toBe("rate-limited");
+    expect((error as VenueError).retryAfterMs).toBeGreaterThan(0);
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    expect(c.weightUsed()).toBe(40);
+  });
+
+  it("charges candle requests by expected size", async () => {
+    const fetchImpl = vi.fn(async () => jsonResponse(candlesFixture));
+    const c = client(fetchImpl);
+    await c.getCandles("BTC-PERP", "1m", { startTime: 0, endTime: 1_700_000_100_000 });
+    // 20 base + ceil(~501 / 60) = 9
+    expect(c.weightUsed()).toBe(29);
+  });
+
+  it("shares one venue call (and one weight charge) between identical concurrent requests", async () => {
+    const fetchImpl = vi.fn(async () => jsonResponse(metaFixture));
+    const c = client(fetchImpl);
+    await Promise.all([c.listMarkets(), c.listMarkets(), c.listMarkets()]);
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    expect(c.weightUsed()).toBe(20);
+  });
+});

@@ -27,9 +27,7 @@ Market data
 - [x] Duplicate / out-of-order handling: trade id de-dup, book timestamp ordering, candle merge
 - [x] Stale-data detection and UI dimming; disconnected state shown
 - [x] Deterministic simulated source, labelled in UI (banner + badge), refused in production unless allowed
-- [ ] **Verify against the live Hyperliquid API** — not possible in the build environment
-      (egress to `api.hyperliquid.xyz` blocked). Unit tests use hand-written fixtures.
-- [ ] Record live fixtures and add a contract test that can be run where egress is allowed
+- [ ] **Verify against the live Hyperliquid API** — see Milestone 2 (`npm run test:live` added)
 
 Terminal UI
 - [x] Market selector with search, mark price, 24h change, volume
@@ -96,20 +94,37 @@ Design system
 - [x] Semantic colour tokens (buy/sell/warning/private, surface elevation) in `globals.css`
 - [x] Reusable trading primitives in `src/components/trading` (Panel, Stat, SummaryRow, SignedAmount, SideLabel, OrderStatusLabel, EstimateHint)
 
-## Milestone 2 — Watch-only account data (next)
+## Milestone 2 — Real market-data integration (Hyperliquid, read-only)
+- [x] Typed protocol module: subscriptions, canonical keys, pure never-throwing frame parser
+- [x] Instrument metadata + market snapshots (`metaAndAssetCtxs`), candle history (`candleSnapshot`)
+- [x] Live WS: `l2Book`, `trades`, `candle`, `activeAssetCtx`, `allMids` (market list prices)
+- [x] Selected market wired to chart, book, trades, header; market list streams mids
+- [x] Zod validation of every frame; malformed frames counted with reason, never rendered
+- [x] Per-stream status (waiting/live/stale/disconnected/error) with last-update age; connection diagnostics popover
+- [x] Reconnect with backoff + jitter, heartbeat, `online` event, subscription replay, full cleanup on dispose
+- [x] De-duplicated venue subscriptions; late frames dropped; newest-wins for book, candles and stats
+- [x] Venue `Invalid subscription` errors routed to the affected stream (not replayed)
+- [x] Server-side REST weight budget (below documented limit), 429 handling, `Retry-After`
+- [x] Mode separation enforced in code (`source-mismatch` guard; no simulated fallback in live mode)
+- [x] Integration documented: `docs/integrations/HYPERLIQUID.md`
+- [ ] **Run `npm run test:live` against the real API** (blocked in the build environment)
+- [ ] Re-check rate-limit figures and schemas against the official docs pages
+- [ ] Record real WS/REST fixtures from a live session to replace hand-written ones
+
+## Milestone 3 — Watch-only account data (next)
 - [ ] `HyperliquidAccountDataSource` (public address → `clearinghouseState`, `openOrders`, fills) via server
 - [ ] Address input with validation; never request keys/seeds
 - [ ] Positions/orders/fills tables; portfolio risk panel wired to `DefaultRiskEngine.portfolio`
 - [ ] Tiered margin tables from venue meta in liquidation estimates
 - [ ] Fee schedule in pre-trade estimates
 
-## Milestone 3 — Order lifecycle & reconciliation (no live submission)
+## Milestone 4 — Order lifecycle & reconciliation (no live submission)
 - [ ] Order state machine over `ORDER_STATUSES` with venue-confirmed transitions only
 - [ ] Reconciliation of local intents against venue order/fill streams (idempotent, sequence-aware)
 - [ ] Persistence adapter (server-side DB) for order journal and audit log
 - [ ] Venue-specific validation (e.g. Hyperliquid 5-significant-figure prices)
 
-## Milestone 4 — Testnet execution (explicitly configured, separately confirmed)
+## Milestone 5 — Testnet execution (explicitly configured, separately confirmed)
 - [ ] Wallet connection (signing in the user's wallet; no key custody)
 - [ ] Testnet-only execution adapter behind config + per-session confirmation
 - [ ] Authorization (`orders:submit`) enforced server-side

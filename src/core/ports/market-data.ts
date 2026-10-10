@@ -4,6 +4,7 @@ import type {
   MarketId,
   MarketStats,
   MarketSummary,
+  MidPrices,
   OrderBookSnapshot,
   Trade,
 } from "../domain";
@@ -32,6 +33,19 @@ export interface StreamHandlers<T> {
   onData: (value: T) => void;
   /** Called when the stream must be considered reset (e.g. after reconnect). */
   onReset?: () => void;
+  /** The venue rejected this stream (e.g. invalid subscription). */
+  onError?: (message: string) => void;
+}
+
+/** Operational detail for the connection status UI. */
+export interface SourceDiagnostics {
+  /** Last frame of any kind received from the venue (ms), if any. */
+  lastMessageAt: number | null;
+  invalidMessages: number;
+  lastInvalidReason: string | null;
+  lastVenueError: string | null;
+  activeSubscriptions: number;
+  reconnects: number;
 }
 
 /**
@@ -59,6 +73,9 @@ export interface MarketDataSource {
     handlers: StreamHandlers<Candle>,
   ): Unsubscribe;
   subscribeMarketStats(marketId: MarketId, handlers: StreamHandlers<MarketStats>): Unsubscribe;
+  /** Mid prices for all markets (used by the market list). */
+  subscribeAllMids(handlers: StreamHandlers<MidPrices>): Unsubscribe;
+  getDiagnostics(): SourceDiagnostics;
   subscribeConnection(listener: (state: ConnectionState) => void): Unsubscribe;
 
   dispose(): void;

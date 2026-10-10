@@ -61,3 +61,9 @@ export const CandleSchema = z.object({
 export type Candle = z.infer<typeof CandleSchema>;
 
 export const CandleListSchema = z.array(CandleSchema);
+
+/** Mid prices for many markets at once (e.g. for the market list). */
+export interface MidPrices {
+  mids: ReadonlyMap<string, number>;
+  observedAt: number;
+}

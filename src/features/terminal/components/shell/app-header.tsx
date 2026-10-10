@@ -5,7 +5,8 @@ import { usePathname } from "next/navigation";
 import { LockKeyhole } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTerminal } from "../../terminal-context";
-import { ConnectionIndicator, DataSourceBadge } from "../status-indicators";
+import { DataSourceBadge } from "../status-indicators";
+import { ConnectionStatus } from "./connection-status";
 import { DemoControlsMenu } from "./demo-controls";
 import { WalletButton } from "./wallet-button";
 
@@ -34,7 +35,7 @@ export function NovaLogo() {
 
 export function AppHeader() {
   const pathname = usePathname();
-  const { marketData, connection, demo } = useTerminal();
+  const { marketData, demo } = useTerminal();
   return (
     <header className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-1 border-b bg-surface px-3 py-1.5 md:h-12 md:flex-nowrap md:py-0">
       <NovaLogo />
@@ -63,7 +64,7 @@ export function AppHeader() {
         <span className="hidden md:inline-flex">
           <DataSourceBadge descriptor={marketData.descriptor} />
         </span>
-        <ConnectionIndicator state={connection} />
+        <ConnectionStatus />
         {demo && <DemoControlsMenu demo={demo} />}
         <WalletButton />
       </div>

@@ -54,6 +54,9 @@ boundary, so a venue's response shape never leaks past its adapter directory.
 
 ## Market data flow
 
+Full details of the venue integration (sources, message formats, rate limits, freshness rules,
+limitations): [`docs/integrations/HYPERLIQUID.md`](integrations/HYPERLIQUID.md).
+
 ```
 Hyperliquid REST (/info) ──server──> HyperliquidInfoClient ──Zod──> domain ──> /api/markets, /api/candles
                                                                                    │

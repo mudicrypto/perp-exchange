@@ -7,10 +7,18 @@ import type {
   MarketId,
   MarketStats,
   MarketSummary,
+  MidPrices,
   Trade,
 } from "@/core/domain";
-import { CandleSeries, OrderBookState, TradeBuffer, type OrderBookView } from "@/core/market-data";
-import type { ConnectionState, MarketDataSource } from "@/core/ports";
+import {
+  CandleSeries,
+  OrderBookState,
+  TradeBuffer,
+  mergeMarketSummaries,
+  newerStats,
+  type OrderBookView,
+} from "@/core/market-data";
+import type { ConnectionState, MarketDataSource, SourceDiagnostics } from "@/core/ports";
 
 export type LoadStatus = "loading" | "ready" | "error";
 
@@ -30,7 +38,11 @@ export function useConnectionState(source: MarketDataSource): ConnectionState {
   return state;
 }
 
-const MARKET_REFRESH_MS = 10_000;
+/**
+ * Catalog (metadata + 24h stats) refresh. List prices stream via allMids, so
+ * this can be slow; it also keeps REST weight usage low.
+ */
+const MARKET_REFRESH_MS = 30_000;
 
 export function useMarkets(source: MarketDataSource) {
   const [markets, setMarkets] = useState<MarketSummary[]>([]);
@@ -45,7 +57,8 @@ export function useMarkets(source: MarketDataSource) {
       source
         .listMarkets(controller.signal)
         .then((list) => {
-          setMarkets(list);
+          // Keep newer streamed stats if this snapshot raced a websocket update.
+          setMarkets((previous) => mergeMarketSummaries(previous, list));
           setStatus("ready");
           setError(null);
           setUpdatedAt(Date.now());
@@ -71,58 +84,103 @@ export function useMarkets(source: MarketDataSource) {
 export function useOrderBook(source: MarketDataSource, marketId: MarketId) {
   const [state] = useState(() => new OrderBookState(marketId));
   const [view, setView] = useState<OrderBookView | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(
     () =>
       source.subscribeOrderBook(marketId, {
         onData: (snapshot) => {
+          // OrderBookState drops snapshots older than the one shown.
           if (state.apply(snapshot, Date.now()) === "applied") setView(state.current());
         },
         onReset: () => {
           state.reset();
           setView(null);
         },
+        onError: setError,
       }),
     [source, marketId, state],
   );
 
-  return view;
+  return { view, error, lastUpdateAt: view?.receivedAt ?? null };
 }
 
 export function useTrades(source: MarketDataSource, marketId: MarketId) {
   const [buffer] = useState(() => new TradeBuffer(60));
   const [trades, setTrades] = useState<readonly Trade[]>([]);
   const [lastUpdateAt, setLastUpdateAt] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(
     () =>
       source.subscribeTrades(marketId, {
         onData: (incoming) => {
+          // TradeBuffer de-duplicates by trade id (replays after reconnect).
           const fresh = buffer.add(incoming);
           if (fresh.length > 0) {
             setTrades(buffer.list());
             setLastUpdateAt(Date.now());
           }
         },
+        onError: setError,
       }),
     [source, marketId, buffer],
   );
 
-  return { trades, lastUpdateAt };
+  return { trades, lastUpdateAt, error };
 }
 
-export function useMarketStats(
-  source: MarketDataSource,
-  marketId: MarketId,
-  initial: MarketStats | null,
-) {
+/** Streams stats for one market; never lets an older observation replace a newer one. */
+export function useMarketStats(source: MarketDataSource, marketId: MarketId, initial: MarketStats | null) {
   const [live, setLive] = useState<MarketStats | null>(null);
-  useEffect(() => source.subscribeMarketStats(marketId, { onData: setLive }), [source, marketId]);
-  return live ?? initial;
+  const [error, setError] = useState<string | null>(null);
+  useEffect(
+    () =>
+      source.subscribeMarketStats(marketId, {
+        onData: (incoming) => setLive((current) => newerStats(current, incoming)),
+        onError: setError,
+      }),
+    [source, marketId],
+  );
+  const stats = newerStats(initial, live);
+  return { stats, lastUpdateAt: live?.observedAt ?? null, error };
+}
+
+/** Live mid prices for the market list. */
+export function useAllMids(source: MarketDataSource) {
+  const [mids, setMids] = useState<MidPrices | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(
+    () =>
+      source.subscribeAllMids({
+        onData: (incoming) => setMids((current) => (current && current.observedAt > incoming.observedAt ? current : incoming)),
+        onReset: () => setMids(null),
+        onError: setError,
+      }),
+    [source],
+  );
+  return { mids, error };
+}
+
+/** Polls source diagnostics while `enabled` (e.g. while a popover is open). */
+export function useDiagnostics(source: MarketDataSource, enabled: boolean, intervalMs = 1_000): SourceDiagnostics | null {
+  const [diagnostics, setDiagnostics] = useState<SourceDiagnostics | null>(null);
+  useEffect(() => {
+    if (!enabled) return;
+    const read = () => setDiagnostics(source.getDiagnostics());
+    const first = setTimeout(read, 0);
+    const timer = setInterval(read, intervalMs);
+    return () => {
+      clearTimeout(first);
+      clearInterval(timer);
+    };
+  }, [source, enabled, intervalMs]);
+  return enabled ? diagnostics : null;
 }
 
 export interface CandleState {
   status: LoadStatus;
+  error: string | null;
   candles: readonly Candle[];
   /** Increments whenever the full history is (re)loaded. */
   historyVersion: number;
@@ -141,6 +199,7 @@ export function useCandles(source: MarketDataSource, marketId: MarketId, interva
   const [historyVersion, setHistoryVersion] = useState(0);
   const [latest, setLatest] = useState<Candle | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -156,6 +215,10 @@ export function useCandles(source: MarketDataSource, marketId: MarketId, interva
         if (series.update(candle) !== "ignored-stale") setLatest(candle);
       },
       onReset: () => setReloadToken((token) => token + 1),
+      onError: (message) => {
+        setError(message);
+        setStatus("error");
+      },
     });
 
     source
@@ -165,11 +228,14 @@ export function useCandles(source: MarketDataSource, marketId: MarketId, interva
         for (const candle of pending) series.update(candle);
         historyLoaded = true;
         setStatus("ready");
+        setError(null);
         setHistoryVersion((version) => version + 1);
         setLatest(series.latest());
       })
-      .catch(() => {
-        if (!controller.signal.aborted) setStatus("error");
+      .catch((err: unknown) => {
+        if (controller.signal.aborted) return;
+        setError(err instanceof Error ? err.message : "Candle history unavailable");
+        setStatus("error");
       });
 
     return () => {
@@ -180,6 +246,7 @@ export function useCandles(source: MarketDataSource, marketId: MarketId, interva
 
   return {
     status,
+    error,
     candles: series.list(),
     historyVersion,
     latest,

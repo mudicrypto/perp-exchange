@@ -1,11 +1,17 @@
 /**
  * Zod schemas for Hyperliquid's public API wire format.
  *
- * Sources: Hyperliquid API docs (info endpoint + websocket subscriptions),
- * cross-checked against hyperliquid-python-sdk `utils/types.py` and the
- * typed schemas in `@nktkas/hyperliquid`. Unknown extra fields are stripped,
- * so additive API changes do not break parsing; missing or malformed
- * required fields fail validation and the payload is dropped.
+ * Provenance (see docs/integrations/HYPERLIQUID.md):
+ *  - Official SDKs by hyperliquid-dex: python-sdk `utils/types.py`,
+ *    rust-sdk `ws/sub_structs.rs` + `ws/message_types.rs`.
+ *  - Cross-checked with `@nktkas/hyperliquid` schemas, which reference the
+ *    official docs pages (info endpoint, websocket subscriptions).
+ * The official docs site could not be reached from the build environment,
+ * so these schemas must be re-verified with `npm run test:live`.
+ *
+ * Only fields Nova uses are required. Unknown extra fields are stripped, so
+ * additive API changes do not break parsing; missing or malformed required
+ * fields fail validation and the payload is dropped.
  *
  * These types must not be imported outside `src/adapters/hyperliquid`.
  */
@@ -95,6 +101,16 @@ export const HlActiveAssetCtxSchema = z.object({
   ctx: HlPerpAssetCtxSchema,
 });
 export type HlActiveAssetCtx = z.infer<typeof HlActiveAssetCtxSchema>;
+
+/**
+ * `allMids` data: `{ mids: { [coin]: px } }` (rust-sdk `AllMidsData`).
+ * Values are validated per entry in the mapper, so one malformed price does
+ * not discard every other market's price.
+ */
+export const HlAllMidsSchema = z.object({
+  mids: z.record(z.string(), z.string()),
+});
+export type HlAllMids = z.infer<typeof HlAllMidsSchema>;
 
 /** Every websocket message is `{ channel, data }`. */
 export const HlWsEnvelopeSchema = z.object({

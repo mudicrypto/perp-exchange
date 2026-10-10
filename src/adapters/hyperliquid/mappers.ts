@@ -9,6 +9,7 @@ import {
   type Candle,
   type MarketStats,
   type MarketSummary,
+  type MidPrices,
   type OrderBookSnapshot,
   type Trade,
 } from "@/core/domain";
@@ -18,6 +19,7 @@ import {
   HYPERLIQUID_QUOTE,
 } from "./constants";
 import type {
+  HlAllMids,
   HlCandle,
   HlL2Book,
   HlMetaAndAssetCtxs,
@@ -138,4 +140,32 @@ export function mapTrade(trade: HlTrade): Trade {
     size: num(trade.sz),
     venueTime: trade.time,
   });
+}
+
+const POSITIVE_DECIMAL = /^\d+(\.\d+)?$/;
+
+/**
+ * Maps `allMids` to Nova market ids. Spot (`@123`, `PURR/USDC`) and other
+ * non-perp keys are skipped; so are entries whose value is not a positive
+ * decimal. `known` restricts output to markets in the current catalog.
+ */
+export function mapAllMids(
+  data: HlAllMids,
+  observedAt: number,
+  known?: ReadonlySet<string>,
+): { prices: MidPrices; skipped: number } {
+  const mids = new Map<string, number>();
+  let skipped = 0;
+  for (const [coin, px] of Object.entries(data.mids)) {
+    if (!isSupportedCoin(coin)) continue;
+    const id = `${coin}-PERP`;
+    if (known && !known.has(id)) continue;
+    const value = Number(px);
+    if (!POSITIVE_DECIMAL.test(px) || !(value > 0)) {
+      skipped += 1;
+      continue;
+    }
+    mids.set(id, value);
+  }
+  return { prices: { mids, observedAt }, skipped };
 }

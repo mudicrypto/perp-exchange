@@ -50,7 +50,7 @@ export function createTerminalServices(runtime: PublicRuntimeConfig): TerminalSe
   return {
     marketData: new HyperliquidMarketDataSource({
       network: runtime.hyperliquidNetwork,
-      catalog: new NovaApiClient(),
+      catalog: new NovaApiClient("", undefined, "live"),
     }),
     account: new DisconnectedAccountDataSource(),
     execution: new DisabledExecutionAdapter(HYPERLIQUID_VENUE_ID),

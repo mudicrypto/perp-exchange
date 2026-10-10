@@ -39,3 +39,16 @@ describe("NovaApiClient", () => {
     expect(fetchImpl).toHaveBeenCalledWith("/api/candles?market=BTC-PERP&interval=15m", expect.anything());
   });
 });
+
+describe("NovaApiClient mode separation", () => {
+  it("rejects simulated data when the page expects live data", async () => {
+    const markets = new SimulationEngine().summaries(0);
+    const fetchImpl = vi.fn(async () => json({ source: { id: "simulation", kind: "simulation", label: "x" }, markets }));
+    await expect(new NovaApiClient("", fetchImpl, "live").listMarkets()).rejects.toMatchObject({ code: "source-mismatch" });
+  });
+
+  it("propagates the rate-limited error from the server", async () => {
+    const fetchImpl = vi.fn(async () => json({ error: { code: "venue-rate-limited", message: "slow down" } }, 503));
+    await expect(new NovaApiClient("", fetchImpl, "live").listMarkets()).rejects.toMatchObject({ code: "venue-rate-limited", status: 503 });
+  });
+});

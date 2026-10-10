@@ -2,6 +2,9 @@ import { fileURLToPath } from "node:url";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vitest/config";
 
+/** `VITEST_LIVE=1` runs only the live contract tests (network required). */
+const live = process.env.VITEST_LIVE === "1";
+
 export default defineConfig({
   plugins: [react()],
   resolve: {
@@ -13,7 +16,9 @@ export default defineConfig({
   },
   test: {
     environment: "node",
-    include: ["src/**/*.test.{ts,tsx}"],
+    include: live ? ["src/**/*.live.test.ts"] : ["src/**/*.test.{ts,tsx}"],
+    // Live contract tests need network access; run them with `npm run test:live`.
+    exclude: live ? ["node_modules/**"] : ["src/**/*.live.test.ts", "node_modules/**"],
     restoreMocks: true,
   },
 });

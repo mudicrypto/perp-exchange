@@ -12,7 +12,8 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "check": "npm run typecheck && npm run lint && npm run test && npm run build",
-    "dev:sim": "NOVA_MARKET_DATA_SOURCE=simulation next dev"
+    "dev:sim": "NOVA_MARKET_DATA_SOURCE=simulation next dev",
+    "test:live": "VITEST_LIVE=1 vitest run"
   },
   "dependencies": {
     "class-variance-authority": "0.7.1",

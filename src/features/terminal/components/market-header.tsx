@@ -1,10 +1,21 @@
+import { StreamBadge } from "@/components/trading/panel";
 import { Stat, SignedPercent } from "@/components/trading/values";
+import type { StreamStatus } from "@/core/market-data";
 import { dayChangeFraction, type Market, type MarketStats } from "@/core/domain";
 import { displayPriceDecimals, formatAmount, formatPercent, formatPrice } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 /** Streaming stats strip for the selected market. Amounts are in the market's quote currency. */
-export function MarketHeader({ market, stats }: { market: Market; stats: MarketStats | null }) {
+export function MarketHeader({
+  market,
+  stats,
+  stream,
+}: {
+  market: Market;
+  stats: MarketStats | null;
+  /** Status of the live stats stream; omitted when only snapshot data exists. */
+  stream?: { status: StreamStatus; lastUpdateAt: number | null; now: number };
+}) {
   const decimals = displayPriceDecimals(stats?.markPrice, market.priceDecimals);
   const change = stats ? dayChangeFraction(stats) : null;
   const annualizedFunding = stats ? stats.fundingRate * (24 / stats.fundingIntervalHours) * 365 : null;
@@ -33,6 +44,11 @@ export function MarketHeader({ market, stats }: { market: Market; stats: MarketS
         <span className="text-muted-foreground">({formatPercent(annualizedFunding, 1, true)} APR)</span>
       </Stat>
       <Stat label="Max leverage" className="shrink-0">{market.maxLeverage}x</Stat>
+      {stream && (
+        <span className="shrink-0" data-testid="stats-stream" data-stream-status={stream.status}>
+          <StreamBadge {...stream} />
+        </span>
+      )}
     </div>
   );
 }

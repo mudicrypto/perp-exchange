@@ -5,6 +5,7 @@ import {
   type MarketId,
   type MarketStats,
   type MarketSummary,
+  type MidPrices,
   type OrderBookSnapshot,
   type Trade,
 } from "@/core/domain";
@@ -12,6 +13,7 @@ import type {
   ConnectionState,
   DataSourceDescriptor,
   MarketDataSource,
+  SourceDiagnostics,
   StreamHandlers,
   Unsubscribe,
 } from "@/core/ports";
@@ -54,6 +56,9 @@ export class SimulatedMarketDataSource implements MarketDataSource {
   private readonly stats = new Map<MarketId, Set<Listener<MarketStats>>>();
   private readonly candles = new Map<string, { marketId: MarketId; interval: CandleInterval; current: Candle | null; listeners: Set<Listener<Candle>> }>();
   private readonly lastHistoryCandle = new Map<string, Candle | null>();
+  private readonly midListeners = new Set<Listener<MidPrices>>();
+  private lastTickAt: number | null = null;
+  private outages = 0;
   private readonly connectionListeners = new Set<(state: ConnectionState) => void>();
   private readonly latencyMs: number;
   private connection: ConnectionState;
@@ -135,6 +140,24 @@ export class SimulatedMarketDataSource implements MarketDataSource {
     };
   }
 
+  subscribeAllMids(handlers: StreamHandlers<MidPrices>): Unsubscribe {
+    this.midListeners.add(handlers);
+    this.ensureRunning();
+    return () => this.midListeners.delete(handlers);
+  }
+
+  getDiagnostics(): SourceDiagnostics {
+    return {
+      lastMessageAt: this.lastTickAt,
+      invalidMessages: 0,
+      lastInvalidReason: null,
+      lastVenueError: null,
+      activeSubscriptions:
+        this.books.size + this.trades.size + this.stats.size + this.candles.size + (this.midListeners.size > 0 ? 1 : 0),
+      reconnects: this.outages,
+    };
+  }
+
   subscribeConnection(listener: (state: ConnectionState) => void): Unsubscribe {
     this.connectionListeners.add(listener);
     listener(this.connection);
@@ -154,11 +177,13 @@ export class SimulatedMarketDataSource implements MarketDataSource {
     this.setConnection({ status: "reconnecting", attempt: 1, nextRetryAt: reconnectAt, reason: "Simulated connection loss" });
     this.outageTimer = setTimeout(() => {
       this.outageTimer = null;
+      this.outages += 1;
       this.setConnection({ status: "open", since: this.now() });
       for (const set of [...this.books.values(), ...this.trades.values(), ...this.stats.values()]) {
         for (const handlers of set) handlers.onReset?.();
       }
       for (const entry of this.candles.values()) for (const handlers of entry.listeners) handlers.onReset?.();
+      for (const handlers of this.midListeners) handlers.onReset?.();
     }, durationMs);
   }
 
@@ -186,6 +211,7 @@ export class SimulatedMarketDataSource implements MarketDataSource {
     this.trades.clear();
     this.stats.clear();
     this.candles.clear();
+    this.midListeners.clear();
     this.connectionListeners.clear();
   }
 
@@ -193,8 +219,11 @@ export class SimulatedMarketDataSource implements MarketDataSource {
   tick(): void {
     if (this.connection.status !== "open") return;
     const time = this.now();
+    this.lastTickAt = time;
     const active = new Set<MarketId>([...this.books.keys(), ...this.trades.keys(), ...this.stats.keys()]);
     for (const entry of this.candles.values()) active.add(entry.marketId);
+    // The market list needs every market to move, not just subscribed ones.
+    if (this.midListeners.size > 0) for (const id of this.engine.markets.keys()) active.add(id);
 
     for (const marketId of active) {
       const market = this.engine.get(marketId);
@@ -207,6 +236,12 @@ export class SimulatedMarketDataSource implements MarketDataSource {
       const stats = market.stats(time);
       for (const l of this.stats.get(marketId) ?? []) l.onData(stats);
       this.updateCandles(market, time, trades);
+    }
+    if (this.midListeners.size > 0) {
+      const mids = new Map<string, number>();
+      for (const market of this.engine.markets.values()) mids.set(market.id, market.mid);
+      const prices: MidPrices = { mids, observedAt: time };
+      for (const l of this.midListeners) l.onData(prices);
     }
   }
 

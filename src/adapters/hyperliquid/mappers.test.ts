@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import metaFixture from "./__fixtures__/meta-and-asset-ctxs.json";
 import candlesFixture from "./__fixtures__/candle-snapshot.json";
 import wsFixture from "./__fixtures__/ws-messages.json";
-import { mapCandle, mapL2Book, mapMetaAndAssetCtxs, mapTrade } from "./mappers";
+import { mapAllMids, mapCandle, mapL2Book, mapMetaAndAssetCtxs, mapTrade } from "./mappers";
 import {
   HlCandleSnapshotSchema,
   HlL2BookSchema,
@@ -98,5 +98,40 @@ describe("Hyperliquid mappers", () => {
     expect(trades.map((t) => t.side)).toEqual(["buy", "sell"]);
     expect(trades[0]!.id).toContain("1001");
     expect(new Set(trades.map((t) => t.id)).size).toBe(2);
+  });
+});
+
+describe("mapAllMids", () => {
+  it("keeps perp coins, skips spot keys, and counts malformed prices", () => {
+    const { prices, skipped } = mapAllMids(
+      { mids: { BTC: "61000.5", ETH: "2950", "@107": "1.2", "PURR/USDC": "0.2", BAD: "1e5", ZERO: "0" } },
+      123,
+    );
+    expect([...prices.mids.entries()]).toEqual([
+      ["BTC-PERP", 61000.5],
+      ["ETH-PERP", 2950],
+    ]);
+    expect(skipped).toBe(2);
+    expect(prices.observedAt).toBe(123);
+  });
+
+  it("can restrict output to known markets", () => {
+    const { prices } = mapAllMids({ mids: { BTC: "1", ETH: "2" } }, 0, new Set(["ETH-PERP"]));
+    expect([...prices.mids.keys()]).toEqual(["ETH-PERP"]);
+  });
+});
+
+describe("normalisation edge cases", () => {
+  it("drops zero-size book levels", () => {
+    const book = mapL2Book(
+      HlL2BookSchema.parse({ coin: "BTC", time: 5, levels: [[{ px: "100", sz: "0", n: 0 }, { px: "99", sz: "1", n: 1 }], [{ px: "101", sz: "2", n: 1 }]] }),
+    );
+    expect(book.bids).toEqual([{ price: 99, size: 1, orders: 1 }]);
+  });
+
+  it("maps negative funding and missing mid to null rather than a guess", () => {
+    const [, eth] = mapMetaAndAssetCtxs(HlMetaAndAssetCtxsSchema.parse(metaFixture), 0);
+    expect(eth!.stats!.fundingRate).toBeCloseTo(-0.00002);
+    expect(eth!.stats!.midPrice).toBeNull();
   });
 });

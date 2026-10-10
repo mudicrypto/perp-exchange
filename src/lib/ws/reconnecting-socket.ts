@@ -67,6 +67,8 @@ export class ReconnectingSocket {
   private readonly createSocket: SocketFactory;
   private readonly now: () => number;
   private readonly random: () => number;
+  private lastMessage: number | null = null;
+  private opens = 0;
 
   constructor(private readonly options: ReconnectingSocketOptions) {
     this.backoff = { ...DEFAULT_BACKOFF, ...options.backoff };
@@ -78,6 +80,16 @@ export class ReconnectingSocket {
 
   get connectionState(): ConnectionState {
     return this.state;
+  }
+
+  /** Time the last frame of any kind arrived (ms). */
+  get lastMessageAt(): number | null {
+    return this.lastMessage;
+  }
+
+  /** Number of successful re-opens after the first connection. */
+  get reconnectCount(): number {
+    return Math.max(0, this.opens - 1);
   }
 
   get isOpen(): boolean {
@@ -147,6 +159,7 @@ export class ReconnectingSocket {
     socket.onopen = () => {
       if (this.socket !== socket) return;
       this.attempt = 0;
+      this.opens += 1;
       this.setState({ status: "open", since: this.now() });
       this.startHeartbeat();
       for (const listener of this.openListeners) listener();
@@ -154,6 +167,7 @@ export class ReconnectingSocket {
     socket.onmessage = (event) => {
       if (this.socket !== socket) return;
       this.clearPongDeadline();
+      this.lastMessage = this.now();
       if (typeof event.data !== "string") return;
       for (const listener of this.messageListeners) listener(event.data);
     };

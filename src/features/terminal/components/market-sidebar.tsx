@@ -22,7 +22,7 @@ export function sortByVolume(markets: readonly MarketSummary[]): MarketSummary[]
  * header shows the streaming values.
  */
 export function MarketSidebar({ onSelected, className }: { onSelected?: () => void; className?: string }) {
-  const { markets, marketsStatus, marketsError, marketsUpdatedAt, retryMarkets, selected, selectMarket } = useTerminal();
+  const { markets, marketsStatus, marketsError, marketsUpdatedAt, retryMarkets, selected, selectMarket, mids, connection } = useTerminal();
   const [query, setQuery] = useState("");
   const listRef = useRef<HTMLUListElement>(null);
   const now = useNow(5_000);
@@ -69,7 +69,7 @@ export function MarketSidebar({ onSelected, className }: { onSelected?: () => vo
       </div>
       <div className="grid grid-cols-[1fr_auto_auto] gap-x-3 px-3 py-1.5 text-2xs text-muted-foreground uppercase" aria-hidden>
         <span>Market / Vol</span>
-        <span className="text-right">Price</span>
+        <span className="text-right">{mids ? "Mid" : "Mark"}</span>
         <span className="w-14 text-right">24h</span>
       </div>
 
@@ -116,8 +116,11 @@ export function MarketSidebar({ onSelected, className }: { onSelected?: () => vo
                     {formatCompact(stats?.dayNotionalVolume)} vol
                   </span>
                 </span>
-                <span className="tabular text-right text-xs">
-                  {formatPrice(stats?.markPrice, displayPriceDecimals(stats?.markPrice, market.priceDecimals))}
+                <span className="tabular text-right text-xs" data-testid={`list-price-${market.id}`}>
+                  {(() => {
+                    const price = mids?.mids.get(market.id) ?? stats?.markPrice;
+                    return formatPrice(price, displayPriceDecimals(price, market.priceDecimals));
+                  })()}
                 </span>
                 <SignedPercent className="w-14 text-right text-xs" value={stats ? dayChangeFraction(stats) : null} />
               </button>
@@ -125,11 +128,15 @@ export function MarketSidebar({ onSelected, className }: { onSelected?: () => vo
           );
         })}
       </ul>
-      {marketsUpdatedAt !== null && (
-        <p className="border-t px-3 py-1 text-2xs text-muted-foreground" aria-live="off">
-          List prices updated {formatRelativeTime(marketsUpdatedAt, now)}
-        </p>
-      )}
+      <p className="border-t px-3 py-1 text-2xs text-muted-foreground" aria-live="off" data-testid="list-freshness">
+        {mids && connection.status === "open"
+          ? `Live mids · 24h stats ${marketsUpdatedAt !== null ? formatRelativeTime(marketsUpdatedAt, now) : "loading"}`
+          : mids
+            ? `Disconnected · mids from ${formatRelativeTime(mids.observedAt, now)}`
+            : marketsUpdatedAt !== null
+            ? `Snapshot prices from ${formatRelativeTime(marketsUpdatedAt, now)}`
+            : "Waiting for prices"}
+      </p>
     </aside>
   );
 }

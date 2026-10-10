@@ -13,10 +13,13 @@ export function MarketSelector({
   markets,
   selected,
   onSelect,
+  mids,
 }: {
   markets: readonly MarketSummary[];
   selected: MarketSummary | null;
   onSelect: (id: MarketId) => void;
+  /** Live mid prices; falls back to snapshot mark prices. */
+  mids?: ReadonlyMap<string, number> | null;
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -50,7 +53,7 @@ export function MarketSelector({
         </div>
         <div className="grid grid-cols-[1fr_auto_auto_auto] gap-x-4 px-3 py-1.5 text-[10px] text-muted-foreground uppercase">
           <span>Market</span>
-          <span className="text-right">Mark</span>
+          <span className="text-right">{mids ? "Mid" : "Mark"}</span>
           <span className="text-right">24h</span>
           <span className="text-right">Volume</span>
         </div>
@@ -78,7 +81,7 @@ export function MarketSelector({
                     <span className="ml-1.5 text-[10px] text-muted-foreground">{market.maxLeverage}x</span>
                   </span>
                   <span className="tabular text-right">
-                    {formatPrice(stats?.markPrice, displayPriceDecimals(stats?.markPrice, market.priceDecimals))}
+                    {formatPrice(mids?.get(market.id) ?? stats?.markPrice, displayPriceDecimals(mids?.get(market.id) ?? stats?.markPrice, market.priceDecimals))}
                   </span>
                   <span className={cn("tabular text-right", change !== null && (change >= 0 ? "text-buy" : "text-sell"))}>
                     {formatPercent(change, 2, true)}

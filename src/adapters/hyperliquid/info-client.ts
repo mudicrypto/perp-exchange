@@ -8,22 +8,27 @@ import {
   type MarketSummary,
 } from "@/core/domain";
 import type { DataSourceDescriptor, MarketCatalogGateway } from "@/core/ports";
+import { WeightBudget } from "@/lib/weight-budget";
 import {
   HYPERLIQUID_ENDPOINTS,
+  HYPERLIQUID_INFO_WEIGHT,
   HYPERLIQUID_INTERVALS,
   HYPERLIQUID_VENUE_ID,
+  NOVA_INFO_WEIGHT_BUDGET_PER_MINUTE,
   type HyperliquidNetwork,
 } from "./constants";
 import { mapCandle, mapMetaAndAssetCtxs } from "./mappers";
 import { HlCandleSnapshotSchema, HlMetaAndAssetCtxsSchema } from "./wire-schemas";
 
-export type VenueErrorCode = "network" | "timeout" | "http" | "invalid-response";
+export type VenueErrorCode = "network" | "timeout" | "http" | "invalid-response" | "rate-limited";
 
 export class VenueError extends Error {
   constructor(
     readonly code: VenueErrorCode,
     message: string,
     readonly status?: number,
+    /** For rate-limited errors: suggested wait before retrying. */
+    readonly retryAfterMs?: number,
   ) {
     super(message);
     this.name = "VenueError";
@@ -34,8 +39,10 @@ export interface InfoClientOptions {
   network: HyperliquidNetwork;
   fetchImpl?: typeof fetch;
   timeoutMs?: number;
-  /** Retries for network errors / 5xx / 429 (not for invalid responses). */
+  /** Retries for network errors / timeouts / 5xx (never for 429 or invalid responses). */
   retries?: number;
+  /** Nova's own REST weight budget per minute (defaults below the venue limit). */
+  weightBudgetPerMinute?: number;
   cacheTtlMs?: number;
   now?: () => number;
   sleep?: (ms: number) => Promise<void>;
@@ -58,6 +65,7 @@ export class HyperliquidInfoClient implements MarketCatalogGateway {
   private readonly now: () => number;
   private readonly sleep: (ms: number) => Promise<void>;
   private readonly cache = new Map<string, { expires: number; value: Promise<unknown> }>();
+  private readonly budget: WeightBudget;
 
   constructor(private readonly options: InfoClientOptions) {
     this.fetchImpl = options.fetchImpl ?? fetch;
@@ -66,6 +74,7 @@ export class HyperliquidInfoClient implements MarketCatalogGateway {
     this.cacheTtlMs = options.cacheTtlMs ?? 2_000;
     this.now = options.now ?? Date.now;
     this.sleep = options.sleep ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
+    this.budget = new WeightBudget(options.weightBudgetPerMinute ?? NOVA_INFO_WEIGHT_BUDGET_PER_MINUTE);
     this.descriptor = {
       id: `hyperliquid-${options.network}`,
       kind: "live",
@@ -75,7 +84,13 @@ export class HyperliquidInfoClient implements MarketCatalogGateway {
   }
 
   async listMarkets(signal?: AbortSignal): Promise<MarketSummary[]> {
-    const raw = await this.cachedPost("metaAndAssetCtxs", { type: "metaAndAssetCtxs" }, HlMetaAndAssetCtxsSchema, signal);
+    const raw = await this.cachedPost(
+      "metaAndAssetCtxs",
+      { type: "metaAndAssetCtxs" },
+      HlMetaAndAssetCtxsSchema,
+      HYPERLIQUID_INFO_WEIGHT.metaAndAssetCtxs,
+      signal,
+    );
     return mapMetaAndAssetCtxs(raw, this.now());
   }
 
@@ -94,24 +109,41 @@ export class HyperliquidInfoClient implements MarketCatalogGateway {
       startTime: Math.floor(startTime / step) * step,
       endTime: Math.ceil(range.endTime / step) * step,
     };
+    const expectedItems = Math.ceil((req.endTime - req.startTime) / step);
+    const weight =
+      HYPERLIQUID_INFO_WEIGHT.candleSnapshot +
+      Math.ceil(expectedItems / 60) * HYPERLIQUID_INFO_WEIGHT.candleSnapshotPer60Items;
     const raw = await this.cachedPost(
       `candles:${JSON.stringify(req)}`,
       { type: "candleSnapshot", req },
       HlCandleSnapshotSchema,
+      weight,
       signal,
     );
     return raw.map(mapCandle).sort((a, b) => a.openTime - b.openTime);
+  }
+
+  /** Weight consumed in the current window (exposed for health/diagnostics). */
+  weightUsed(): number {
+    return this.budget.used(this.now());
   }
 
   private cachedPost<S extends z.ZodType>(
     key: string,
     body: unknown,
     schema: S,
+    weight: number,
     signal?: AbortSignal,
   ): Promise<z.infer<S>> {
     const now = this.now();
     const hit = this.cache.get(key);
+    // Identical in-flight or recent requests share one venue call (no extra weight).
     if (hit && hit.expires > now) return hit.value as Promise<z.infer<S>>;
+    if (!this.budget.tryConsume(weight, now)) {
+      return Promise.reject(
+        new VenueError("rate-limited", "Nova's venue request budget is exhausted; try again shortly", 429, this.budget.retryAfterMs(weight, now)),
+      );
+    }
     const value = this.post(body, schema, signal);
     this.cache.set(key, { expires: now + this.cacheTtlMs, value });
     value.catch(() => this.cache.delete(key));
@@ -132,10 +164,9 @@ export class HyperliquidInfoClient implements MarketCatalogGateway {
       } catch (error) {
         if (!(error instanceof VenueError)) throw error;
         lastError = error;
+        // 429s are not retried: retrying would only add load against the venue's limit.
         const retryable =
-          error.code === "network" ||
-          error.code === "timeout" ||
-          (error.code === "http" && (error.status === 429 || (error.status ?? 0) >= 500));
+          error.code === "network" || error.code === "timeout" || (error.code === "http" && (error.status ?? 0) >= 500);
         if (!retryable || signal?.aborted) throw error;
       }
     }
@@ -157,6 +188,9 @@ export class HyperliquidInfoClient implements MarketCatalogGateway {
     } catch (error) {
       if (timeout.aborted) throw new VenueError("timeout", "Hyperliquid request timed out");
       throw new VenueError("network", error instanceof Error ? error.message : "Network error");
+    }
+    if (response.status === 429) {
+      throw new VenueError("rate-limited", "Hyperliquid rate limit reached (HTTP 429)", 429);
     }
     if (!response.ok) {
       throw new VenueError("http", `Hyperliquid responded with HTTP ${response.status}`, response.status);

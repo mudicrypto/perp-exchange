@@ -40,10 +40,23 @@ export class NovaApiClient {
   constructor(
     private readonly baseUrl = "",
     private readonly fetchImpl: typeof fetch = (...args) => fetch(...args),
+    /**
+     * The data kind the UI was configured for. If the server reports a
+     * different kind, the response is rejected rather than shown — live mode
+     * must never silently display simulated data (or vice versa).
+     */
+    private readonly expectedKind: "live" | "simulation" | null = null,
   ) {}
 
   async listMarkets(signal?: AbortSignal): Promise<MarketSummary[]> {
     const body = await this.get("/api/markets", MarketsResponseSchema, signal);
+    if (this.expectedKind && body.source.kind !== this.expectedKind) {
+      throw new ApiError(
+        "source-mismatch",
+        `Server is serving ${body.source.kind} data but this page expects ${this.expectedKind} data`,
+        200,
+      );
+    }
     return body.markets;
   }
 
