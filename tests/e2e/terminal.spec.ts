@@ -20,7 +20,8 @@ test.describe("shell", () => {
       "Trade",
       "Portfolio",
       "Private Execution",
-    ]);
+      "Analyst",
+    ], { useInnerText: true });
   });
 
   test("wallet placeholder explains there is no wallet connection and never asks for keys", async ({ page }) => {

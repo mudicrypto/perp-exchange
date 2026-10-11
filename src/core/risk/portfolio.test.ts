@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { Fill } from "../domain";
 import { account, EX, exampleRules, longA, NOW, shortB, WHY } from "./__fixtures__/example-venue";
 import { assessPortfolio, type RiskContext } from "./portfolio";
-import { priceMoveScenarios } from "./scenarios";
+import { marketMoveScenario, priceMoveScenarios } from "./scenarios";
 import type { AvailableValue, RiskValue } from "./value";
 
 const markets = new Map([
@@ -204,5 +204,23 @@ describe("price-move scenarios", () => {
   it("is unavailable when a mark is missing", () => {
     const partial = assessPortfolio(ctx({ marks: new Map([["WHY-PERP", mark(48)]]) }));
     expect(priceMoveScenarios(partial, ["0.1"])[0]!.pnlChange).toMatchObject({ status: "unavailable" });
+  });
+});
+
+describe("single-market move scenario", () => {
+  const report = assessPortfolio(ctx());
+
+  it("moves only one market: A long 2 @ mark 1050, +3% → +63", () => {
+    const s = marketMoveScenario(report, "EX-PERP", "0.03");
+    expect(s.unrealizedPnlChange).toMatchObject({ value: "63", kind: "estimate" });
+    // Current total uPnL 100 + 6 = 106 → 169
+    expect(s.unrealizedPnlAfter).toMatchObject({ value: "169" });
+    expect(s).toMatchObject({ priceBefore: "1050", priceAfter: "1081.5", reachesLiquidationEstimate: false, noPosition: false });
+  });
+
+  it("short positions gain when the market falls; no position means no change", () => {
+    expect(marketMoveScenario(report, "WHY-PERP", "-0.03").unrealizedPnlChange).toMatchObject({ value: "4.32" });
+    expect(marketMoveScenario(report, "ZED-PERP", "0.5")).toMatchObject({ noPosition: true, unrealizedPnlChange: { value: "0" } });
+    expect(() => marketMoveScenario(report, "EX-PERP", "-1")).toThrow(RangeError);
   });
 });

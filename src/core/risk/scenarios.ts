@@ -67,3 +67,66 @@ export function priceMoveScenarios(report: PortfolioRiskReport, moves: readonly 
     return { move: toPlain(move), pnlChange, equityAfter, positions };
   });
 }
+
+export interface MarketMoveScenario {
+  marketId: MarketId;
+  move: string;
+  /** Hypothetical change in unrealised PnL from moving only this market's mark. */
+  unrealizedPnlChange: RiskValue;
+  unrealizedPnlAfter: RiskValue;
+  priceBefore: string | null;
+  priceAfter: string | null;
+  reachesLiquidationEstimate: boolean | null;
+  /** True when the account has no position in the market (the change is then zero). */
+  noPosition: boolean;
+}
+
+/**
+ * Moves one market's mark by `move` (fraction) and holds every other mark
+ * fixed. Hypothetical: no correlation, fees, funding or liquidation.
+ */
+export function marketMoveScenario(report: PortfolioRiskReport, marketId: MarketId, move: DecimalInput): MarketMoveScenario {
+  const now = report.asOf;
+  const unit = amount(report.currency ?? "quote");
+  const m = dec(move);
+  if (m.lte(ONE.neg())) throw new RangeError(`A price move must be greater than −100% (got ${toPlain(m)})`);
+  const position = report.positions.find((p) => p.marketId === marketId);
+  const assumptions = [`Hypothetical: only ${marketId} moves; every other mark is held fixed.`, ...SCENARIO_ASSUMPTIONS.slice(1)];
+  const totalUpnl = report.pnl.unrealized;
+  if (!position) {
+    const zero = available({ value: "0", unit, kind: "estimate", method: `No ${marketId} position: unrealised PnL does not change`, inputs: [], assumptions, asOf: now });
+    return {
+      marketId,
+      move: toPlain(m),
+      unrealizedPnlChange: zero,
+      unrealizedPnlAfter: isAvailable(totalUpnl) ? { ...totalUpnl, kind: "estimate", assumptions } : totalUpnl,
+      priceBefore: null,
+      priceAfter: null,
+      reachesLiquidationEstimate: null,
+      noPosition: true,
+    };
+  }
+  if (!isAvailable(position.markPrice) || !isAvailable(position.size)) {
+    const reason = position.markPrice.status === "unavailable" ? position.markPrice.reason : "Position size unavailable";
+    const u = unavailable(unit, reason, ["Mark price"], now);
+    return { marketId, move: toPlain(m), unrealizedPnlChange: u, unrealizedPnlAfter: u, priceBefore: null, priceAfter: null, reachesLiquidationEstimate: null, noPosition: false };
+  }
+  const mark = dec(position.markPrice.value);
+  const size = dec(position.size.value);
+  const after = mark.mul(ONE.add(m));
+  const change = size.mul(after.sub(mark));
+  const inputs = [...position.markPrice.inputs, ...position.size.inputs, { name: "Price move", value: toPlain(m), unit: fraction, source: "scenario", observedAt: null }];
+  const liq = position.liquidationPrice;
+  return {
+    marketId,
+    move: toPlain(m),
+    unrealizedPnlChange: available({ value: amt(change), unit, kind: "estimate", method: "size × mark × move", inputs, assumptions, asOf: now }),
+    unrealizedPnlAfter: isAvailable(totalUpnl)
+      ? available({ value: amt(dec(totalUpnl.value).add(change)), unit, kind: "estimate", method: "current unrealised PnL + scenario change", inputs: [...totalUpnl.inputs, ...inputs], assumptions, asOf: now })
+      : unavailable(unit, totalUpnl.reason, totalUpnl.missing, now),
+    priceBefore: toPlain(mark),
+    priceAfter: toPlain(after),
+    reachesLiquidationEstimate: isAvailable(liq) ? (size.gt(ZERO) ? after.lte(dec(liq.value)) : after.gte(dec(liq.value))) : null,
+    noPosition: false,
+  };
+}

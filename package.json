@@ -16,6 +16,7 @@
     "test:live": "VITEST_LIVE=1 vitest run"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "0.127.0",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
     "decimal.js": "10.6.0",

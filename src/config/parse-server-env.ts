@@ -24,6 +24,12 @@ const ServerEnvSchema = z
       .regex(/^[a-z0-9-]+=[A-Za-z0-9_-]{24,}(,[a-z0-9-]+=[A-Za-z0-9_-]{24,})*$/, "Expected id=token[,id=token] with tokens of at least 24 characters")
       .optional(),
     /**
+     * AI analyst engine (simulation/mock accounts only): "offline" is a
+     * deterministic rule-based analyst; "claude" calls the Anthropic API with
+     * server-side credentials (e.g. ANTHROPIC_API_KEY), never exposed to the browser.
+     */
+    NOVA_ANALYST_ENGINE: z.enum(["offline", "claude"]).default("offline"),
+    /**
      * Pre-trade risk limit overrides as JSON, merged onto DEFAULT_RISK_LIMITS,
      * e.g. {"maxOrderNotional":{"value":"50000","action":"block"}}. Amounts are
      * in the account's collateral currency. Enforced by the execution layer.

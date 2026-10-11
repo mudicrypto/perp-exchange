@@ -34,6 +34,21 @@ const eslintConfig = defineConfig([
       ],
     },
   },
+  {
+    // The AI analyst is read-only: it may not reach any code that can submit, cancel or modify orders.
+    files: ["src/server/analyst/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            { group: ["@/core/trading", "@/core/trading/*", "@/core/ports/execution"], message: "The analyst must not import execution code." },
+            { group: ["@/adapters/*/*-adapter", "@/adapters/http/*", "@/server/rfq/rfq-service", "@/features/*"], message: "The analyst must not import execution or client code." },
+          ],
+        },
+      ],
+    },
+  },
   globalIgnores([
     ".next/**",
     "out/**",

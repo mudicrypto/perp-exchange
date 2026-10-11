@@ -1,6 +1,6 @@
 # Nova Exchange — Architecture
 
-Status: Milestone 5 (deterministic risk engine). See `docs/CHECKLIST.md` for progress.
+Status: Milestone 6 (AI trading analyst on mock accounts). See `docs/CHECKLIST.md` for progress.
 
 ## Goals that shape the design
 
@@ -27,6 +27,7 @@ src/
     execution/            Order intent validation, safety gate, disabled execution adapter
     privacy/              Execution modes, privacy profiles, consistency rules, disclosures
     rfq/                  RFQ model, redacted views and the authorization-enforcing RfqDesk
+    analytics/            Equity attribution, fees/funding, execution summaries, account-history port
     trading/              Order lifecycle, validation, capability registry, PrivateExecutionService
   adapters/               Implementations of ports
     hyperliquid/          Wire schemas (Zod), mappers, server-side info client, browser WS source
@@ -53,6 +54,7 @@ boundary, so a venue's response shape never leaks past its adapter directory.
 | Order lifecycle & reconciliation | `OrderStore` + `transitionOrder` | used by the simulator; ready for venue streams |
 | Risk engine | `assessPortfolio`, `assessOrder`, `VenueMarginRules` | `simulationMarginRules`, `hyperliquidMarginRules`; enforced by `RiskGuardedExecutionAdapter` |
 | Private execution | `VenuePrivacy` (in `VenueCapabilities`), `PrivateExecutionService` | profiles in `hyperliquidCapabilities`, `simulationCapabilities` |
+| AI analyst | `AccountHistoryGateway`, read-only tools in `server/analyst` | `MockAccountGateway`; offline and Claude engines (see docs/ANALYST.md) |
 | RFQ | `RfqDesk` (core) | `server/rfq` + `/api/rfq/*` (simulation only), `RfqClient` (browser) |
 | Persistence | `KeyValueStore` | `BrowserStorageStore`, `MemoryStore` |
 | AuthN / AuthZ | `SessionProvider` | `AnonymousSessionProvider` |

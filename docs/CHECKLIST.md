@@ -173,19 +173,34 @@ Phase C — implementation boundaries
 - [ ] Server-side guard with server-fetched account state for live execution (required before any live submission)
 - [ ] Re-verify the Hyperliquid margin, liquidation and funding statements against the official docs from a networked environment
 
-## Milestone 6 — Watch-only account UI
+## Milestone 6 — AI Trading Analyst (mock accounts)
+- [x] Pure analytics in `core/analytics`: equity attribution (with residual), fees and funding, execution summary, UTC periods; single-market scenario in `core/risk`
+- [x] Deterministic mock ledger (fictitious): consistent cash, positions, fees, funding and equity; reconciles to zero residual (tested)
+- [x] Server-side read-only tool layer (7 tools) with Zod validation and account-level authorization on every call before any data is loaded
+- [x] Evidence model: every figure labelled fact / estimate / hypothetical with timestamps, assumptions and unavailable reasons
+- [x] Offline rule-based engine (default) writes answers only from tool evidence; Claude engine (manual tool loop, strict tools, refusal fallback) behind `NOVA_ANALYST_ENGINE=claude`
+- [x] Guards: order instructions refused before any engine runs; unverified-figure and guarantee-language warnings; disclaimer on every answer
+- [x] No order actions: no such tool exists; ESLint forbids execution imports in the analyst
+- [x] Mock sign-in (HttpOnly session), same-origin, per-session rate limit, 404 for foreign accounts; disabled in live mode
+- [x] `/analyst` UI with suggested questions, verified data under each answer, unavailable states
+- [x] Unit, contract and E2E tests (incl. cross-account denial); `docs/ANALYST.md`
+- [ ] Run the Claude engine against the live API (no credentials in the build environment)
+- [ ] Real account sources (watch-only venue accounts) behind `AccountHistoryGateway`, with real authentication
+- [ ] Multi-turn conversation memory
+
+## Milestone 7 — Watch-only account UI
 - [ ] `HyperliquidAccountDataSource` (public address → `clearinghouseState`, `openOrders`, fills) via server
 - [ ] Address input with validation; never request keys/seeds
 - [ ] Positions/orders/fills tables; portfolio risk panel wired to `DefaultRiskEngine.portfolio`
 - [ ] Fee schedule in pre-trade estimates
 
-## Milestone 7 — Order lifecycle & reconciliation against live venue streams
+## Milestone 8 — Order lifecycle & reconciliation against live venue streams
 - [ ] Order state machine over `ORDER_STATUSES` with venue-confirmed transitions only
 - [ ] Reconciliation of local intents against venue order/fill streams (idempotent, sequence-aware)
 - [ ] Persistence adapter (server-side DB) for order journal and audit log
 - [ ] Venue-specific validation (e.g. Hyperliquid 5-significant-figure prices)
 
-## Milestone 8 — Testnet execution (explicitly configured, separately confirmed, security-reviewed)
+## Milestone 9 — Testnet execution (explicitly configured, separately confirmed, security-reviewed)
 - [ ] Wallet connection (signing in the user's wallet; no key custody)
 - [ ] Testnet-only execution adapter behind config + per-session confirmation
 - [ ] Authorization (`orders:submit`) enforced server-side

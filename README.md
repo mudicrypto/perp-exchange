@@ -6,13 +6,16 @@ complete trading terminal, and a clearly-labelled demo environment where orders 
 locally by a paper-trading simulator. **Milestone 4:** a Private Execution workspace (hidden,
 iceberg and private RFQ on the simulated venue, encrypted orders planned) with a privacy matrix
 for every mode. **Milestone 5:** a deterministic, decimal risk engine with venue-specific margin
-rules, configurable pre-trade limits enforced in the execution layer, and a risk report. No real orders, custody, deposits or withdrawals.
+rules, configurable pre-trade limits enforced in the execution layer, and a risk report.
+**Milestone 6:** a read-only AI trading analyst over mock accounts, answering from authorized,
+verified tool results. No real orders, custody, deposits or withdrawals.
 
 - Architecture: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
 - Trading domain & execution adapters (supported/unsupported features): [`docs/TRADING.md`](docs/TRADING.md)
 - Hyperliquid integration: [`docs/integrations/HYPERLIQUID.md`](docs/integrations/HYPERLIQUID.md)
 - Private execution & privacy model: [`docs/PRIVACY.md`](docs/PRIVACY.md)
 - Risk calculations, limits and worked examples: [`docs/RISK.md`](docs/RISK.md)
+- AI trading analyst (mock accounts): [`docs/ANALYST.md`](docs/ANALYST.md)
 - Progress and roadmap: [`docs/CHECKLIST.md`](docs/CHECKLIST.md)
 
 ## Quick start

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LockKeyhole } from "lucide-react";
+import { Bot, LockKeyhole } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTerminal } from "../../terminal-context";
 import { DataSourceBadge } from "../status-indicators";
@@ -13,7 +13,8 @@ import { WalletButton } from "./wallet-button";
 const NAV = [
   { href: "/", label: "Trade" },
   { href: "/portfolio", label: "Portfolio" },
-  { href: "/private-execution", label: "Private Execution", icon: LockKeyhole },
+  { href: "/private-execution", label: "Private Execution", short: "Private", icon: LockKeyhole, iconClass: "text-private" },
+  { href: "/analyst", label: "Analyst", icon: Bot, iconClass: "text-primary" },
 ] as const;
 
 export function NovaLogo() {
@@ -54,8 +55,15 @@ export function AppHeader() {
                 active ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground",
               )}
             >
-              {Icon && <Icon className="size-3.5 text-private" aria-hidden />}
-              {item.label}
+              {Icon && <Icon className={cn("size-3.5", "iconClass" in item && item.iconClass)} aria-hidden />}
+              {"short" in item ? (
+                <>
+                  <span className="sm:hidden">{item.short}</span>
+                  <span className="hidden sm:inline">{item.label}</span>
+                </>
+              ) : (
+                item.label
+              )}
             </Link>
           );
         })}
