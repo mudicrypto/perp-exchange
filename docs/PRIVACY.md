@@ -242,8 +242,13 @@ How the service is built:
 
 ## Requirements for a native private matching engine
 
+Milestone 8 designs the matching engine, its hidden-order rules and its leakage analysis, and
+builds a local, synthetic-only prototype of them: [`docs/venue/ARCHITECTURE.md`](venue/ARCHITECTURE.md).
+The prototype hides orders by server-side access control only. Nothing below is offered to
+users.
+
 What it would take to offer these modes on a real venue that Nova operates. None of this exists
-yet.
+for real users or funds.
 
 1. **Matching engine with native order types:**
    - hidden orders (with an explicit priority policy against displayed liquidity)

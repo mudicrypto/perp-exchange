@@ -203,26 +203,50 @@ Phase C — implementation boundaries
 - [ ] Shared store for sessions, RFQ desk and rate limits (multi-instance)
 - [ ] Real authentication; penetration test; legal/regulatory review (see SECURITY.md §4)
 
-## Milestone 8 — Watch-only account UI
+## Milestone 8 — Own venue with native hidden orders: design and local prototype
+Design documents (`docs/venue/`)
+- [x] Architecture: components, data structures, instrument rules, publication, audit and reconciliation, recovery, rate limits, public/private separation (`ARCHITECTURE.md`)
+- [x] Hidden-order specification: what is concealed, what the engine sees, priority, interaction with displayed liquidity, disclosure, leakage reduction and what still leaks (`ARCHITECTURE.md` §7, `MATCHING-RULES.md` §7); server-side access control only, no cryptographic claim (doc test)
+- [x] Threat model (`THREAT-MODEL.md`)
+- [x] Order state machine; doc table checked against code (`ORDER-STATE-MACHINE.md`, `docs.test.ts`)
+- [x] Matching-rules specification with 43 rule ids, each named by at least one test (`MATCHING-RULES.md`, `docs.test.ts`)
+- [x] Performance test plan with an indicative prototype baseline (`PERFORMANCE-PLAN.md`)
+- [x] Security review checklist and list of components requiring independent review (`SECURITY-CHECKLIST.md`)
+
+Local prototype (`src/venue/`, synthetic only)
+- [x] Integer tick/lot engine: price-time priority, displayed-before-hidden, GTC/IOC/FOK, market with band protection, post-only, STP (3 modes), replace (FIX total-qty), mass cancel, halts, suspension, pre-trade limits
+- [x] Separate public feed (strict schemas, own sequence, aggregated prints, optional batched publication) and per-account private events (own sequence, opaque ids)
+- [x] Gateway: session-bound accounts, strict Zod input, exact decimal conversion, rate limits, post-only probe throttle, idempotency
+- [x] Hash-chained write-ahead journal, snapshot/restore, deterministic replay, fail-stop, consumer de-duplication
+- [x] Independent reconciliation (book, conservation, zero-sum, executions, published data)
+- [x] Example, property-based (fast-check), adversarial and recovery tests; manual mutation check (4/4 non-equivalent mutants caught)
+- [x] `npm run venue:demo` (walkthrough + seeded flow + reconcile + recovery) and `npm run venue:bench`
+- [x] Isolation: ESLint forbids network/file-system use in the prototype and any import of it from the app (negative-tested)
+- [ ] Icebergs, midpoint pegs, minimum execution quantity, auctions, fees
+- [ ] Margin, liquidation, settlement; persistence, replication, failover; external anchoring of journal heads
+- [ ] Performance scenarios S5–S8, S10, S11 and the latency side-channel test
+- [ ] Independent security review of every component in `SECURITY-CHECKLIST.md` §B; legal/regulatory review
+
+## Milestone 9 — Watch-only account UI
 - [ ] `HyperliquidAccountDataSource` (public address → `clearinghouseState`, `openOrders`, fills) via server
 - [ ] Address input with validation; never request keys/seeds
 - [ ] Positions/orders/fills tables; portfolio risk panel wired to `DefaultRiskEngine.portfolio`
 - [ ] Fee schedule in pre-trade estimates
 
-## Milestone 9 — Order lifecycle & reconciliation against live venue streams
+## Milestone 10 — Order lifecycle & reconciliation against live venue streams
 - [ ] Order state machine over `ORDER_STATUSES` with venue-confirmed transitions only
 - [ ] Reconciliation of local intents against venue order/fill streams (idempotent, sequence-aware)
 - [ ] Persistence adapter (server-side DB) for order journal and audit log
 - [ ] Venue-specific validation (e.g. Hyperliquid 5-significant-figure prices)
 
-## Milestone 10 — Testnet execution (explicitly configured, separately confirmed, security-reviewed)
+## Milestone 11 — Testnet execution (explicitly configured, separately confirmed, security-reviewed)
 - [ ] Wallet connection (signing in the user's wallet; no key custody)
 - [ ] Testnet-only execution adapter behind config + per-session confirmation
 - [ ] Authorization (`orders:submit`) enforced server-side
 - [ ] `RiskGuardedExecutionAdapter` running server-side in front of the testnet adapter
 
 ## Later
-- [ ] Nova matching engine behind `ExecutionAdapter` + `MarketDataSource`
+- [~] Nova matching engine behind `ExecutionAdapter` + `MarketDataSource` (engine designed and prototyped locally in M8; not wired to the app)
 - [ ] Private execution modes on Nova's venue: hidden limit, iceberg, batch auctions, sealed RFQ, encrypted order flow (requirements in `docs/PRIVACY.md`)
 - [ ] Independent review of privacy guarantees before any is advertised
 - [ ] Custody, deposits/withdrawals (out of scope until legal/compliance review)

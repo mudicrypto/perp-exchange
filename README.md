@@ -9,7 +9,10 @@ for every mode. **Milestone 5:** a deterministic, decimal risk engine with venue
 rules, configurable pre-trade limits enforced in the execution layer, and a risk report.
 **Milestone 6:** a read-only AI trading analyst over mock accounts, answering from authorized,
 verified tool results. **Milestone 7:** security hardening and end-to-end verification — not a
-claim of production readiness (see `docs/SECURITY.md`). No real orders, custody, deposits or withdrawals.
+claim of production readiness (see `docs/SECURITY.md`). **Milestone 8:** the design of Nova's own matching
+venue with native hidden orders, plus a deterministic, local-only prototype on synthetic orders
+(`src/venue/`, not connected to the app, funds or any external venue). No real orders, custody,
+deposits or withdrawals.
 
 - Architecture: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
 - Trading domain & execution adapters (supported/unsupported features): [`docs/TRADING.md`](docs/TRADING.md)
@@ -18,6 +21,7 @@ claim of production readiness (see `docs/SECURITY.md`). No real orders, custody,
 - Risk calculations, limits and worked examples: [`docs/RISK.md`](docs/RISK.md)
 - AI trading analyst (mock accounts): [`docs/ANALYST.md`](docs/ANALYST.md)
 - Security review, verification and remaining risks: [`docs/SECURITY.md`](docs/SECURITY.md)
+- Own venue with hidden orders (design + local prototype): [`docs/venue/ARCHITECTURE.md`](docs/venue/ARCHITECTURE.md)
 - Progress and roadmap: [`docs/CHECKLIST.md`](docs/CHECKLIST.md)
 
 ## Quick start
@@ -64,6 +68,8 @@ No secrets are needed. Nova never asks for seed phrases or private keys.
 | `npm run test:e2e` | Playwright (build must exist; starts a simulation server and a live-config server with no network use) |
 | `npm run test:live` | Live contract test against Hyperliquid's public API (needs network access; read-only) |
 | `npm run test:e2e:external` | Playwright against real Hyperliquid mainnet market data (needs network access; read-only, execution disabled) |
+| `npm run venue:demo` | Local venue prototype walkthrough on synthetic orders (no network, no funds) |
+| `npm run venue:bench` | Indicative local micro-benchmarks of the venue prototype |
 | `npm run check` | typecheck + lint + unit tests + build + client-bundle secret scan |
 
 Playwright uses Chromium. If your environment provides a browser at a custom path, set

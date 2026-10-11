@@ -15,7 +15,9 @@
     "dev:sim": "NOVA_MARKET_DATA_SOURCE=simulation next dev",
     "test:live": "VITEST_LIVE=1 vitest run",
     "verify:bundle": "node scripts/verify-client-bundle.mjs",
-    "test:e2e:external": "playwright test --config playwright.external.config.ts"
+    "test:e2e:external": "playwright test --config playwright.external.config.ts",
+    "venue:demo": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON src/venue/cli/demo.ts",
+    "venue:bench": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON src/venue/cli/bench.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "0.127.0",
@@ -43,6 +45,7 @@
     "@vitejs/plugin-react": "6.1.2",
     "eslint": "9.39.5",
     "eslint-config-next": "16.4.0",
+    "fast-check": "4.10.2",
     "jsdom": "30.1.2",
     "tailwindcss": "4.3.3",
     "tw-animate-css": "1.4.0",

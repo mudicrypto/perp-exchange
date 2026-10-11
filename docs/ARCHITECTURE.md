@@ -1,6 +1,6 @@
 # Nova Exchange — Architecture
 
-Status: Milestone 7 (security hardening and end-to-end verification). Security review: [`docs/SECURITY.md`](SECURITY.md). See `docs/CHECKLIST.md` for progress.
+Status: Milestone 8 (design and local prototype of Nova's own venue with hidden orders: [`docs/venue/ARCHITECTURE.md`](venue/ARCHITECTURE.md)). Security review: [`docs/SECURITY.md`](SECURITY.md). See `docs/CHECKLIST.md` for progress.
 
 ## Goals that shape the design
 
@@ -35,6 +35,7 @@ src/
     http/                 Browser client for Nova's own /api routes
   lib/                    Generic utilities (reconnecting socket, formatting, storage)
   config/                 Zod-validated server configuration + public runtime config
+  venue/                  Milestone 8 local venue prototype (synthetic only; standalone; nothing imports it)
 tests/e2e/                Playwright tests
 ```
 
