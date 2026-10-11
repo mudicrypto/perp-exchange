@@ -15,7 +15,7 @@ capability registry, and two execution adapters:
 | `Order` / `OrderStatus` | `order.ts` | Lifecycle state, fills, trigger time, `lastSequence`, **`origin: "simulated" \| "venue"`** |
 | `Fill` | `order.ts` | Unique `id` (de-duplication), liquidity (`maker`/`taker`/`liquidation`/`rfq`), fee, realised PnL, `origin` |
 | `Position`, `Balance`, `AccountSnapshot` | `account.ts` | Snapshot has `origin`. Fields a venue does not report are **`null`**, never derived |
-| `TradingError`, `Result<T>` | `errors.ts` | Typed errors. Includes `unsupported` (names the capability and who lacks it) and `simulated-rejection` |
+| `TradingError`, `Result<T>` | `errors.ts` | Typed errors. Includes `unsupported` (names the capability and who lacks it), `simulated-rejection` and `risk-limit` (refused by pre-trade limits, see [RISK.md](RISK.md)) |
 | `CapabilityId`, `CapabilityStatus` | `capabilities.ts` | `supported`, or `unsupported` with `scope: "venue" \| "nova"` and a reason |
 
 ## Order lifecycle (`src/core/trading/order-lifecycle.ts`)

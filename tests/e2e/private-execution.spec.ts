@@ -54,10 +54,13 @@ test.describe("private execution workspace", () => {
   });
 
   test("requires the disclosure to be confirmed before submitting", async ({ page }) => {
+    const bestBid = await alphaBestBid(page);
     const ws = await openWorkspace(page);
     await ws.getByTestId("mode-hidden").click();
+    await ws.getByRole("combobox", { name: "Market" }).selectOption("ALPHA-PERP");
     await ws.getByTestId("private-size").fill("0.01");
-    await ws.getByTestId("private-price").fill("500");
+    await ws.getByTestId("private-price").fill(String(Number((bestBid * 0.999).toFixed(1))));
+    await expect(ws.getByTestId("private-risk")).toHaveAttribute("data-decision", /allow|warn/);
     await expect(ws.getByTestId("private-submit")).toBeDisabled();
     await ws.getByTestId("privacy-confirm").click();
     await expect(ws.getByTestId("private-submit")).toBeEnabled();
@@ -77,6 +80,8 @@ test.describe("private execution workspace", () => {
     await ws.getByRole("combobox", { name: "Market" }).selectOption("ALPHA-PERP");
     await ws.getByTestId("private-size").fill("40");
     await ws.getByTestId("private-price").fill(String(hiddenPrice));
+    // The pre-trade risk check needs a fresh venue mark (fail closed until the first tick).
+    await expect(ws.getByTestId("private-risk")).toHaveAttribute("data-decision", /allow|warn/);
     await ws.getByTestId("privacy-confirm").click();
     await ws.getByTestId("private-submit").click();
     await expect(ws.getByTestId("execution-status")).toHaveAttribute("data-kind", "success");
@@ -86,6 +91,8 @@ test.describe("private execution workspace", () => {
     await ws.getByTestId("private-size").fill("40");
     await ws.getByTestId("private-price").fill(String(icebergPrice));
     await ws.getByTestId("private-display-size").fill("4");
+    // The pre-trade risk check needs a fresh venue mark (fail closed until the first tick).
+    await expect(ws.getByTestId("private-risk")).toHaveAttribute("data-decision", /allow|warn/);
     await ws.getByTestId("privacy-confirm").click();
     await ws.getByTestId("private-submit").click();
     await expect(ws.getByTestId("execution-status")).toHaveAttribute("data-kind", "success");

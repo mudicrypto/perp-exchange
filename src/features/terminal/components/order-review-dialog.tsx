@@ -13,9 +13,10 @@ import {
 } from "@/components/ui/dialog";
 import { SummaryRow } from "@/components/trading/values";
 import { isTriggerType, requestTimeInForce, requestTriggerPrice, type Market, type OrderRequest } from "@/core/domain";
-import type { PreTradeRisk } from "@/core/ports";
+import type { PreTradeAssessment } from "@/core/risk";
+import { RiskValueText } from "../risk/risk-value";
 import type { ExecutionDisclosure } from "@/core/privacy";
-import { displayPriceDecimals, formatAmount, formatPercent, formatPrice, formatSize } from "@/lib/format";
+import { displayPriceDecimals, formatPrice, formatSize } from "@/lib/format";
 import { ORDER_TYPE_LABEL } from "./order-labels";
 
 const TIF_LABEL = { gtc: "Good till cancel", ioc: "Immediate or cancel", "post-only": "Post only" } as const;
@@ -33,13 +34,14 @@ export function OrderReviewDialog({
   request: OrderRequest;
   simulated: boolean;
   market: Market;
-  risk: PreTradeRisk;
+  risk: PreTradeAssessment;
   disclosure: ExecutionDisclosure;
   onConfirm: () => Promise<void>;
   onCancel: () => void;
 }) {
   const [submitting, setSubmitting] = useState(false);
-  const decimals = displayPriceDecimals(risk.referencePrice, market.priceDecimals);
+  const decimals = displayPriceDecimals(risk.referencePrice.status === "available" ? Number(risk.referencePrice.value) : null, market.priceDecimals);
+  const warnings = risk.checks.filter((c) => c.status !== "pass").length + risk.notices.length;
   const isBuy = intent.side === "buy";
 
   return (
@@ -67,18 +69,28 @@ export function OrderReviewDialog({
           {isTriggerType(intent.type) && (
             <SummaryRow label="Trigger price (mark)">{formatPrice(requestTriggerPrice(intent), decimals)}</SummaryRow>
           )}
-          <SummaryRow label={intent.type === "market" ? "Est. avg fill" : "Reference price"}>{formatPrice(risk.referencePrice, decimals)}</SummaryRow>
-          <SummaryRow label="Order value">{formatAmount(risk.notional)} {market.quote}</SummaryRow>
+          <SummaryRow label={intent.type === "market" ? "Est. avg fill" : "Reference price"}>
+            <RiskValueText value={risk.referencePrice} priceDecimals={decimals} />
+          </SummaryRow>
+          <SummaryRow label="Order notional">
+            <RiskValueText value={risk.notional} />
+          </SummaryRow>
           <SummaryRow label="Leverage">{intent.leverage}x isolated</SummaryRow>
-          <SummaryRow label="Initial margin">{formatAmount(risk.initialMargin)} {market.quote}</SummaryRow>
+          <SummaryRow label="Initial margin">
+            <RiskValueText value={risk.initialMargin} />
+          </SummaryRow>
+          <SummaryRow label="Est. fee">
+            <RiskValueText value={risk.feeEstimate} />
+          </SummaryRow>
           <SummaryRow label="Est. liquidation price">
-            {formatPrice(risk.estimatedLiquidationPrice, decimals)} ({formatPercent(risk.liquidationDistance, 2)} away)
+            <RiskValueText value={risk.liquidationPrice} priceDecimals={decimals} />
           </SummaryRow>
           <SummaryRow label="Visibility">{disclosure.headline}</SummaryRow>
         </dl>
-        {risk.warnings.length > 0 && (
-          <p className="text-xs text-warning">{risk.warnings.length} risk warning(s) — see the order preview.</p>
-        )}
+        {warnings > 0 && <p className="text-xs text-warning">{warnings} risk warning(s) — see the order preview.</p>}
+        <p className="text-2xs text-muted-foreground">
+          Estimates, not guarantees: the venue may liquidate at a different price, and losses can exceed the initial margin.
+        </p>
         <DialogFooter>
           <Button variant="outline" onClick={onCancel} disabled={submitting}>
             Back

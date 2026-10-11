@@ -4,6 +4,7 @@ import { jsonError } from "@/server/api-response";
 import { auditRfq } from "@/server/rfq/audit-log";
 import { asRequester, deskResponse, json, parseBody } from "@/server/rfq/http";
 import { MAX_OPEN_RFQS_PER_SESSION } from "@/server/rfq/rfq-service";
+import { checkRfqLimits } from "@/server/rfq/risk-check";
 
 /** The caller's own RFQs (requester view). */
 export async function GET(request: NextRequest): Promise<Response> {
@@ -21,6 +22,11 @@ export async function POST(request: NextRequest): Promise<Response> {
       if (!body.ok) return body.response;
       if (desk.listForRequester(sessionId).filter((r) => r.status === "open").length >= MAX_OPEN_RFQS_PER_SESSION) {
         return jsonError(429, "too-many", "Too many open requests.");
+      }
+      const refusal = await checkRfqLimits(body.value);
+      if (refusal) {
+        auditRfq("rfq.denied", { reason: refusal.limit });
+        return jsonError(422, "risk-limit", refusal.message);
       }
       const result = desk.create(sessionId, body.value);
       if (result.ok) auditRfq("rfq.created", { rfqId: result.value.id, counterpartyCount: result.value.counterparties.length, quoteCount: result.value.quotes.length });

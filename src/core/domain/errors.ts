@@ -22,6 +22,8 @@ export type TradingError =
   /** A rejection injected by simulation configuration (never a real venue response). */
   | { code: "simulated-rejection"; message: string }
   | { code: "venue-rejected"; message: string }
+  /** Refused by Nova's pre-trade risk limits before reaching the venue. */
+  | { code: "risk-limit"; limits: string[]; message: string }
   | { code: "network" | "rate-limited" | "invalid-response"; message: string };
 
 export type TradingErrorCode = TradingError["code"];

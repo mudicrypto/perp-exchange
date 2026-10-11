@@ -5,12 +5,14 @@ private execution. **Milestone 1:** real-time public market data (read-only for 
 complete trading terminal, and a clearly-labelled demo environment where orders are matched
 locally by a paper-trading simulator. **Milestone 4:** a Private Execution workspace (hidden,
 iceberg and private RFQ on the simulated venue, encrypted orders planned) with a privacy matrix
-for every mode. No real orders, custody, deposits or withdrawals.
+for every mode. **Milestone 5:** a deterministic, decimal risk engine with venue-specific margin
+rules, configurable pre-trade limits enforced in the execution layer, and a risk report. No real orders, custody, deposits or withdrawals.
 
 - Architecture: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
 - Trading domain & execution adapters (supported/unsupported features): [`docs/TRADING.md`](docs/TRADING.md)
 - Hyperliquid integration: [`docs/integrations/HYPERLIQUID.md`](docs/integrations/HYPERLIQUID.md)
 - Private execution & privacy model: [`docs/PRIVACY.md`](docs/PRIVACY.md)
+- Risk calculations, limits and worked examples: [`docs/RISK.md`](docs/RISK.md)
 - Progress and roadmap: [`docs/CHECKLIST.md`](docs/CHECKLIST.md)
 
 ## Quick start

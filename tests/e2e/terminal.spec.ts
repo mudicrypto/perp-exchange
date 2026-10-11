@@ -155,11 +155,17 @@ test.describe("order entry (paper trading)", () => {
   test("rests a limit order, then cancels it", async ({ page }) => {
     await page.goto("/");
     await openMarket(page, "GAMMA-PERP");
+    // A price far from the mark is refused by the fat-finger limit before it can be submitted.
     await page.getByTestId("input-price").fill("0.5");
     await page.getByTestId("input-size").fill("100");
+    await expect(page.getByTestId("risk-check").filter({ hasText: "deviation" })).toHaveAttribute("data-action", "block");
+    await expect(page.getByTestId("submit-order")).toBeDisabled();
+    // The deepest visible bid rests below the market.
+    await page.getByTestId("order-book").getByTestId("book-bid").last().click();
+    const restingPrice = await page.getByTestId("input-price").inputValue();
     await page.getByTestId("submit-order").click();
     await page.getByTestId("confirm-order").click();
-    await expect(page.getByTestId("submit-result")).toContainText("Order resting at 0.50000");
+    await expect(page.getByTestId("submit-result")).toContainText(`Order resting at ${Number(restingPrice).toFixed(5)}`);
 
     await page.getByTestId("tab-orders").click();
     await expect(page.getByTestId("open-order-row")).toHaveCount(3);
@@ -174,7 +180,8 @@ test.describe("order entry (paper trading)", () => {
     await page.goto("/");
     await openMarket(page, "GAMMA-PERP");
     await page.getByTestId("type-market").click();
-    await page.getByTestId("input-size").fill("900000");
+    // 600k GAMMA ≈ 480k SIMUSD: under the E2E order-notional limit (500k), over the account's margin.
+    await page.getByTestId("input-size").fill("600000");
     await page.getByTestId("submit-order").click();
     await page.getByTestId("confirm-order").click();
     await expect(page.getByTestId("submit-result")).toHaveAttribute("data-tone", "bad");
@@ -373,6 +380,7 @@ test.describe("API", () => {
     expect(headers["x-content-type-options"]).toBe("nosniff");
     expect(headers["x-powered-by"]).toBeUndefined();
     const health = await (await request.get("/api/health")).json();
-    expect(health.config).toEqual({ marketDataSource: "simulation", hyperliquidNetwork: "mainnet", executionMode: "paper" });
+    expect(health.config).toMatchObject({ marketDataSource: "simulation", hyperliquidNetwork: "mainnet", executionMode: "paper" });
+    expect(health.config.riskLimits.maxOrderNotional).toEqual({ value: "500000", action: "block" });
   });
 });

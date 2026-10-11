@@ -26,7 +26,7 @@ import type {
 } from "@/core/domain";
 import { isTerminalStatus, isTriggerType, requestLimitPrice, requestTimeInForce, requestTriggerPrice } from "@/core/domain";
 import type { AccountState } from "@/core/ports";
-import { estimateIsolatedLiquidationPrice } from "@/core/risk";
+import { constantRateIsolatedLiquidationPrice, dec } from "@/core/risk";
 import { OrderStore, type ApplyOutcome, type OrderEventBody, type OrderStoreChange } from "@/core/trading";
 
 export const PAPER_CURRENCY = "SIMUSD";
@@ -136,6 +136,8 @@ export class PaperEngine {
   private readonly positions = new Map<MarketId, PaperPosition>();
   private readonly books = new Map<MarketId, Book>();
   private readonly marks = new Map<MarketId, number>();
+  private readonly markTimes = new Map<MarketId, number>();
+  private readonly bookTimes = new Map<MarketId, number>();
   /** Per-order slippage for market-style orders (not part of the Order model). */
   private readonly slippage = new Map<string, number>();
   private readonly icebergs = new Map<string, IcebergState>();
@@ -170,6 +172,7 @@ export class PaperEngine {
 
   setMark(marketId: MarketId, mark: number, now: number): void {
     this.marks.set(marketId, mark);
+    this.markTimes.set(marketId, now);
     this.checkTriggers(marketId, mark, now);
     this.checkLiquidation(marketId, now);
   }
@@ -177,6 +180,7 @@ export class PaperEngine {
   /** New book snapshot: resting limit orders that are now marketable fill as makers. */
   setBook(marketId: MarketId, book: Book, now: number): void {
     this.books.set(marketId, book);
+    this.bookTimes.set(marketId, now);
     if (this.config.fillModel === "none") return;
     const bestBid = book.bids[0]?.price;
     const bestAsk = book.asks[0]?.price;
@@ -401,6 +405,20 @@ export class PaperEngine {
       bids: [...bids.values()].sort((a, b) => b.price - a.price),
       asks: [...asks.values()].sort((a, b) => a.price - b.price),
     };
+  }
+
+  /** The venue's latest mark and when it was set (risk-check input). */
+  markOf(marketId: MarketId): { value: number; observedAt: number } | null {
+    const value = this.marks.get(marketId);
+    const observedAt = this.markTimes.get(marketId);
+    return value === undefined || observedAt === undefined ? null : { value, observedAt };
+  }
+
+  /** The counterparty book the engine matches against, and when it was set. */
+  bookOf(marketId: MarketId): { value: Book; observedAt: number } | null {
+    const value = this.books.get(marketId);
+    const observedAt = this.bookTimes.get(marketId);
+    return value === undefined || observedAt === undefined ? null : { value, observedAt };
   }
 
   icebergState(orderId: string): IcebergState | null {
@@ -728,13 +746,15 @@ export class PaperEngine {
   private liquidationPrice(p: PaperPosition): number | null {
     const market = this.markets.get(p.marketId);
     if (!market) return null;
-    return estimateIsolatedLiquidationPrice({
+    // Same rule the risk module reports for this venue (simulationMarginRules).
+    const price = constantRateIsolatedLiquidationPrice({
       side: p.size > 0 ? "buy" : "sell",
-      entryPrice: p.entryPrice,
-      size: Math.abs(p.size),
-      collateral: p.margin,
-      maintenanceMarginRate: market.maintenanceMarginRate,
+      entryPrice: dec(p.entryPrice),
+      size: dec(Math.abs(p.size)),
+      collateral: dec(p.margin),
+      maintenanceMarginRate: dec(market.maintenanceMarginRate),
     });
+    return price === null ? null : price.toNumber();
   }
 
   /** The simulator enforces its own liquidation price at the mark. */

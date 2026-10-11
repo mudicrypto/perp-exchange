@@ -19,6 +19,8 @@ import { useNow } from "./hooks/use-market-data";
 import { LEVEL_LABEL, MODE_LABEL, MODE_SUMMARY } from "./private-execution/mode-labels";
 import { PrivacyMatrix } from "./private-execution/privacy-matrix";
 import { PrivateHistory } from "./private-execution/private-history";
+import { failedChecks } from "./risk/checks";
+import { RiskValueText } from "./risk/risk-value";
 import { useTerminal } from "./terminal-context";
 
 type Status = { kind: "idle" } | { kind: "busy"; message: string } | { kind: "success"; message: string } | { kind: "error"; message: string };
@@ -100,6 +102,32 @@ export function PrivateExecutionView() {
     }, 1_000);
     return () => clearInterval(timer);
   }, [openRfqId, privateVenue]);
+
+  const bookOrderInput = (clientOrderId: string) =>
+    market && (mode === "hidden" || mode === "iceberg")
+      ? {
+          clientOrderId,
+          marketId: market.id,
+          side,
+          type: mode,
+          price: Number(price),
+          size: Number(size),
+          timeInForce: postOnly ? "post-only" : "gtc",
+          reduceOnly: false,
+          leverage,
+          marginMode: "isolated",
+          ...(mode === "iceberg" ? { displaySize: Number(displaySize) } : {}),
+        }
+      : null;
+
+  // The same pre-trade assessment the execution guard will enforce on submission.
+  const riskPreview = (() => {
+    const draft = bookOrderInput("preview");
+    if (!draft || !market || size === "" || price === "") return null;
+    const validated = execution.validateOrder(draft, execution.describeInstrument(market));
+    return validated.ok ? execution.assess(validated.value, market) : null;
+  })();
+  const riskBlocked = riskPreview?.decision === "block";
 
   const submitBookOrder = async () => {
     if (!market || (mode !== "hidden" && mode !== "iceberg")) return;
@@ -374,6 +402,32 @@ export function PrivateExecutionView() {
                     </fieldset>
                   )}
 
+                  {riskPreview && (
+                    <div className="rounded-md border p-2.5 text-xs" data-testid="private-risk" data-decision={riskPreview.decision}>
+                      <p className="mb-1 font-semibold">Pre-trade risk</p>
+                      <dl className="grid grid-cols-2 gap-y-0.5">
+                        <dt className="text-muted-foreground">Order notional</dt>
+                        <dd className="text-right">
+                          <RiskValueText value={riskPreview.notional} />
+                        </dd>
+                        <dt className="text-muted-foreground">Initial margin</dt>
+                        <dd className="text-right">
+                          <RiskValueText value={riskPreview.initialMargin} />
+                        </dd>
+                        <dt className="text-muted-foreground">Est. liquidation</dt>
+                        <dd className="text-right">
+                          <RiskValueText value={riskPreview.liquidationPrice} priceDecimals={market.priceDecimals} />
+                        </dd>
+                      </dl>
+                      {failedChecks(riskPreview).map((c) => (
+                        <p key={c.limit} className={cn("mt-1", c.action === "block" ? "text-sell" : "text-warning")}>
+                          {c.action === "block" ? "Blocked: " : "Warning: "}
+                          {c.message}
+                        </p>
+                      ))}
+                    </div>
+                  )}
+
                   <label className="flex items-start gap-2 rounded-md border border-private/40 bg-private/5 p-2.5 text-xs" data-testid="privacy-confirm-label">
                     <Checkbox
                       checked={confirmed}
@@ -387,7 +441,7 @@ export function PrivateExecutionView() {
                     </span>
                   </label>
 
-                  <Button type="submit" className="w-full bg-private font-semibold text-black hover:bg-private/90" disabled={formDisabled || busy || !confirmed} data-testid="private-submit">
+                  <Button type="submit" className="w-full bg-private font-semibold text-black hover:bg-private/90" disabled={formDisabled || busy || !confirmed || riskBlocked} data-testid="private-submit">
                     {mode === "rfq" ? "Request quotes" : `Place ${MODE_LABEL[mode].toLowerCase()}`}
                   </Button>
                 </form>

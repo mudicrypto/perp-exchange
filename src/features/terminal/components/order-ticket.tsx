@@ -25,8 +25,10 @@ import {
 } from "@/core/domain";
 import type { OrderBookView } from "@/core/market-data";
 import { describeExecution } from "@/core/privacy";
-import type { PreTradeRisk, RiskWarning } from "@/core/ports";
-import { DefaultRiskEngine } from "@/core/risk";
+import type { PreTradeAssessment, PreTradeNotice } from "@/core/risk";
+import { assessWithSnapshot } from "@/core/trading";
+import { failedChecks } from "../risk/checks";
+import { CalculationDetails, RiskValueText } from "../risk/risk-value";
 import { checkRequestCapabilities } from "@/core/trading";
 import { displayPriceDecimals, formatAmount, formatPercent, formatPrice, formatSize } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -36,7 +38,6 @@ import { ORDER_TYPE_LABEL } from "./order-labels";
 import { OrderReviewDialog } from "./order-review-dialog";
 import { PrivateExecutionDialog } from "./private-execution-dialog";
 
-const riskEngine = new DefaultRiskEngine();
 const SIZE_PRESETS = [0.25, 0.5, 0.75, 1] as const;
 const MAX_SLIPPAGE = 0.05;
 
@@ -52,20 +53,16 @@ export function availabilityOf(status: CapabilityStatus): TypeAvailability {
   return status.scope === "nova" ? "preview-only" : "unavailable";
 }
 
-export function warningText(warning: RiskWarning): string {
-  switch (warning.code) {
-    case "exceeds-max-leverage":
-      return `Leverage exceeds this market's maximum of ${warning.maxLeverage}x.`;
+export function noticeText(notice: PreTradeNotice): string {
+  switch (notice.code) {
     case "exceeds-visible-depth":
       return "Order is larger than the visible order book; the fill price could be much worse.";
     case "high-price-impact":
-      return `Estimated price impact is ${formatPercent(warning.impact, 2)}.`;
-    case "liquidation-near":
-      return `Estimated liquidation is only ${formatPercent(warning.distance, 2)} away.`;
-    case "stale-market-data":
-      return "Market data is stale or disconnected; estimates may be wrong.";
+      return `Estimated price impact is ${formatPercent(Number(notice.impact), 2)}.`;
     case "limit-crosses-book":
       return "Limit price crosses the book and would execute immediately as a taker.";
+    case "trigger-reference-price":
+      return "Figures use the trigger price; the triggered order fills at book prices, which can be worse.";
   }
 }
 
@@ -88,7 +85,7 @@ export interface OrderTicketProps {
 }
 
 export function OrderTicket({ market, stats, book, dataIsStale, price, onPriceChange }: OrderTicketProps) {
-  const { execution, capabilities, accountState } = useTerminal();
+  const { execution, capabilities, accountState, risk: riskServices } = useTerminal();
   const ids = useId();
   const instrument = useMemo(() => execution.describeInstrument(market), [execution, market]);
   const caps = capabilities.capabilities;
@@ -131,15 +128,27 @@ export function OrderTicket({ market, stats, book, dataIsStale, price, onPriceCh
   const validation = touched ? execution.validateOrder(input, instrument, { referencePrice: stats?.markPrice }) : null;
   // A request can be well-formed but not submittable through Nova (preview-only types).
   const parsed = validation?.ok ? validation.value : touched ? (OrderRequestSchema.safeParse(input).data ?? null) : null;
-  const risk: PreTradeRisk | null =
-    parsed && !(validation && !validation.ok && validation.error.code === "validation")
-      ? riskEngine.preTrade({ request: parsed, market, stats, book: book ? { bids: book.bids, asks: book.asks } : null, dataIsStale })
-      : null;
+  // Same assessment the execution guard enforces, on the venue's own state; the
+  // stream's mark and book fill in only where the venue snapshot has none.
+  const risk: PreTradeAssessment | null = (() => {
+    if (!parsed || (validation && !validation.ok && validation.error.code === "validation")) return null;
+    const snapshot = riskServices.snapshot(market.id);
+    const marks = new Map(snapshot.marks);
+    if (!marks.has(market.id) && stats && !dataIsStale) marks.set(market.id, { value: stats.markPrice, observedAt: stats.observedAt, source: "market data stream" });
+    const viewBook = snapshot.book ?? (book ? { value: { bids: book.bids, asks: book.asks }, observedAt: book.receivedAt, source: "market data stream" } : null);
+    return assessWithSnapshot(parsed, market, { ...snapshot, marks, book: viewBook }, riskServices.limits);
+  })();
+  const blockingChecks = failedChecks(risk).filter((c) => c.action === "block");
 
   const submitBlocker = (() => {
     const submit = caps["action.submit"];
     if (submit.status !== "supported") return submit.reason;
-    if (parsed) return checkRequestCapabilities(parsed, caps)?.message ?? null;
+    if (parsed) {
+      const unsupported = checkRequestCapabilities(parsed, caps)?.message;
+      if (unsupported) return unsupported;
+      if (blockingChecks.length > 0) return `Blocked by risk limits: ${blockingChecks.map((c) => c.message).join("; ")}`;
+      return null;
+    }
     return typeStatus.status === "supported" ? null : typeStatus.reason;
   })();
   const canSubmit = submitBlocker === null && validation?.ok === true;
@@ -303,40 +312,76 @@ export function OrderTicket({ market, stats, book, dataIsStale, price, onPriceCh
         </ul>
       )}
 
-      <section className="rounded-md border bg-background/40 p-2.5" aria-label="Risk preview" data-testid="risk-preview">
+      <section className="rounded-md border bg-background/40 p-2.5" aria-label="Risk preview" data-testid="risk-preview" data-decision={risk?.decision}>
         <h3 className="mb-1 flex items-center justify-between text-xs font-semibold">
           Order preview
           <EstimateHint>
-            Assumes an isolated position funded with exactly the initial margin. Market orders use visible book depth
-            only; trigger orders use the trigger price. Excludes fees, funding and tiered margin requirements.
+            Calculated with {riskServices.rules.venueName} rules. Market orders use visible book depth only; trigger
+            orders use the trigger price. Estimates are not guarantees: liquidation can happen at a different price, and
+            losses can exceed the margin shown.
           </EstimateHint>
         </h3>
         {risk ? (
-          <dl>
-            <SummaryRow label={type === "market" ? "Est. avg fill" : isTriggerType(type) && !hasLimitPrice(type) ? "Trigger price" : "Limit price"}>
-              {formatPrice(risk.referencePrice, decimals)}
-            </SummaryRow>
-            <SummaryRow label="Order value" testId="risk-notional">{formatAmount(risk.notional)} {market.quote}</SummaryRow>
-            <SummaryRow label="Initial margin" testId="risk-margin">
-              <span className="font-semibold">{formatAmount(risk.initialMargin)}</span> {market.quote}
-            </SummaryRow>
-            <SummaryRow label="Est. liquidation price" testId="risk-liq">
-              <span className="font-semibold">{formatPrice(risk.estimatedLiquidationPrice, decimals)}</span>
-            </SummaryRow>
-            <SummaryRow label="Distance to liquidation">{formatPercent(risk.liquidationDistance, 2)}</SummaryRow>
-            {risk.bookImpact && <SummaryRow label="Est. price impact" testId="risk-impact">{formatPercent(risk.bookImpact.priceImpact, 3)}</SummaryRow>}
-            {accountState && <SummaryRow label="Available margin" testId="risk-available">{formatAmount(accountState.snapshot.available)} {market.quote}</SummaryRow>}
-            {risk.warnings.length > 0 && (
-              <ul className="mt-1.5 space-y-1 text-xs text-warning" data-testid="risk-warnings">
-                {risk.warnings.map((w) => (
-                  <li key={w.code} className="flex gap-1.5">
+          <>
+            <dl>
+              <SummaryRow label={type === "market" ? "Est. avg fill" : isTriggerType(type) && !hasLimitPrice(type) ? "Trigger price" : "Limit price"}>
+                <RiskValueText value={risk.referencePrice} priceDecimals={decimals} />
+              </SummaryRow>
+              <SummaryRow label="Order notional" testId="risk-notional">
+                <RiskValueText value={risk.notional} />
+              </SummaryRow>
+              <SummaryRow label="Initial margin" testId="risk-margin">
+                <RiskValueText value={risk.initialMargin} className="font-semibold" />
+              </SummaryRow>
+              <SummaryRow label="Est. fee" testId="risk-fee">
+                <RiskValueText value={risk.feeEstimate} />
+              </SummaryRow>
+              <SummaryRow label="Est. liquidation price" testId="risk-liq">
+                <RiskValueText value={risk.liquidationPrice} priceDecimals={decimals} className="font-semibold" />
+              </SummaryRow>
+              <SummaryRow label="Distance to liquidation">
+                <RiskValueText value={risk.liquidationDistance} />
+              </SummaryRow>
+              {risk.bookImpact && (
+                <SummaryRow label="Est. price impact" testId="risk-impact">
+                  {formatPercent(risk.bookImpact.priceImpact === null ? null : Number(risk.bookImpact.priceImpact), 3)}
+                </SummaryRow>
+              )}
+              {accountState && <SummaryRow label="Available margin" testId="risk-available">{formatAmount(accountState.snapshot.available)} {market.quote}</SummaryRow>}
+            </dl>
+            {(failedChecks(risk).length > 0 || risk.notices.length > 0) && (
+              <ul className="mt-1.5 space-y-1 text-xs" data-testid="risk-warnings">
+                {failedChecks(risk).map((c) => (
+                  <li key={c.limit} className={cn("flex gap-1.5", c.action === "block" ? "text-sell" : "text-warning")} data-testid="risk-check" data-limit={c.limit} data-action={c.action} data-status={c.status}>
                     <AlertTriangle className="mt-0.5 size-3 shrink-0" aria-hidden />
-                    {warningText(w)}
+                    <span>
+                      {c.action === "block" ? "Blocked: " : "Warning: "}
+                      {c.message}
+                    </span>
+                  </li>
+                ))}
+                {risk.notices.map((n) => (
+                  <li key={n.code} className="flex gap-1.5 text-warning">
+                    <AlertTriangle className="mt-0.5 size-3 shrink-0" aria-hidden />
+                    {noticeText(n)}
                   </li>
                 ))}
               </ul>
             )}
-          </dl>
+            <div className="mt-1.5">
+              <CalculationDetails
+                testId="risk-details"
+                items={[
+                  { label: "Reference price", value: risk.referencePrice },
+                  { label: "Order notional", value: risk.notional },
+                  { label: "Initial margin", value: risk.initialMargin },
+                  { label: "Fee estimate", value: risk.feeEstimate },
+                  { label: "Liquidation price", value: risk.liquidationPrice },
+                  { label: "Resulting position notional", value: risk.resultingPositionNotional },
+                ]}
+              />
+            </div>
+          </>
         ) : (
           <p className="text-xs text-muted-foreground">
             Enter a quantity{hasLimitPrice(type) ? " and price" : ""}

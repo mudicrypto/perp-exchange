@@ -9,9 +9,11 @@ import type {
   ExecutionAdapter,
   Unsubscribe,
 } from "@/core/ports";
-import { unsupportedError, validateOrderRequest, type ValidationContext, type VenueCapabilities } from "@/core/trading";
+import type { Observed } from "@/core/risk";
+import { unsupportedError, validateOrderRequest, type RiskSnapshot, type ValidationContext, type VenueCapabilities } from "@/core/trading";
 import { simulationCapabilities } from "./capabilities";
 import { createDemoPaperEngine } from "./demo-account-fixture";
+import { simulationMarginRules } from "./margin-rules";
 import type { IcebergState, PaperEngine, RfqTradeRequest, SimulationConfig } from "./paper-engine";
 import type { SimulatedMarketDataSource } from "./simulated-market-data-source";
 import { SIMULATION_VENUE_ID } from "./simulation-engine";
@@ -178,9 +180,35 @@ export class SimulationAdapter implements ExecutionAdapter, AccountDataSource {
     return result;
   }
 
+  marketById(marketId: MarketId): Market | null {
+    return this.markets.get(marketId) ?? null;
+  }
+
   /** Would `recordRfqTrade` succeed? (checked before accepting a quote) */
   checkRfqTrade(trade: RfqTradeRequest): TradingError | null {
     return this.engine.rfqTradeError(trade, this.now());
+  }
+
+  /**
+   * The venue state the risk guard assesses orders against: the engine's own
+   * account, marks and counterparty book, with their timestamps.
+   */
+  riskSnapshot(marketId: MarketId): RiskSnapshot {
+    const now = this.now();
+    const marks = new Map<MarketId, Observed<number>>();
+    for (const id of this.markets.keys()) {
+      const mark = this.engine.markOf(id);
+      if (mark) marks.set(id, { ...mark, source: "simulated venue mark" });
+    }
+    const book = this.engine.bookOf(marketId);
+    return {
+      now,
+      venue: simulationMarginRules,
+      account: { value: this.engine.snapshot(now), observedAt: now, source: "simulated paper account" },
+      markets: this.markets,
+      marks,
+      book: book ? { ...book, source: "simulated venue book" } : null,
+    };
   }
 
   /** Displayed slice and refill count of an iceberg order (null otherwise). */

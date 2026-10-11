@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { DEFAULT_RISK_LIMITS, RiskLimitsSchema, type RiskLimits } from "@/core/risk";
 import type { PublicRuntimeConfig } from "./runtime-config";
 
 const ServerEnvSchema = z
@@ -22,6 +23,30 @@ const ServerEnvSchema = z
       .string()
       .regex(/^[a-z0-9-]+=[A-Za-z0-9_-]{24,}(,[a-z0-9-]+=[A-Za-z0-9_-]{24,})*$/, "Expected id=token[,id=token] with tokens of at least 24 characters")
       .optional(),
+    /**
+     * Pre-trade risk limit overrides as JSON, merged onto DEFAULT_RISK_LIMITS,
+     * e.g. {"maxOrderNotional":{"value":"50000","action":"block"}}. Amounts are
+     * in the account's collateral currency. Enforced by the execution layer.
+     */
+    NOVA_RISK_LIMITS: z
+      .string()
+      .optional()
+      .transform((raw, ctx) => {
+        if (raw === undefined) return DEFAULT_RISK_LIMITS;
+        let json: unknown;
+        try {
+          json = JSON.parse(raw);
+        } catch {
+          ctx.addIssue({ code: "custom", message: "Must be JSON" });
+          return z.NEVER;
+        }
+        const parsed = RiskLimitsSchema.partial().strict().safeParse(json);
+        if (!parsed.success) {
+          ctx.addIssue({ code: "custom", message: parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ") });
+          return z.NEVER;
+        }
+        return { ...DEFAULT_RISK_LIMITS, ...parsed.data } satisfies RiskLimits;
+      }),
   })
   .superRefine((env, ctx) => {
     if (
@@ -73,5 +98,6 @@ export function toPublicRuntimeConfig(env: ServerEnv): PublicRuntimeConfig {
     marketDataSource: env.NOVA_MARKET_DATA_SOURCE,
     hyperliquidNetwork: env.NOVA_HYPERLIQUID_NETWORK,
     executionMode: env.NOVA_MARKET_DATA_SOURCE === "simulation" ? "paper" : env.NOVA_EXECUTION_MODE,
+    riskLimits: env.NOVA_RISK_LIMITS,
   };
 }

@@ -1,6 +1,6 @@
 # Nova Exchange — Architecture
 
-Status: Milestone 4 (private execution on the simulated venue). See `docs/CHECKLIST.md` for progress.
+Status: Milestone 5 (deterministic risk engine). See `docs/CHECKLIST.md` for progress.
 
 ## Goals that shape the design
 
@@ -22,7 +22,8 @@ src/
     domain/               Market, OrderBook, Trade, Candle, Position, OrderIntent (+ Zod schemas)
     ports/                Subsystem interfaces (the contracts adapters implement)
     market-data/          Order book / trade / candle state with ordering + de-duplication
-    risk/                 Pure risk math: margin, liquidation estimates, book-walk impact, portfolio
+    risk/                 Pure, decimal risk engine: units, provenance, venue-rule interface, portfolio,
+                          pre-trade assessment, limits, scenarios (see docs/RISK.md)
     execution/            Order intent validation, safety gate, disabled execution adapter
     privacy/              Execution modes, privacy profiles, consistency rules, disclosures
     rfq/                  RFQ model, redacted views and the authorization-enforcing RfqDesk
@@ -50,7 +51,7 @@ boundary, so a venue's response shape never leaks past its adapter directory.
 | Trading / execution | `ExecutionAdapter` | `HyperliquidAdapter` (read-only), `SimulationAdapter` (simulation only) |
 | Capabilities | `CapabilityRegistry` | explicit status per venue × capability |
 | Order lifecycle & reconciliation | `OrderStore` + `transitionOrder` | used by the simulator; ready for venue streams |
-| Risk engine | `RiskEngine` | `DefaultRiskEngine` (pure functions) |
+| Risk engine | `assessPortfolio`, `assessOrder`, `VenueMarginRules` | `simulationMarginRules`, `hyperliquidMarginRules`; enforced by `RiskGuardedExecutionAdapter` |
 | Private execution | `VenuePrivacy` (in `VenueCapabilities`), `PrivateExecutionService` | profiles in `hyperliquidCapabilities`, `simulationCapabilities` |
 | RFQ | `RfqDesk` (core) | `server/rfq` + `/api/rfq/*` (simulation only), `RfqClient` (browser) |
 | Persistence | `KeyValueStore` | `BrowserStorageStore`, `MemoryStore` |

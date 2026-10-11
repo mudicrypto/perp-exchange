@@ -3,6 +3,7 @@
 import { Panel } from "@/components/trading/panel";
 import { PortfolioSummary, RiskSummary } from "./components/account-summary";
 import { AccountTables } from "./components/account-tables";
+import { RiskReport } from "./risk/risk-report";
 import { useTerminal } from "./terminal-context";
 
 /** Account-level view: summaries plus full-width activity tables. */
@@ -26,6 +27,9 @@ export function PortfolioView() {
           <RiskSummary className="p-3" />
         </Panel>
       </div>
+      <Panel title="Risk report" className="shrink-0">
+        <RiskReport />
+      </Panel>
       <Panel title="Activity" className="min-h-[420px] flex-1">
         <AccountTables />
       </Panel>

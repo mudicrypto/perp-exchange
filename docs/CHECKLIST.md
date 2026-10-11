@@ -154,23 +154,42 @@ Phase C — implementation boundaries
 - [ ] Production counterparty authentication (per-counterparty credentials, rotation, mTLS/signing)
 - [ ] Independent review of privacy claims (required before any private mode is offered with real funds)
 
-## Milestone 5 — Watch-only account UI
+## Milestone 5 — Deterministic risk engine
+- [x] Pure, deterministic `core/risk` module (all inputs incl. `now` passed in); UI only renders results
+- [x] Decimal arithmetic (`decimal.js`, 40 digits, half-even) with explicit output rounding; liquidation rounded toward the mark
+- [x] Explicit units for prices, quantities, amounts, fractions, leverage, funding and fee rates
+- [x] Every figure is available (method, inputs with source + timestamp, assumptions, kind) or unavailable (reason, missing inputs)
+- [x] Position notional, entry, mark-based unrealised PnL; realised PnL and fees from fill records; funding projection and paid (where data exists)
+- [x] Margin utilisation (initial, maintenance), effective leverage, exposure by instrument and direction, concentration (largest share, HHI)
+- [x] Venue-specific rules: simulator rules identical to the paper engine (tested); Hyperliquid never computes maintenance/liquidation (venue-reported only), fees unknown
+- [x] Hypothetical uniform price-move scenarios with explicit assumptions
+- [x] Stale/missing inputs → unavailable; aggregates never partial
+- [x] Configurable pre-trade limits (server env `NOVA_RISK_LIMITS`, validated) with block/warn and fail-closed unverifiable checks
+- [x] `RiskGuardedExecutionAdapter` wraps every execution adapter (ticket, hidden/iceberg, RFQ bookings); server enforces notional limits on RFQ creation
+- [x] Ticket preview, Private Execution workspace and portfolio risk report show inputs, timestamps and assumptions; no guarantees implied
+- [x] `docs/RISK.md` with formulas and worked examples verified independently (Python `decimal`) and asserted by tests
+- [ ] Hyperliquid margin tables (tiers) to compute maintenance margin / pre-trade liquidation for Hyperliquid
+- [ ] Funding payment history (Hyperliquid `userFunding`) for realised funding
+- [ ] Server-side guard with server-fetched account state for live execution (required before any live submission)
+- [ ] Re-verify the Hyperliquid margin, liquidation and funding statements against the official docs from a networked environment
+
+## Milestone 6 — Watch-only account UI
 - [ ] `HyperliquidAccountDataSource` (public address → `clearinghouseState`, `openOrders`, fills) via server
 - [ ] Address input with validation; never request keys/seeds
 - [ ] Positions/orders/fills tables; portfolio risk panel wired to `DefaultRiskEngine.portfolio`
-- [ ] Tiered margin tables from venue meta in liquidation estimates
 - [ ] Fee schedule in pre-trade estimates
 
-## Milestone 6 — Order lifecycle & reconciliation against live venue streams
+## Milestone 7 — Order lifecycle & reconciliation against live venue streams
 - [ ] Order state machine over `ORDER_STATUSES` with venue-confirmed transitions only
 - [ ] Reconciliation of local intents against venue order/fill streams (idempotent, sequence-aware)
 - [ ] Persistence adapter (server-side DB) for order journal and audit log
 - [ ] Venue-specific validation (e.g. Hyperliquid 5-significant-figure prices)
 
-## Milestone 7 — Testnet execution (explicitly configured, separately confirmed, security-reviewed)
+## Milestone 8 — Testnet execution (explicitly configured, separately confirmed, security-reviewed)
 - [ ] Wallet connection (signing in the user's wallet; no key custody)
 - [ ] Testnet-only execution adapter behind config + per-session confirmation
 - [ ] Authorization (`orders:submit`) enforced server-side
+- [ ] `RiskGuardedExecutionAdapter` running server-side in front of the testnet adapter
 
 ## Later
 - [ ] Nova matching engine behind `ExecutionAdapter` + `MarketDataSource`

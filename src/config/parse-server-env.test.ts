@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { ConfigError, parseServerEnv, rfqCounterpartyTokens, toPublicRuntimeConfig } from "./parse-server-env";
+import { DEFAULT_RISK_LIMITS } from "@/core/risk";
 import { PublicRuntimeConfigSchema } from "./runtime-config";
 
 describe("parseServerEnv", () => {
@@ -44,6 +45,7 @@ describe("parseServerEnv", () => {
       marketDataSource: "hyperliquid",
       hyperliquidNetwork: "testnet",
       executionMode: "disabled",
+      riskLimits: DEFAULT_RISK_LIMITS,
     });
     expect(JSON.stringify(publicConfig)).not.toContain("do-not-leak");
   });
@@ -67,5 +69,21 @@ describe("RFQ counterparty tokens", () => {
   it("rejects short or malformed tokens", () => {
     expect(() => parseServerEnv({ NOVA_RFQ_COUNTERPARTY_TOKENS: "sim-desk-c=short" })).toThrow(ConfigError);
     expect(() => parseServerEnv({ NOVA_RFQ_COUNTERPARTY_TOKENS: "nonsense" })).toThrow(ConfigError);
+  });
+});
+
+describe("risk limits", () => {
+  it("merges overrides onto the defaults", () => {
+    const env = parseServerEnv({ NOVA_RISK_LIMITS: '{"maxOrderNotional":{"value":"5000","action":"block"},"maxLeverage":{"value":"10","action":"warn"}}' });
+    expect(env.NOVA_RISK_LIMITS.maxOrderNotional).toEqual({ value: "5000", action: "block" });
+    expect(env.NOVA_RISK_LIMITS.maxLeverage).toEqual({ value: "10", action: "warn" });
+    expect(env.NOVA_RISK_LIMITS.maxGrossExposure).toEqual(DEFAULT_RISK_LIMITS.maxGrossExposure);
+  });
+
+  it("refuses malformed limits instead of falling back silently", () => {
+    expect(() => parseServerEnv({ NOVA_RISK_LIMITS: "not json" })).toThrow(ConfigError);
+    expect(() => parseServerEnv({ NOVA_RISK_LIMITS: '{"maxOrderNotional":{"value":"-1","action":"block"}}' })).toThrow(ConfigError);
+    expect(() => parseServerEnv({ NOVA_RISK_LIMITS: '{"maxConcentration":{"value":"1.5","action":"warn"}}' })).toThrow(ConfigError);
+    expect(() => parseServerEnv({ NOVA_RISK_LIMITS: '{"unknownLimit":1}' })).toThrow(ConfigError);
   });
 });
