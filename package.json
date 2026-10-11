@@ -11,9 +11,11 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "check": "npm run typecheck && npm run lint && npm run test && npm run build",
+    "check": "npm run typecheck && npm run lint && npm run test && npm run build && npm run verify:bundle",
     "dev:sim": "NOVA_MARKET_DATA_SOURCE=simulation next dev",
-    "test:live": "VITEST_LIVE=1 vitest run"
+    "test:live": "VITEST_LIVE=1 vitest run",
+    "verify:bundle": "node scripts/verify-client-bundle.mjs",
+    "test:e2e:external": "playwright test --config playwright.external.config.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "0.127.0",

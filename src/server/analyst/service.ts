@@ -9,6 +9,7 @@ import type { ToolAuditEntry } from "./executor";
 import { OfflineAnalystEngine } from "./offline-engine";
 import type { AnalystPrincipal } from "./principal";
 import type { ToolContext } from "./tools";
+import { BoundedSessionMap } from "../security/rate-limit";
 
 export const ANALYST_COOKIE = "nova_analyst_session";
 const SESSION_IDLE_MS = 12 * 60 * 60_000;
@@ -24,7 +25,7 @@ interface AnalystSession {
 interface AnalystState {
   gateway: MockAccountGateway;
   engine: AnalystEngine;
-  sessions: Map<string, AnalystSession>;
+  sessions: BoundedSessionMap<AnalystSession>;
 }
 
 const globalState = globalThis as typeof globalThis & { __novaAnalyst?: AnalystState };
@@ -40,7 +41,7 @@ export function getAnalystState(): AnalystState | null {
     // Mock history is anchored to the server start (floored to the hour) so it stays stable while the server runs.
     gateway: new MockAccountGateway(Math.floor(Date.now() / 3_600_000) * 3_600_000),
     engine: env.NOVA_ANALYST_ENGINE === "claude" ? ClaudeAnalystEngine.fromEnvironment() : new OfflineAnalystEngine(),
-    sessions: new Map(),
+    sessions: new BoundedSessionMap(MAX_SESSIONS, SESSION_IDLE_MS),
   };
   return globalState.__novaAnalyst;
 }
@@ -48,11 +49,8 @@ export function getAnalystState(): AnalystState | null {
 export function signIn(state: AnalystState, userId: string): { id: string; user: MockUser } | null {
   const user = MOCK_USERS.find((u) => u.id === userId);
   if (!user) return null;
-  const now = Date.now();
-  for (const [id, s] of state.sessions) if (now - s.lastSeen > SESSION_IDLE_MS) state.sessions.delete(id);
-  if (state.sessions.size >= MAX_SESSIONS) return null;
   const id = randomBytes(32).toString("base64url");
-  state.sessions.set(id, { user, lastSeen: now, questionTimes: [] });
+  state.sessions.set(id, { user, lastSeen: Date.now(), questionTimes: [] });
   return { id, user };
 }
 
@@ -60,9 +58,7 @@ export function sessionFromRequest(state: AnalystState, request: NextRequest): {
   const id = request.cookies.get(ANALYST_COOKIE)?.value;
   if (!id) return null;
   const session = state.sessions.get(id);
-  if (!session || Date.now() - session.lastSeen > SESSION_IDLE_MS) return null;
-  session.lastSeen = Date.now();
-  return { id, session };
+  return session ? { id, session } : null;
 }
 
 /** Sliding one-minute rate limit per session. */

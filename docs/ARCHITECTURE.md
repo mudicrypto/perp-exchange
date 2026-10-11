@@ -1,6 +1,6 @@
 # Nova Exchange — Architecture
 
-Status: Milestone 6 (AI trading analyst on mock accounts). See `docs/CHECKLIST.md` for progress.
+Status: Milestone 7 (security hardening and end-to-end verification). Security review: [`docs/SECURITY.md`](SECURITY.md). See `docs/CHECKLIST.md` for progress.
 
 ## Goals that shape the design
 

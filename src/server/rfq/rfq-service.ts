@@ -5,6 +5,7 @@ import { roundSimulatedPrice, SIMULATED_RFQ_COUNTERPARTIES } from "@/adapters/si
 import { rfqCounterpartyTokens } from "@/config/parse-server-env";
 import { getServerEnv } from "@/config/server-env";
 import { RfqDesk } from "@/core/rfq";
+import { BoundedSessionMap } from "../security/rate-limit";
 
 export const SESSION_COOKIE = "nova_rfq_session";
 const SESSION_IDLE_MS = 12 * 60 * 60_000;
@@ -16,8 +17,8 @@ const digest = (value: string) => createHash("sha256").update(value).digest();
 
 interface RfqServerState {
   desk: RfqDesk;
-  /** session id → last seen. Only ids issued by POST /api/session are valid. */
-  sessions: Map<string, number>;
+  /** Only ids issued by POST /api/session are valid. Full → least recently seen session is evicted. */
+  sessions: BoundedSessionMap<{ lastSeen: number }>;
 }
 
 const globalState = globalThis as typeof globalThis & { __novaRfq?: RfqServerState };
@@ -30,17 +31,14 @@ export function getRfqState(): RfqServerState | null {
   if (getServerEnv().NOVA_MARKET_DATA_SOURCE !== "simulation") return null;
   globalState.__novaRfq ??= {
     desk: new RfqDesk(SIMULATED_RFQ_COUNTERPARTIES, { randomId, roundPrice: roundSimulatedPrice }),
-    sessions: new Map(),
+    sessions: new BoundedSessionMap(MAX_SESSIONS, SESSION_IDLE_MS),
   };
   return globalState.__novaRfq;
 }
 
-export function createSession(state: RfqServerState): string | null {
-  const now = Date.now();
-  for (const [id, lastSeen] of state.sessions) if (now - lastSeen > SESSION_IDLE_MS) state.sessions.delete(id);
-  if (state.sessions.size >= MAX_SESSIONS) return null;
+export function createSession(state: RfqServerState): string {
   const id = randomBytes(32).toString("base64url");
-  state.sessions.set(id, now);
+  state.sessions.set(id, { lastSeen: Date.now() });
   return id;
 }
 
@@ -48,10 +46,7 @@ export function createSession(state: RfqServerState): string | null {
 export function requesterSession(state: RfqServerState, request: NextRequest): string | null {
   const id = request.cookies.get(SESSION_COOKIE)?.value;
   if (!id) return null;
-  const lastSeen = state.sessions.get(id);
-  if (lastSeen === undefined || Date.now() - lastSeen > SESSION_IDLE_MS) return null;
-  state.sessions.set(id, Date.now());
-  return id;
+  return state.sessions.get(id) ? id : null;
 }
 
 /** Counterparty authenticated by a bearer token configured on the server. */

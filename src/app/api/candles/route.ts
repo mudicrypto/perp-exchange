@@ -3,6 +3,8 @@ import { z } from "zod";
 import { CANDLE_INTERVAL_MS, CandleIntervalSchema, MarketIdSchema } from "@/core/domain";
 import { MAX_CANDLES } from "@/adapters/hyperliquid/info-client";
 import { getCatalogGateway } from "@/server/catalog-gateway";
+import { limiters } from "@/server/security/limits";
+import { clientKey, rateLimited } from "@/server/security/request";
 import { errorResponse, jsonError } from "@/server/api-response";
 
 const QuerySchema = z.object({
@@ -12,6 +14,8 @@ const QuerySchema = z.object({
 
 export async function GET(request: NextRequest): Promise<Response> {
   await connection();
+  const limited = rateLimited(limiters().venueRead, clientKey(request));
+  if (limited) return limited;
   const query = QuerySchema.safeParse(Object.fromEntries(request.nextUrl.searchParams));
   if (!query.success) return jsonError(400, "bad-request", "Invalid market or interval.");
 

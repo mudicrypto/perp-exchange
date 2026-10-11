@@ -8,7 +8,8 @@ iceberg and private RFQ on the simulated venue, encrypted orders planned) with a
 for every mode. **Milestone 5:** a deterministic, decimal risk engine with venue-specific margin
 rules, configurable pre-trade limits enforced in the execution layer, and a risk report.
 **Milestone 6:** a read-only AI trading analyst over mock accounts, answering from authorized,
-verified tool results. No real orders, custody, deposits or withdrawals.
+verified tool results. **Milestone 7:** security hardening and end-to-end verification — not a
+claim of production readiness (see `docs/SECURITY.md`). No real orders, custody, deposits or withdrawals.
 
 - Architecture: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
 - Trading domain & execution adapters (supported/unsupported features): [`docs/TRADING.md`](docs/TRADING.md)
@@ -16,6 +17,7 @@ verified tool results. No real orders, custody, deposits or withdrawals.
 - Private execution & privacy model: [`docs/PRIVACY.md`](docs/PRIVACY.md)
 - Risk calculations, limits and worked examples: [`docs/RISK.md`](docs/RISK.md)
 - AI trading analyst (mock accounts): [`docs/ANALYST.md`](docs/ANALYST.md)
+- Security review, verification and remaining risks: [`docs/SECURITY.md`](docs/SECURITY.md)
 - Progress and roadmap: [`docs/CHECKLIST.md`](docs/CHECKLIST.md)
 
 ## Quick start
@@ -59,9 +61,10 @@ No secrets are needed. Nova never asks for seed phrases or private keys.
 | `npm run lint` | ESLint incl. architecture-boundary rules |
 | `npm test` | Vitest unit tests |
 | `npm run build` | Production build |
-| `npm run test:e2e` | Playwright (builds must exist; runs `next start` in simulation mode) |
+| `npm run test:e2e` | Playwright (build must exist; starts a simulation server and a live-config server with no network use) |
 | `npm run test:live` | Live contract test against Hyperliquid's public API (needs network access; read-only) |
-| `npm run check` | typecheck + lint + unit tests + build |
+| `npm run test:e2e:external` | Playwright against real Hyperliquid mainnet market data (needs network access; read-only, execution disabled) |
+| `npm run check` | typecheck + lint + unit tests + build + client-bundle secret scan |
 
 Playwright uses Chromium. If your environment provides a browser at a custom path, set
 `PLAYWRIGHT_CHROMIUM_EXECUTABLE`.

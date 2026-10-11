@@ -2,6 +2,8 @@ import { connection, type NextRequest } from "next/server";
 import { errorResponse, jsonError } from "@/server/api-response";
 import { auditRfq } from "@/server/rfq/audit-log";
 import { json } from "@/server/rfq/http";
+import { limiters } from "@/server/security/limits";
+import { clientKey, isHttps, rateLimited } from "@/server/security/request";
 import { createSession, getRfqState, requesterSession, sameOrigin, SESSION_COOKIE } from "@/server/rfq/rfq-service";
 
 /**
@@ -15,14 +17,15 @@ export async function POST(request: NextRequest): Promise<Response> {
     if (!state) return jsonError(404, "not-found", "Not found.");
     if (!sameOrigin(request)) return jsonError(403, "forbidden", "Cross-origin request refused.");
     if (requesterSession(state, request)) return json({ session: "active" });
+    const limited = rateLimited(limiters().sessionCreate, clientKey(request));
+    if (limited) return limited;
     const id = createSession(state);
-    if (!id) return jsonError(503, "busy", "Too many sessions; try again later.");
     auditRfq("session.created");
     const response = json({ session: "created" }, 201);
     response.cookies.set(SESSION_COOKIE, id, {
       httpOnly: true,
       sameSite: "strict",
-      secure: request.nextUrl.protocol === "https:",
+      secure: isHttps(request),
       path: "/api",
     });
     return response;

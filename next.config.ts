@@ -13,6 +13,13 @@ const connectSources = [
   ...(isDev ? ["ws:"] : []),
 ];
 
+/*
+ * 'unsafe-inline' for scripts is required by the static shell that Cache
+ * Components / Partial Prerendering emit; nonce-based CSP is incompatible
+ * with PPR (see node_modules/next/dist/docs/01-app/02-guides/content-security-policy.md).
+ * Tracked as an open risk in docs/SECURITY.md. Mitigations: no raw HTML
+ * rendering anywhere, strict connect-src, object-src 'none', no framing.
+ */
 const contentSecurityPolicy = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
@@ -49,6 +56,10 @@ const nextConfig: NextConfig = {
           { key: "X-Frame-Options", value: "DENY" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=()" },
+          { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
+          { key: "Cross-Origin-Resource-Policy", value: "same-origin" },
+          // Ignored by browsers over plain HTTP; effective once served over TLS.
+          ...(isDev ? [] : [{ key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains" }]),
         ],
       },
     ];

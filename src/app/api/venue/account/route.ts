@@ -1,6 +1,8 @@
 import { connection, type NextRequest } from "next/server";
 import { z } from "zod";
 import { getVenueAccountGateway } from "@/server/account-gateway";
+import { limiters } from "@/server/security/limits";
+import { clientKey, rateLimited } from "@/server/security/request";
 import { errorResponse, jsonError } from "@/server/api-response";
 
 const QuerySchema = z.object({
@@ -13,6 +15,8 @@ const QuerySchema = z.object({
  */
 export async function GET(request: NextRequest): Promise<Response> {
   await connection();
+  const limited = rateLimited(limiters().accountLookup, clientKey(request));
+  if (limited) return limited;
   const query = QuerySchema.safeParse(Object.fromEntries(request.nextUrl.searchParams));
   if (!query.success) return jsonError(400, "bad-request", "A 42-character hex address is required.");
   const gateway = getVenueAccountGateway();

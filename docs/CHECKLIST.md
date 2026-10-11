@@ -188,19 +188,34 @@ Phase C — implementation boundaries
 - [ ] Real account sources (watch-only venue accounts) behind `AccountHistoryGateway`, with real authentication
 - [ ] Multi-turn conversation memory
 
-## Milestone 7 — Watch-only account UI
+## Milestone 7 — Security hardening and end-to-end verification
+- [x] Repository-wide review documented in `docs/SECURITY.md` (all 16 requested areas)
+- [x] Size-capped streaming JSON bodies (413 before buffering)
+- [x] Bounded session tables (LRU eviction instead of global lockout)
+- [x] Per-client / per-session rate limits (sessions, RFQ mutations, venue reads, account lookups, counterparty-token failures with pre-check block)
+- [x] `Secure` cookies behind TLS-terminating proxies; COOP / CORP / HSTS headers
+- [x] Field-named validation messages for every order-schema issue
+- [x] Client-bundle secret scan (`npm run verify:bundle`, part of `npm run check`), negative-tested
+- [x] Robustness tests: concurrent duplicate submissions, cancel of partial fills and pending orders, numeric edge cases, live/sim separation
+- [x] Playwright scenarios 1–10 (`tests/e2e/verification.spec.ts`, `tests/e2e-live-config/` on a second server in live configuration)
+- [x] Opt-in external suite `npm run test:e2e:external` (live Hyperliquid) — written, **not verified** here (no network)
+- [ ] Nonce- or SRI-based CSP without `'unsafe-inline'` scripts (conflicts with PPR)
+- [ ] Shared store for sessions, RFQ desk and rate limits (multi-instance)
+- [ ] Real authentication; penetration test; legal/regulatory review (see SECURITY.md §4)
+
+## Milestone 8 — Watch-only account UI
 - [ ] `HyperliquidAccountDataSource` (public address → `clearinghouseState`, `openOrders`, fills) via server
 - [ ] Address input with validation; never request keys/seeds
 - [ ] Positions/orders/fills tables; portfolio risk panel wired to `DefaultRiskEngine.portfolio`
 - [ ] Fee schedule in pre-trade estimates
 
-## Milestone 8 — Order lifecycle & reconciliation against live venue streams
+## Milestone 9 — Order lifecycle & reconciliation against live venue streams
 - [ ] Order state machine over `ORDER_STATUSES` with venue-confirmed transitions only
 - [ ] Reconciliation of local intents against venue order/fill streams (idempotent, sequence-aware)
 - [ ] Persistence adapter (server-side DB) for order journal and audit log
 - [ ] Venue-specific validation (e.g. Hyperliquid 5-significant-figure prices)
 
-## Milestone 9 — Testnet execution (explicitly configured, separately confirmed, security-reviewed)
+## Milestone 10 — Testnet execution (explicitly configured, separately confirmed, security-reviewed)
 - [ ] Wallet connection (signing in the user's wallet; no key custody)
 - [ ] Testnet-only execution adapter behind config + per-session confirmation
 - [ ] Authorization (`orders:submit`) enforced server-side

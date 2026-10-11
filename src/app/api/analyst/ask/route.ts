@@ -5,7 +5,7 @@ import { MarketIdSchema } from "@/core/domain";
 import { askAnalyst, MAX_QUESTION_LENGTH } from "@/server/analyst/analyst";
 import { allowQuestion, auditTool, getAnalystState, principalOf, sessionFromRequest, toolContext } from "@/server/analyst/service";
 import { errorResponse, jsonError } from "@/server/api-response";
-import { parseBody } from "@/server/rfq/http";
+import { readJson } from "@/server/security/request";
 import { sameOrigin } from "@/server/rfq/rfq-service";
 
 const AskSchema = z
@@ -28,7 +28,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     if (!sameOrigin(request)) return jsonError(403, "forbidden", "Cross-origin request refused.");
     const current = sessionFromRequest(state, request);
     if (!current) return jsonError(401, "unauthenticated", "Sign in first.");
-    const body = await parseBody(request, AskSchema);
+    const body = await readJson(request, AskSchema);
     if (!body.ok) return body.response;
     const principal = principalOf(current.session);
     if (body.value.accountId && !principal.accountIds.includes(body.value.accountId)) return jsonError(404, "not-found", "Account not found.");

@@ -3,7 +3,8 @@ import { z } from "zod";
 import { errorResponse, jsonError } from "@/server/api-response";
 import { ANALYST_COOKIE, accountsOf, getAnalystState, sessionFromRequest, signIn } from "@/server/analyst/service";
 import { sameOrigin } from "@/server/rfq/rfq-service";
-import { parseBody } from "@/server/rfq/http";
+import { limiters } from "@/server/security/limits";
+import { clientKey, isHttps, rateLimited, readJson } from "@/server/security/request";
 
 const NO_STORE = { "cache-control": "no-store" };
 const SignInSchema = z.object({ userId: z.string().min(1).max(64) }).strict();
@@ -30,12 +31,14 @@ export async function POST(request: NextRequest): Promise<Response> {
     const state = getAnalystState();
     if (!state) return jsonError(404, "not-found", "Not found.");
     if (!sameOrigin(request)) return jsonError(403, "forbidden", "Cross-origin request refused.");
-    const body = await parseBody(request, SignInSchema);
+    const body = await readJson(request, SignInSchema);
     if (!body.ok) return body.response;
+    const limited = rateLimited(limiters().sessionCreate, clientKey(request));
+    if (limited) return limited;
     const created = signIn(state, body.value.userId);
     if (!created) return jsonError(400, "bad-request", "Unknown mock user.");
     const response = NextResponse.json({ user: { id: created.user.id, name: created.user.name }, accounts: accountsOf(created.user) }, { status: 201, headers: NO_STORE });
-    response.cookies.set(ANALYST_COOKIE, created.id, { httpOnly: true, sameSite: "strict", secure: request.nextUrl.protocol === "https:", path: "/api/analyst" });
+    response.cookies.set(ANALYST_COOKIE, created.id, { httpOnly: true, sameSite: "strict", secure: isHttps(request), path: "/api/analyst" });
     return response;
   } catch (error) {
     return errorResponse(error);

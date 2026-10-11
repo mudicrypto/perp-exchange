@@ -28,6 +28,15 @@ const ServerEnvSchema = z
      * deterministic rule-based analyst; "claude" calls the Anthropic API with
      * server-side credentials (e.g. ANTHROPIC_API_KEY), never exposed to the browser.
      */
+    /**
+     * Header carrying the client IP, set by a trusted reverse proxy (e.g.
+     * "x-forwarded-for", "cf-connecting-ip"). Used only for rate limiting.
+     * Never set this without a proxy that overwrites the header.
+     */
+    NOVA_CLIENT_IP_HEADER: z
+      .string()
+      .regex(/^[a-z0-9-]{1,64}$/, "Expected a lower-case header name")
+      .optional(),
     NOVA_ANALYST_ENGINE: z.enum(["offline", "claude"]).default("offline"),
     /**
      * Pre-trade risk limit overrides as JSON, merged onto DEFAULT_RISK_LIMITS,

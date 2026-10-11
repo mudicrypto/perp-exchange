@@ -56,6 +56,34 @@ const num = (v: unknown): v is number => typeof v === "number" && Number.isFinit
  *  1. unsupported order type / feature → explicit `unsupported` error (never emulated)
  *  2. schema + instrument rules → `validation` error listing every issue
  */
+const FIELD_LABEL: Record<string, string> = {
+  size: "Size",
+  price: "Price",
+  triggerPrice: "Trigger price",
+  displaySize: "Display size",
+  leverage: "Leverage",
+  maxSlippage: "Slippage limit",
+  side: "Side",
+  type: "Order type",
+  timeInForce: "Time in force",
+  marginMode: "Margin mode",
+  marketId: "Market",
+  clientOrderId: "Client order id",
+  reduceOnly: "Reduce-only",
+};
+const NUMERIC = new Set(["size", "price", "triggerPrice", "displaySize", "leverage", "maxSlippage"]);
+
+/** Schema issues phrased for users, always naming the field (never raw schema text alone). */
+function friendlyMessage(issue: { code: string; path: PropertyKey[]; message: string }, input: unknown): string {
+  const field = String(issue.path[0] ?? "");
+  const label = FIELD_LABEL[field] ?? (field || "Order");
+  const value = isRecord(input) ? input[field] : undefined;
+  if (field && value === undefined) return `${label} is required`;
+  if (NUMERIC.has(field)) return issue.code === "too_big" ? `${label} is too large` : `${label} must be a positive number`;
+  if (issue.path.length === 0) return issue.message;
+  return `${label} is invalid`;
+}
+
 export function validateOrderRequest(
   input: unknown,
   instrument: Instrument,
@@ -72,7 +100,7 @@ export function validateOrderRequest(
   const parsed = OrderRequestSchema.safeParse(input);
   const issues: FieldIssue[] = parsed.success
     ? []
-    : parsed.error.issues.map((i) => ({ field: String(i.path[0] ?? "form"), message: i.message }));
+    : parsed.error.issues.map((i) => ({ field: String(i.path[0] ?? "form"), message: friendlyMessage(i, input) }));
 
   // Instrument rules run on whatever numeric fields are usable, so all problems show at once.
   const raw = isRecord(input) ? input : {};
