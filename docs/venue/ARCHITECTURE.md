@@ -1,6 +1,6 @@
 # Nova Venue — Architecture of a Native Matching Venue with Hidden Orders
 
-Status: **Milestone 8: design and local prototype.** The prototype (`src/venue/`) works as follows:
+Status: **Milestone 8: design and local prototype; independently verified and hardened in Milestone 9** ([VERIFICATION-REPORT.md](VERIFICATION-REPORT.md): verified with limitations). The prototype (`src/venue/`) works as follows:
 
 - It runs in one process, on synthetic instruments (`SYN-*`) and synthetic accounts (`syn-*`).
 - It has no network listener, no file I/O, no funds, no custody, no settlement, and no connection to
@@ -315,24 +315,36 @@ operator cannot rewrite, and must restrict and audit access to the journal (THRE
 
 The order of work is:
 
-1. validate
-2. journal (write-ahead)
-3. process deterministically
-4. hash outputs
-5. route outputs
+1. refuse if the venue has stopped (nothing is journaled)
+2. validate
+3. append to the durable `JournalStore`; its return is the commit point
+4. process deterministically
+5. hash outputs
+6. record outputs in the audit stores, public tape and per-account outboxes
+7. notify public listeners, each in isolation
 
-Recovery is a verified journal read, plus an optional snapshot that is bound to its journal head,
-plus replay of the suffix. Two failure cases:
+Recovery is a verified read of the store, plus an optional snapshot (bound to its journal head and
+verified by `stateHash`), plus replay of the suffix.
 
-- **Torn final append:** the line is dropped. That command was never acknowledged, so the client
-  retries it, and the retry is idempotent.
-- **Internal fault:** the engine stops (fail-stop) rather than continue in an unknown state.
+**Failure cases:**
+
+| Case | What happens |
+|---|---|
+| Append fails, at any point | The outcome is unknown. The gateway answers `outcome-unknown` and the venue stops, so no later append can follow a torn line. Recovery truncates a torn tail. |
+| Internal fault | The engine stops (fail-stop). The faulting command was journaled, so its outcome is unknown. Later commands are refused **before** journaling (`unavailable`). |
+| Faulty public listener | Cannot affect the committed result, the private outboxes or other listeners |
+| Any other failure while routing outputs | The command is committed, so the venue stops and reports `outcome-unknown` (VR-20) |
+
+The prototype's only store is in memory, with fault injection. Its crash boundaries are tested in
+[RECOVERY-TEST-RESULTS.md](RECOVERY-TEST-RESULTS.md).
 
 Regenerated outputs keep their sequence numbers, so consumers can de-duplicate.
 
 **Not in the prototype:**
 
-- real durable storage (fsync, replication)
+- a file-backed or replicated store (fsync, replication); only `MemoryJournalStore` exists
+- durable idempotency records (VR-09)
+- an independently protected anchor for journal heads
 - a hot standby replaying the same journal
 - sequencer failover
 - snapshot scheduling

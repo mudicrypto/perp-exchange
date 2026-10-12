@@ -4,7 +4,7 @@ import { priceToTicks, quantityToLots, type InstrumentSpec } from "./instrument.
 import { canonicalJson } from "./journal.ts";
 import { WindowLimiter } from "./rate-limit.ts";
 import { STP_MODES, SIDES, TIME_IN_FORCE, VISIBILITIES, type EngineCommand, type OrderRef, type OrderView, type PrivateEvent } from "./types.ts";
-import type { Venue } from "./venue.ts";
+import { OutcomeUnknownError, VenueUnavailableError, type Venue } from "./venue.ts";
 
 /**
  * Order-entry gateway: the only path from (synthetic) clients to the
@@ -16,8 +16,9 @@ import type { Venue } from "./venue.ts";
  * - Validation: strict Zod schemas; prices and sizes are decimal strings,
  *   converted exactly to ticks and lots or refused.
  * - Abuse controls: per-account message rate, a separate throttle on
- *   post-only rejections (the cheapest hidden-liquidity probe), idempotent
- *   retries keyed by client order id.
+ *   post-only rejections of new orders and replaces (the cheapest
+ *   hidden-liquidity probes), idempotent retries keyed by client order id,
+ *   a bounded refusal log.
  * - Output: a response carries only the caller's own private events.
  *
  * There is no network listener; tests and the demo call `handle` directly.
@@ -52,7 +53,12 @@ export const clientMessageSchema = z.discriminatedUnion("op", [
 
 export type ClientMessage = z.input<typeof clientMessageSchema>;
 
-export type GatewayErrorCode = "unauthenticated" | "rate-limited" | "invalid-request" | "idempotency-conflict" | "unavailable";
+/**
+ * `unavailable`: nothing was recorded; retry later.
+ * `outcome-unknown`: the command was, or may have been, journaled and takes effect on recovery if it was;
+ * look the order up by its client order id once the venue is back before retrying.
+ */
+export type GatewayErrorCode = "unauthenticated" | "rate-limited" | "invalid-request" | "idempotency-conflict" | "unavailable" | "outcome-unknown";
 
 export type GatewayResponse =
   | { ok: true; replayed: boolean; events: PrivateEvent[] }
@@ -66,6 +72,8 @@ export interface GatewayOptions {
   readonly postOnlyRejects: { readonly limit: number; readonly windowMs: number };
   /** Idempotency records kept (oldest dropped; the engine still refuses duplicate client ids). */
   readonly idempotencyCapacity?: number;
+  /** Individual refusal records kept for monitoring (oldest dropped; totals are always counted). */
+  readonly refusalLogCapacity?: number;
 }
 
 export const DEFAULT_GATEWAY_LIMITS = {
@@ -91,8 +99,10 @@ export class VenueGateway {
   private readonly messageLimiter: WindowLimiter;
   private readonly postOnlyLimiter: WindowLimiter;
   private readonly idempotency = new Map<string, { fingerprint: string; response: GatewayResponse }>();
-  /** Gateway-level refusals (never reach the journal); kept for abuse monitoring. */
+  /** Most recent gateway-level refusals (never journaled), bounded; codes only, never payloads. */
   readonly refusals: { ts: number; accountId: string | null; code: GatewayErrorCode }[] = [];
+  /** Total refusals per code since start (not bounded by the log capacity). */
+  readonly refusalCounts = new Map<GatewayErrorCode, number>();
 
   constructor(venue: Venue, options: GatewayOptions) {
     this.venue = venue;
@@ -135,20 +145,40 @@ export class VenueGateway {
         case "cancel":
           return this.forward(accountId, { type: "cancel", accountId, ref: message.ref });
         case "replace": {
-          const spec = this.specForRef(accountId, message.ref);
+          const order = this.venue.engine.orderFor(accountId, message.ref);
+          const spec = order && this.venue.engine.instrumentSpec(order.instrumentId);
           // Not the caller's order: let the engine answer, so the response is identical to a non-existent id.
           if (!spec) return this.forward(accountId, { type: "replace", accountId, ref: message.ref, priceTicks: 1, qtyLots: 1 });
+          // Replacing a post-only order into the spread is the same free probe as a new post-only order.
+          if (order.postOnly) {
+            const wait = this.postOnlyLimiter.blockedFor(accountId, now);
+            if (wait > 0) return this.refuse(now, accountId, fail("rate-limited", "Too many rejected post-only orders.", wait));
+          }
           const converted = this.convert(spec, message.price, message.quantity);
           if (!converted.ok) return this.refuse(now, accountId, converted.response);
-          return this.forward(accountId, { type: "replace", accountId, ref: message.ref, priceTicks: converted.priceTicks!, qtyLots: converted.qtyLots });
+          const response = this.forward(accountId, { type: "replace", accountId, ref: message.ref, priceTicks: converted.priceTicks!, qtyLots: converted.qtyLots });
+          this.countPostOnlyRejection(response, now, accountId);
+          return response;
         }
         case "mass-cancel":
           return this.forward(accountId, { type: "mass-cancel", accountId, ...(message.instrumentId ? { instrumentId: message.instrumentId } : {}) });
       }
-    } catch {
-      // Engine stopped (fail-stop) or the command was refused by the sequencer.
-      return fail("unavailable", "The venue is not accepting commands.");
+    } catch (error) {
+      return this.failure(now, accountId, error);
     }
+  }
+
+  private failure(now: number, accountId: string, error: unknown): GatewayResponse {
+    if (error instanceof OutcomeUnknownError) {
+      return this.refuse(now, accountId, fail("outcome-unknown", "The command may have been recorded. Look the order up by its client order id once the venue is available before retrying."));
+    }
+    // VenueUnavailableError, or anything raised before the command was journaled.
+    return this.refuse(now, accountId, fail("unavailable", "The venue is not accepting commands. Nothing was recorded."));
+  }
+
+  private countPostOnlyRejection(response: GatewayResponse, now: number, accountId: string) {
+    const probe = response.ok && response.events.some((e) => (e.kind === "rejected" || e.kind === "request-rejected") && e.reason === "post-only-would-take");
+    if (probe) this.postOnlyLimiter.record(accountId, now);
   }
 
   private newOrder(now: number, accountId: string, message: Extract<z.output<typeof clientMessageSchema>, { op: "new" }>): GatewayResponse {
@@ -181,9 +211,10 @@ export class VenueGateway {
       postOnly: message.postOnly,
       stp: message.selfTradePrevention,
     });
-    if (response.ok && response.events.some((e) => e.kind === "rejected" && e.reason === "post-only-would-take")) {
-      this.postOnlyLimiter.record(accountId, now);
-    }
+    this.countPostOnlyRejection(response, now, accountId);
+    // Only an accepted order consumes the client order id (MATCHING-RULES §11): a rejected request
+    // created nothing, so an identical retry is evaluated again rather than answered from a cache.
+    if (!response.ok || !response.events.some((e) => e.kind === "accepted")) return response;
     this.idempotency.set(key, { fingerprint, response });
     if (this.idempotency.size > (this.options.idempotencyCapacity ?? 100_000)) this.idempotency.delete(this.idempotency.keys().next().value!);
     return response;
@@ -207,32 +238,44 @@ export class VenueGateway {
     return { ok: true, priceTicks, qtyLots: q.value };
   }
 
-  /** Instrument of the caller's own order, if any (others' orders resolve to nothing). */
-  private specForRef(accountId: string, ref: OrderRef): InstrumentSpec | null {
-    const order = this.venue.engine.orderFor(accountId, ref);
-    return order ? this.venue.engine.instrumentSpec(order.instrumentId) : null;
-  }
-
   private forward(accountId: string, command: EngineCommand): GatewayResponse {
     const result = this.venue.submit(command);
     return { ok: true, replayed: false, events: result.private.filter((e) => e.accountId === accountId) };
   }
 
   private refuse(ts: number, accountId: string | null, response: GatewayResponse): GatewayResponse {
-    if (!response.ok) this.refusals.push({ ts, accountId, code: response.error.code });
+    if (response.ok) return response;
+    const code = response.error.code;
+    this.refusalCounts.set(code, (this.refusalCounts.get(code) ?? 0) + 1);
+    this.refusals.push({ ts, accountId, code });
+    if (this.refusals.length > (this.options.refusalLogCapacity ?? 10_000)) this.refusals.shift();
     return response;
   }
 
   // ── private queries (own data only) ──────────────────────────────────────
 
+  /**
+   * Order state is read from the live engine. After a fault the engine may hold a half-applied
+   * command, so these queries refuse (throw `VenueUnavailableError`) until the venue is recovered.
+   * `events` stays readable: outboxes only ever contain outputs of fully processed commands.
+   */
+  private assertRunning() {
+    const stopped = this.venue.stoppedReason;
+    if (stopped) throw new VenueUnavailableError(`venue stopped: ${stopped}`);
+  }
+
   order(token: string, ref: OrderRef): OrderView | null {
     const accountId = this.sessions.get(token);
-    return accountId ? this.venue.engine.orderFor(accountId, ref) : null;
+    if (!accountId) return null;
+    this.assertRunning();
+    return this.venue.engine.orderFor(accountId, ref);
   }
 
   openOrders(token: string): OrderView[] | null {
     const accountId = this.sessions.get(token);
-    return accountId ? this.venue.engine.openOrdersFor(accountId) : null;
+    if (!accountId) return null;
+    this.assertRunning();
+    return this.venue.engine.openOrdersFor(accountId);
   }
 
   events(token: string, afterAccountSeq = 0): PrivateEvent[] | null {

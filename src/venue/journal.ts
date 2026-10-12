@@ -56,11 +56,21 @@ export class Journal {
   }
 
   append(ts: number, command: EngineCommand): JournalEntry {
+    const entry = this.prepare(ts, command);
+    this.commit(entry);
+    return entry;
+  }
+
+  /** Builds the next entry without adding it (so it can be made durable first). */
+  prepare(ts: number, command: EngineCommand): JournalEntry {
     const seq = this.lastSeq + 1;
     const prevHash = this.head;
-    const entry: JournalEntry = { seq, ts, command, prevHash, hash: entryHash(prevHash, seq, ts, command) };
+    return { seq, ts, command, prevHash, hash: entryHash(prevHash, seq, ts, command) };
+  }
+
+  commit(entry: JournalEntry): void {
+    if (entry.seq !== this.lastSeq + 1 || entry.prevHash !== this.head) throw new Error("journal entry does not extend the head");
     this.items.push(entry);
-    return entry;
   }
 
   /** Serialises as JSON Lines (one entry per line), the prototype's "durable" form. */
@@ -76,7 +86,8 @@ export class Journal {
 }
 
 export type JournalVerification =
-  | { ok: true; entries: JournalEntry[]; head: string; tornTail: boolean }
+  /** `validLength`: characters of `jsonl` covered by complete, valid entries (a torn tail starts there). */
+  | { ok: true; entries: JournalEntry[]; head: string; tornTail: boolean; validLength: number }
   | { ok: false; validEntries: JournalEntry[]; failedAtLine: number; reason: string };
 
 /**
@@ -92,33 +103,40 @@ export function readJournal(jsonl: string): JournalVerification {
   if (complete) lines.pop();
   const entries: JournalEntry[] = [];
   let prev = GENESIS_HASH;
+  let prevTs = 0;
+  let validLength = 0;
   for (let i = 0; i < lines.length; i++) {
     const isLast = i === lines.length - 1;
     let raw: unknown;
     try {
       raw = JSON.parse(lines[i]!);
     } catch {
-      if (isLast && !complete) return { ok: true, entries, head: prev, tornTail: true };
+      if (isLast && !complete) return { ok: true, entries, head: prev, tornTail: true, validLength };
       return { ok: false, validEntries: entries, failedAtLine: i + 1, reason: "unparseable entry" };
     }
-    const failure = checkEntry(raw, entries.length + 1, prev);
+    const failure = checkEntry(raw, entries.length + 1, prev, prevTs);
     if (typeof failure === "string") {
-      if (isLast && !complete) return { ok: true, entries, head: prev, tornTail: true };
+      if (isLast && !complete) return { ok: true, entries, head: prev, tornTail: true, validLength };
       return { ok: false, validEntries: entries, failedAtLine: i + 1, reason: failure };
     }
     entries.push(failure);
     prev = failure.hash;
+    prevTs = failure.ts;
+    // A complete entry without its trailing newline still counts (the hash covers the whole entry);
+    // the newline is added before anything is appended after it.
+    validLength = Math.min(jsonl.length, validLength + lines[i]!.length + 1);
   }
-  return { ok: true, entries, head: prev, tornTail: false };
+  return { ok: true, entries, head: prev, tornTail: false, validLength };
 }
 
-function checkEntry(raw: unknown, expectedSeq: number, prevHash: string): JournalEntry | string {
+function checkEntry(raw: unknown, expectedSeq: number, prevHash: string, prevTs: number): JournalEntry | string {
   if (!raw || typeof raw !== "object") return "entry is not an object";
   const e = raw as Record<string, unknown>;
   const keys = Object.keys(e).sort().join(",");
   if (keys !== "command,hash,prevHash,seq,ts") return "unexpected entry fields";
   if (e.seq !== expectedSeq) return `sequence gap or reorder (expected ${expectedSeq})`;
   if (typeof e.ts !== "number" || !Number.isSafeInteger(e.ts) || e.ts < 0) return "invalid timestamp";
+  if (e.ts < prevTs) return "timestamp went backwards";
   if (e.prevHash !== prevHash) return "hash chain broken";
   const parsed = engineCommandSchema.safeParse(e.command);
   if (!parsed.success) return "invalid command";

@@ -1,0 +1,46 @@
+
+> nova-exchange@0.1.0 venue:perf
+> node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON src/venue/cli/perf.ts 1 3
+
+Environment: node v22.22.0, linux 6.18.44-fc-v114 x64, 4 × Intel(R) Xeon(R) Processor @ 2.10GHz, 16 GiB RAM
+Parameters: scale 1, runs 3, seeds 1001.. (engine flow) / 2001.. (gateway flow)
+
+| Scenario | Run | Parameters | Ops | Ops/s | p50 µs | p95 µs | p99 µs | max µs |
+|---|---|---|---|---|---|---|---|---|
+| F1 matching, no persistence | 1 | 60000 mixed commands, 16 accounts | 60000 | 126,223 | 3.3 | 21.3 | 54.2 | 9662 |
+| F2 matching + journal (memory store) | 1 | 60000 mixed commands; store 20.6 MiB | 60000 | 16,901 | 37.5 | 142.4 | 233.1 | 23665 |
+| F3 publication (immediate) | 1 | 60000 commands; 39893 public msgs; mirror validates each | 60000 | 14,642 | 40.1 | 166.9 | 271.3 | 60878 |
+| F3 publication (batched) | 1 | 60000 commands; 28249 public msgs; mirror validates each; publish every 50 | 60000 | 18,906 | 33.5 | 124.9 | 215.5 | 36920 |
+| F4 gateway mixed entry/cancel/execution | 1 | 60000 synthetic messages (seeded) | 60000 | 17,130 | 40.2 | 127.2 | 193.7 | 8553 |
+| F5 bursty (queueing + service) | 1 | bursts of 2000 every 200 ms, open loop | 60000 | 19,484 | 50145.4 | 101213.5 | 121086.0 | 143463 |
+| F6 large book | 1 | 100000 resting orders (25 % hidden) + 60000 mixed commands | 60000 | 19,559 | 35.2 | 120.1 | 192.0 | 6051 |
+| F7 recovery (full replay) | 1 | 60018 entries replayed; snapshot 4.3 MiB | 60018 | 21,747 | 46.0 | 46.0 | 46.0 | 46 |
+| F7 recovery (snapshot + suffix) | 1 | 29999 entries replayed; snapshot 4.3 MiB | 29999 | 15,903 | 62.9 | 62.9 | 62.9 | 63 |
+| F1 matching, no persistence | 2 | 60000 mixed commands, 16 accounts | 60000 | 121,705 | 4.7 | 21.9 | 37.6 | 10378 |
+| F2 matching + journal (memory store) | 2 | 60000 mixed commands; store 20.6 MiB | 60000 | 16,811 | 37.5 | 143.9 | 232.5 | 6099 |
+| F3 publication (immediate) | 2 | 60000 commands; 39880 public msgs; mirror validates each | 60000 | 18,280 | 35.4 | 128.9 | 217.7 | 5969 |
+| F3 publication (batched) | 2 | 60000 commands; 28066 public msgs; mirror validates each; publish every 50 | 60000 | 16,690 | 35.5 | 145.4 | 257.8 | 39459 |
+| F4 gateway mixed entry/cancel/execution | 2 | 60000 synthetic messages (seeded) | 60000 | 14,486 | 43.0 | 160.7 | 254.5 | 8599 |
+| F5 bursty (queueing + service) | 2 | bursts of 2000 every 200 ms, open loop | 60000 | 17,346 | 53730.6 | 124571.0 | 153469.6 | 168626 |
+| F6 large book | 2 | 100000 resting orders (25 % hidden) + 60000 mixed commands | 60000 | 19,396 | 35.8 | 121.0 | 197.7 | 4663 |
+| F7 recovery (full replay) | 2 | 60018 entries replayed; snapshot 4.3 MiB | 60018 | 17,038 | 58.7 | 58.7 | 58.7 | 59 |
+| F7 recovery (snapshot + suffix) | 2 | 29999 entries replayed; snapshot 4.3 MiB | 29999 | 13,644 | 73.3 | 73.3 | 73.3 | 73 |
+| F1 matching, no persistence | 3 | 60000 mixed commands, 16 accounts | 60000 | 167,777 | 3.1 | 14.7 | 26.3 | 7708 |
+| F2 matching + journal (memory store) | 3 | 60000 mixed commands; store 20.7 MiB | 60000 | 19,948 | 33.9 | 113.6 | 183.4 | 12550 |
+| F3 publication (immediate) | 3 | 60000 commands; 39941 public msgs; mirror validates each | 60000 | 16,358 | 37.0 | 145.8 | 242.7 | 6698 |
+| F3 publication (batched) | 3 | 60000 commands; 27918 public msgs; mirror validates each; publish every 50 | 60000 | 18,915 | 32.7 | 121.9 | 212.0 | 15720 |
+| F4 gateway mixed entry/cancel/execution | 3 | 60000 synthetic messages (seeded) | 60000 | 14,622 | 43.5 | 133.8 | 201.1 | 22803 |
+| F5 bursty (queueing + service) | 3 | bursts of 2000 every 200 ms, open loop | 60000 | 17,522 | 56128.8 | 109947.7 | 127170.5 | 144619 |
+| F6 large book | 3 | 100000 resting orders (25 % hidden) + 60000 mixed commands | 60000 | 15,157 | 37.7 | 136.7 | 221.9 | 10981 |
+| F7 recovery (full replay) | 3 | 60018 entries replayed; snapshot 4.4 MiB | 60018 | 15,136 | 66.1 | 66.1 | 66.1 | 66 |
+| F7 recovery (snapshot + suffix) | 3 | 29999 entries replayed; snapshot 4.4 MiB | 29999 | 13,391 | 74.7 | 74.7 | 74.7 | 75 |
+
+Timing probe (engine path) — median µs of a displayed add at a new level in front of N hidden-only levels, per round:
+  hidden-only levels      0: 4.9, 2.9, 3.0, 3.0, 2.9
+  hidden-only levels   1000: 3.2, 3.3, 3.0, 2.9, 3.2
+  hidden-only levels  50000: 11.2, 11.0, 10.7, 10.3, 11.2
+
+Timing probe (gateway path) — median µs of a displayed add at a new level in front of N hidden-only levels, per round:
+  hidden-only levels      0: 204.8, 174.3, 189.7, 158.5, 162.4
+  hidden-only levels   1000: 188.5, 190.7, 228.9, 157.6, 182.7
+  hidden-only levels  50000: 216.7, 245.5, 227.9, 207.3, 242.4

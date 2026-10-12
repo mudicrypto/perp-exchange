@@ -59,9 +59,16 @@ A ticked box means "true of this prototype". It does **not** mean "ready for liv
 - [x] Opaque, keyed identifiers; per-account private sequence (H-8).
 - [x] Taker's private view is independent of maker visibility (H-5).
 - [x] Prints are aggregated per aggressor and price (H-5).
-- [x] Post-only probe throttle (H-7). The leak itself is documented and tested.
+- [x] Post-only probe throttle (H-7). The leak itself is documented and tested. *M9 correction:* this
+  box was ticked in M8 although `replace` bypassed the throttle (VR-03). Fixed, with a regression
+  test.
+- [ ] Failing-FOK absence probe (VR-08): documented, not mitigated.
+- [x] Adversary-by-adversary review (public observer, trader, compromised service, operator,
+  storage): [PRIVACY-REVIEW.md](PRIVACY-REVIEW.md). No protection is claimed against the last three.
 - [x] No claim of cryptographic confidentiality anywhere in the design documents.
-- [ ] Constant-time or batched acknowledgements against latency side channels (T-H7).
+- [ ] Constant-time or batched acknowledgements against latency side channels (T-H7). M9 measured an
+  engine-level dependence on the number of hidden-only levels; through the gateway it was visible
+  in one of two runs (VR-15).
 - [ ] Minimum execution quantity, or another defence against IOC probing (T-H4).
 - [ ] Cross-account (Sybil) probe surveillance.
 - [ ] Log, metric, crash-dump and support-tool review for hidden-order data. **n/a (prototype has no
@@ -86,25 +93,42 @@ A ticked box means "true of this prototype". It does **not** mean "ready for liv
 - [x] Write-ahead, hash-chained journal; deterministic replay reproduces state and output hashes
   (D-1, D-2).
 - [x] Edits, reordering, injected invalid commands and torn tails are detected (D-2).
-- [x] Snapshots are bound to the journal head and cross-checked on restore (D-2, D-3).
-- [x] Fail-stop on internal faults (D-3).
+- [x] Snapshots are bound to the journal head, cross-checked on restore, and verified by `stateHash`
+  (D-2, D-3; M9 VR-05).
+- [x] Fail-stop on internal faults (D-3). *M9 correction:* commands after the fault were still
+  journaled and executed on recovery (VR-01, High). Fixed: refused before journaling, and the faulting
+  command is reported as `outcome-unknown`.
+- [x] Durable-store boundary with commit-before-process; crash at five persistence boundaries
+  recovers to the last committed state, with outputs neither lost nor duplicated (M9;
+  [RECOVERY-TEST-RESULTS.md](RECOVERY-TEST-RESULTS.md)). In-memory store only.
+- [x] A failing public listener cannot affect committed results or private delivery (M9, VR-02).
+- [x] After a fault, order queries refuse instead of serving half-applied state (M9, VR-19).
+- [x] Failures after the commit point are always `outcome-unknown`; recovery takes text or a store,
+  never both, and changes the store only after it succeeds; crash simulation is a test-only
+  subclass seam, not an option (M9 review, VR-20…VR-23).
+- [ ] Durable idempotency records (VR-09); duplicated final journal line recovery (VR-10); poison
+  command runbook (VR-18).
 - [x] Consumers de-duplicate regenerated outputs by sequence (D-4).
 - [ ] External anchoring of journal heads. A full-chain rewrite is undetectable without it (tested).
 - [ ] Durable storage, replication, failover, backup and restore drills. **n/a (prototype)**
 
 ### A7. Abuse controls
 
-- [x] Per-account message rate limit before journaling; refusals logged by code only (A-3).
-- [x] Idempotent order entry; conflicting reuse refused (A-4).
+- [x] Per-account message rate limit before journaling; refusals logged without payload; log bounded
+  with per-code totals (A-3; M9 VR-04). Reconnecting does not bypass limits (tested).
+- [x] Idempotent order entry; conflicting reuse refused; rejected orders do not consume the ID (A-4;
+  M9 VR-06).
 - [x] Resting-order, notional and worst-case position limits (R-1).
 - [x] Account suspension and instrument halt; cancels still accepted during a halt (R-2, R-3).
 - [ ] Connection, IP and global limits; order-to-trade ratio limits; cancel-on-disconnect.
+- [ ] Retention and bounds for orders, tape, executions and transitions; explicit outbox gap marker
+  (VR-13).
 - [ ] Surveillance: probing, layering, spoofing, wash trading across accounts.
 
 ### A8. Dependencies and supply chain
 
-- [x] The prototype uses only `zod` (pinned) and `node:crypto` at runtime. `fast-check` (pinned) is a
-  test-only dependency.
+- [x] The prototype uses only `zod` (pinned) and `node:crypto` at runtime, plus `node:os` in the
+  benchmark CLI for the environment line. `fast-check` (pinned) is a test-only dependency.
 - [ ] SBOM, build signing, reproducible builds. **n/a (prototype)**
 
 ## B. Components requiring independent security review before any live deployment

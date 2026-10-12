@@ -1,0 +1,10 @@
+# Current verification.test.ts + privacy-review.test.ts run against the original commit 4edf72b (git archive export).
+# Expected: exactly the VR-01/02/03/04/06/19 regression tests fail; every other test passes (pins existing behaviour).
+     × VR-03 replacing a post-only order into the spread counts toward the probe throttle and is then refused
+     × VR-04 the refusal log is bounded while totals keep counting (unauthenticated flood)
+     × VR-06 a rejected order does not consume its client order id at the gateway (retry after the halt lifts)
+     × VR-01 after a fault nothing more is journaled; the faulting command is reported as outcome-unknown and survives recovery
+     × VR-19 after a fault mid-command, order queries refuse instead of serving half-applied state
+     × VR-02 a throwing public listener cannot turn a committed order into an error or drop private events
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  6 failed | 41 passed (47)

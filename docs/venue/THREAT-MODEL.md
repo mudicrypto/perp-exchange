@@ -1,6 +1,6 @@
 # Nova Venue — Threat Model
 
-Status: Milestone 8. Scope:
+Status: Milestone 8; statuses updated in Milestone 9 (adversary-by-adversary results in [PRIVACY-REVIEW.md](PRIVACY-REVIEW.md), findings in [VERIFICATION-REPORT.md](VERIFICATION-REPORT.md)). Scope:
 
 - The venue design in [ARCHITECTURE.md](ARCHITECTURE.md).
 - Its local prototype (`src/venue/`).
@@ -61,9 +61,9 @@ B6 is direct object access. The design treats all of them as real boundaries.
 | T-H2 | Public sequence gaps reveal hidden activity | AC-2/3 | Separate public sequence counting only public messages (H-1, H-8) | **P**: gap-free test, non-interference test | — |
 | T-H3 | Sequential order or fill IDs, or the global sequence in private events, reveal activity between a client's own messages | AC-3 | Keyed-hash IDs; per-account sequence (H-8) | **P** | ID key compromise (AC-5/6) restores the channel. Key must be a managed secret. |
 | T-H4 | Probing with small marketable orders inside the spread | AC-3 | Minimum hidden size (H-6), message rate limit (A-3), surveillance (D) | **P** partial | IOC probes succeed at the cost of an execution. Minimum execution quantity on hidden orders is not designed yet (MATCHING-RULES §2). |
-| T-H5 | Free probing with post-only orders (a rejection reveals crossing liquidity) | AC-3 | Per-account post-only rejection throttle at the gateway (H-7) | **P** (throttle tested; leak documented) | A few probes per window per account; Sybil accounts multiply the budget. Needs cross-account surveillance (D). |
+| T-H5 | Free probing with post-only orders, new or replaced (a rejection reveals crossing liquidity); free absence probing with failing FOK orders | AC-3 | Per-account post-only rejection throttle at the gateway, covering new orders and replaces since M9 (H-7, VR-03) | **P** (throttle tested, leak documented); FOK probe **O** (VR-08) | A few probes per window per account; Sybil accounts multiply the budget. Needs cross-account surveillance (D). Failing FOKs answer "not enough" for free. |
 | T-H6 | Inferring hidden volume from print size versus change in displayed quantity | AC-3 | Aggregated prints (per aggressor and price); batched publication (H-5, H-9) | **P** partial | Inherent: that hidden liquidity traded, and the minimum amount, can be inferred. Documented and tested. |
-| T-H7 | Timing side channel: acknowledgement or publication latency depends on how many (hidden) orders were walked | AC-3 | Batched publication with publication timestamps (H-9) | **O** for acknowledgement latency | Needs constant-time acknowledgement scheduling or batching in a real system. Not addressed by the prototype. |
+| T-H7 | Timing side channel: acknowledgement or publication latency depends on how many (hidden) orders were walked, or on how many hidden-only levels exist | AC-3 | Batched publication with publication timestamps (H-9) | **O**. M9 measured it at engine level (≈ 3 µs vs ≈ 11 µs at 50 000 hidden-only levels). Through the in-process gateway, one of two runs separated the cases (VR-15): plausibly observable. | Needs a constant-time level index and fixed-latency or batched acknowledgements. |
 | T-H8 | The taker learns that the maker was hidden from fill details | AC-2 | Identical taker events for hidden and displayed makers; no counterparty fields (H-5) | **P** | — |
 | T-H9 | Rejection or error reasons act as an existence oracle for other accounts' orders | AC-2 | Uniform `unknown-order` for foreign and non-existent IDs; response equality test (P-1) | **P** | — |
 | T-H10 | Hidden data leaks through logs, metrics, crash dumps or support tooling | AC-5/6 | The prototype logs nothing. The gateway refusal log holds codes only. | **D** | Real logging, metrics and core-dump policies must be reviewed (SECURITY-CHECKLIST). |
@@ -78,7 +78,7 @@ B6 is direct object access. The design treats all of them as real boundaries.
 | T-I3 | Account impersonation: placing or cancelling orders for another account | AC-2/4 | Account taken from the session only; strict schema refuses `accountId`; engine resolves only the caller's own orders (A-1, P-1) | **P** | A stolen session (AC-4) is equivalent to the account. Needs strong authentication, short-lived tokens, IP and device binding (D). |
 | T-I4 | Duplicate submission or replay creates extra orders | AC-2/4 | Idempotency by client order ID; engine refuses duplicate client IDs (A-4) | **P** | — |
 | T-I5 | Journal tampering: edit, reorder, inject, truncate | AC-5/6 | Hash chain; schema re-validation; sequence checks; torn-tail handling (D-2) | **P** for partial edits | Full-chain rewrite by an insider is undetectable without external anchoring (tested). Anchoring is **D**. |
-| T-I6 | Snapshot substitution or corruption | AC-5/6 | Snapshot bound to journal head; restore cross-checks holdings against orders (D-2, D-3) | **P** | A forged but self-consistent snapshot plus a matching journal edit needs anchoring (D). |
+| T-I6 | Snapshot substitution or corruption | AC-5/6 | Snapshot bound to journal head; `stateHash` verified on restore (M9, VR-05); restore cross-checks holdings against orders (D-2, D-3) | **P** | A writer who rewrites the snapshot and recomputes its hash is not detected without an external anchor (D). |
 | T-I7 | Non-determinism causes divergence between primary and replica, or a different result on replay | — | No clock, randomness or I/O in the engine; state and output hash comparison (D-1) | **P** | Hidden non-determinism from runtime upgrades. Pin the runtime, and replay test journals on every upgrade. |
 | T-I8 | Front-running or selective treatment by the operator, who sees all orders | AC-5 | Sequenced, journaled processing; deterministic replay lets an auditor re-derive every outcome | **D** | Operator access to hidden flow is inherent to this design (T-O1). |
 | T-I9 | Public feed spoofing or corruption in transit | AC-6 | Strict consumer validation, sequence and gap detection (D-4) | **P** for consumer side | Transport authentication and signing are **D**. |
@@ -87,10 +87,10 @@ B6 is direct object access. The design treats all of them as real boundaries.
 
 | ID | Threat | Actor | Mitigation | Status | Residual risk |
 |---|---|---|---|---|---|
-| T-A1 | Message flooding from one account | AC-2 | Per-account sliding-window limit before journaling (A-3) | **P** | Sybil and distributed floods need connection, IP and global limits in front (D). |
+| T-A1 | Message flooding from one account, or unauthenticated floods growing the refusal log | AC-1/2 | Per-account sliding-window limit before journaling (A-3); bounded refusal log with per-code totals (M9, VR-04) | **P** | Sybil and distributed floods need connection, IP and global limits in front (D). |
 | T-A2 | Book stuffing: many resting orders, deep books slow matching | AC-2 | `maxOpenOrders` per account (R-1); price band | **P** | Across many accounts; the performance plan covers deep-book worst cases. |
 | T-A3 | Malformed or oversized input crashes the gateway | AC-1/2 | Strict schemas; bounded string lengths; no echo | **P** | Network framing and size limits are **D**. |
-| T-A4 | Engine fault halts the whole venue (fail-stop) | — | Fail-stop is chosen deliberately over continuing in an unknown state (D-3) | **P** | Availability depends on HA and failover (D). Cancels are also refused while the engine is stopped. That needs an operational runbook. |
+| T-A4 | Engine fault halts the whole venue (fail-stop); commands after the fault journaled and replayed on recovery | — | Fail-stop chosen deliberately (D-3). Since M9, later commands are refused before journaling and the faulting command is reported as `outcome-unknown` (VR-01). | **P** | Availability depends on HA and failover (D). Cancels are refused while stopped. A deterministic fault blocks recovery until an operator acts (VR-18). |
 | T-A5 | Cancels refused during a halt | — | Cancels allowed while halted (R-2) | **P** | — |
 
 ### 4.4 Operators, infrastructure and supply chain (AS-7)

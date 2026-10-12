@@ -227,19 +227,32 @@ Local prototype (`src/venue/`, synthetic only)
 - [ ] Performance scenarios S5–S8, S10, S11 and the latency side-channel test
 - [ ] Independent security review of every component in `SECURITY-CHECKLIST.md` §B; legal/regulatory review
 
-## Milestone 9 — Watch-only account UI
+## Milestone 9 — Independent verification and hardening of the venue prototype
+Verdict: **verified with limitations** (`docs/venue/VERIFICATION-REPORT.md`). Not deployable.
+- [x] Baseline recorded before changes (`docs/venue/verification/baseline/`); brief's "73 venue tests" corrected to the actual 83
+- [x] Rule-by-rule audit of all 43 matching rules against code and tests (VERIFICATION-REPORT §4)
+- [x] 23 findings with severity, evidence, reproduction and regression status; the regression tests for VR-01/02/03/04/06/19 fail on the original commit (`regression-tests-against-4edf72b.log`) and those for VR-20…23 fail on the pre-fix working tree (`review-notes-against-prefix.log`); all pass after the fixes
+- [x] Resolved: VR-01 (High: commands journaled after a fault and replayed on recovery), VR-02, VR-03, VR-04, VR-05, VR-06, VR-07, VR-12, VR-20/21/22/23 (recovery-contract review notes), VR-19 (half-applied state readable after a fault)
+- [x] Durable-store boundary (`JournalStore`, in-memory with fault injection) and crash tests at five persistence boundaries (`RECOVERY-TEST-RESULTS.md`)
+- [x] Privacy review per adversary class A–E; no protection claimed against compromised service, operator or storage access (`PRIVACY-REVIEW.md`)
+- [x] Reproducible synthetic benchmarks with p50/p95/p99 and a timing side-channel probe (`npm run venue:perf`, `PERFORMANCE-RESULTS.md`)
+- [ ] Open: VR-08 (FOK absence probe), VR-09 (idempotency not durable), VR-10 (duplicated final line), VR-13 (unbounded growth), VR-14 (id key secrecy), VR-15 (timing channel), VR-18 (poison-command runbook)
+- [ ] File-backed or replicated store; independently protected anchor for journal heads; encryption at rest
+- [ ] Independent security review (SECURITY-CHECKLIST §B)
+
+## Milestone 10 — Watch-only account UI
 - [ ] `HyperliquidAccountDataSource` (public address → `clearinghouseState`, `openOrders`, fills) via server
 - [ ] Address input with validation; never request keys/seeds
 - [ ] Positions/orders/fills tables; portfolio risk panel wired to `DefaultRiskEngine.portfolio`
 - [ ] Fee schedule in pre-trade estimates
 
-## Milestone 10 — Order lifecycle & reconciliation against live venue streams
+## Milestone 11 — Order lifecycle & reconciliation against live venue streams
 - [ ] Order state machine over `ORDER_STATUSES` with venue-confirmed transitions only
 - [ ] Reconciliation of local intents against venue order/fill streams (idempotent, sequence-aware)
 - [ ] Persistence adapter (server-side DB) for order journal and audit log
 - [ ] Venue-specific validation (e.g. Hyperliquid 5-significant-figure prices)
 
-## Milestone 11 — Testnet execution (explicitly configured, separately confirmed, security-reviewed)
+## Milestone 12 — Testnet execution (explicitly configured, separately confirmed, security-reviewed)
 - [ ] Wallet connection (signing in the user's wallet; no key custody)
 - [ ] Testnet-only execution adapter behind config + per-session confirmation
 - [ ] Authorization (`orders:submit`) enforced server-side

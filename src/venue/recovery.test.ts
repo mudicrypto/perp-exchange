@@ -111,9 +111,12 @@ describe("recovery and determinism", () => {
       throw new Error("simulated fault");
     });
     const r = lv.gateway.handle(lv.tokens.get("syn-p1")!, { op: "new", clientOrderId: "boom", instrumentId: ALPHA, side: "buy", type: "limit", price: "1900.00", quantity: "0.010" });
-    expect(r).toMatchObject({ ok: false, error: { code: "unavailable" } });
+    // The faulting command was journaled before the fault, so its outcome is unknown (VR-01).
+    expect(r).toMatchObject({ ok: false, error: { code: "outcome-unknown" } });
     expect(lv.venue.engine.stoppedReason).toBe("simulated fault");
+    const journaled = lv.venue.journal.lastSeq;
     expect(lv.gateway.handle(lv.tokens.get("syn-p2")!, { op: "mass-cancel" })).toMatchObject({ ok: false, error: { code: "unavailable" } });
+    expect(lv.venue.journal.lastSeq).toBe(journaled);
     expect(() => lv.venue.engine.snapshot()).toThrow(/stopped/);
   });
 

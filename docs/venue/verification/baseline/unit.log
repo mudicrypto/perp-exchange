@@ -1,0 +1,16 @@
+
+> nova-exchange@0.1.0 test
+> vitest run
+
+
+ RUN  v5.0.3 /home/user/perp-exchange
+
+
+ Test Files  42 passed (42)
+      Tests  460 passed (460)
+   Start at  14:30:49
+   Duration  6.32s (tests 56%, import 24%, transform 11%, environment 7%, worker 1%)
+
+    Isolate  42 workers spawned · ~141ms startup each (spawn + environment, per file)
+             at least ~1.84s faster with isolate: false — reuses workers across files instead of one per file
+

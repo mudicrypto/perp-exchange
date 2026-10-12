@@ -11,7 +11,9 @@ rules, configurable pre-trade limits enforced in the execution layer, and a risk
 verified tool results. **Milestone 7:** security hardening and end-to-end verification — not a
 claim of production readiness (see `docs/SECURITY.md`). **Milestone 8:** the design of Nova's own matching
 venue with native hidden orders, plus a deterministic, local-only prototype on synthetic orders
-(`src/venue/`, not connected to the app, funds or any external venue). No real orders, custody,
+(`src/venue/`, not connected to the app, funds or any external venue). **Milestone 9:** independent
+verification and hardening of that prototype — verified with limitations, not deployable
+(`docs/venue/VERIFICATION-REPORT.md`). No real orders, custody,
 deposits or withdrawals.
 
 - Architecture: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
@@ -70,6 +72,7 @@ No secrets are needed. Nova never asks for seed phrases or private keys.
 | `npm run test:e2e:external` | Playwright against real Hyperliquid mainnet market data (needs network access; read-only, execution disabled) |
 | `npm run venue:demo` | Local venue prototype walkthrough on synthetic orders (no network, no funds) |
 | `npm run venue:bench` | Indicative local micro-benchmarks of the venue prototype |
+| `npm run venue:perf` | Milestone 9 reproducible synthetic benchmarks (p50/p95/p99) and timing probe |
 | `npm run check` | typecheck + lint + unit tests + build + client-bundle secret scan |
 
 Playwright uses Chromium. If your environment provides a browser at a custom path, set

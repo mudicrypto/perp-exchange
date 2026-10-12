@@ -236,11 +236,14 @@ control**. They are not hidden cryptographically.
 - **H-7** **Post-only probing.**
   - **Leak:** a post-only rejection inside the displayed spread is a free signal that something
     rests at that price.
-  - Mitigation: the gateway counts post-only rejections per account. After `limit` of them in a
-    window (default 20 per minute), it refuses post-only orders from that account until the window
-    passes.
+  - Mitigation: the gateway counts post-only rejections per account, for new orders **and for
+    replaces of post-only orders** (Milestone 9, VR-03). After `limit` of them in a window (default
+    20 per minute), it refuses new post-only orders and replaces of post-only orders from that
+    account until the window passes. Reconnecting does not reset the budget.
   - IOC probing is not throttled separately, but it costs an execution and is visible to
     surveillance.
+  - **Leak (open, VR-08):** a FOK that cannot fill reveals "less than Q at or better than P" without
+    executing.
 - **H-8** **No side channels through identifiers or sequences.**
   - Order, fill and execution IDs are a keyed hash of an internal counter (`o…`, `f…`, `x…`).
     Sequential IDs would let a client count other participants' activity, hidden activity included,
@@ -248,7 +251,9 @@ control**. They are not hidden cryptographically.
   - Private events carry a **per-account** sequence number, never the global one.
   - Public messages carry the **public** sequence only.
 - **H-9** **Batched publication.** With `publication: "batched"`, the public feed is published only
-  on `publish` ticks. The sequencer journals these ticks at a fixed interval. Within an interval:
+  on `publish` ticks, which are journaled commands. In the prototype, the driver (demo or tests)
+submits them. A sequencer-owned fixed-interval scheduler is **not implemented** (VR-12). Within an
+interval:
   - Changes to a displayed level are netted: an add followed by a cancel publishes nothing.
   - Messages carry the publication time, not the event time.
 
@@ -284,15 +289,32 @@ control**. They are not hidden cryptographically.
     and the output hash chain.
 - **D-2** **Journal integrity.**
   - The journal is written ahead of processing and is hash-chained.
+  - With a `JournalStore`, the commit point is the store's `append` returning. Any append error
+    means the outcome is unknown, and the venue stops (VR-07).
   - On read it is treated as untrusted. Each entry is parsed, its command validated with the
     schema, and its sequence and hash chain checked.
-  - A torn final line is dropped: that command was never acknowledged.
+  - Recovery takes journal text or a store, never both. The store is repaired only after the
+    journal, the snapshot and the replay have all succeeded (VR-21, VR-22).
+  - A torn final line is dropped (and truncated from the store): that command was never
+    acknowledged.
+  - A complete final entry without its newline counts as committed. The newline is restored before
+    the next append.
+  - A duplicated final line, for example from a retried append, is corruption: recovery refuses
+    (fail-closed, VR-10).
   - Any other inconsistency is corruption, and recovery stops.
-  - A snapshot must reference the journal entry it was taken after.
+  - A snapshot must reference the journal entry it was taken after, and the restored state must
+    reproduce the snapshot's `stateHash` (VR-05).
   - A rewrite of the *whole* chain is detectable only against an externally anchored head.
 - **D-3** **Fail-stop.**
-  - Any internal fault or invariant violation stops the engine. Every later command is refused,
-    and the gateway answers `unavailable`.
+  - Any internal fault or invariant violation stops the engine.
+  - The command that faulted was already journaled, so its outcome is unknown. The gateway answers
+    `outcome-unknown`; recovery may apply it.
+  - Every later command is refused **before** it is journaled, and the gateway answers
+    `unavailable` ("nothing was recorded") (VR-01).
+  - While stopped, order and open-order queries refuse rather than serve possibly half-applied
+    state. Private events (committed outputs only) stay readable (VR-19).
+  - A command that faults deterministically also faults on replay. Recovery then stops and names
+    its sequence number (VR-18).
   - A snapshot whose holdings disagree with its orders is refused on restore.
 - **D-4** **Duplicate outputs after recovery.**
   - Outputs regenerated after recovery carry the same sequence numbers: `publicSeq`, `accountSeq`,
@@ -316,11 +338,18 @@ control**. They are not hidden cryptographically.
 - **A-3** **Message rate limit.**
   - Limited per account with a sliding window (default 200 messages per second).
   - Excess messages are refused before they are journaled, with `retryAfterMs`.
-  - Refusals are logged with their code only, never the payload.
+  - Refusals are logged with timestamp, account and code only, never the payload. The log keeps the
+    most recent 10 000 records, plus totals per code (VR-04).
 - **A-4** **Idempotent order entry.**
   - Keyed by account and client order ID.
-  - An identical retry returns the original response, marked `replayed`, and is not journaled
-    again.
+  - An identical retry of an **accepted** order returns the original response, marked `replayed`,
+    and is not journaled again.
+  - A rejected order creates no idempotency record, so an identical retry is evaluated again
+    (consistent with §11; VR-06).
+  - Idempotency records are in memory. After a restart, a retry gets `duplicate-client-order-id`
+    from the engine instead of the original response; it is still never executed twice (VR-09).
+  - `outcome-unknown`: the client should look the order up by client order ID once the venue is
+    back, before retrying.
   - A different payload under a used ID is refused with `idempotency-conflict`.
   - After the idempotency record is evicted, the engine still refuses the duplicate client ID.
 
@@ -338,5 +367,6 @@ New orders are checked in this order, and the first failure decides the rejectio
 8. risk
 9. post-only crossing
 
-All checks happen before any state changes. A rejected order consumes neither its client ID nor
-any book state.
+All checks happen before any state changes. A rejected order consumes neither its client ID, at the
+engine or the gateway, nor any book, order, position or public state. It does consume one
+`accountSeq` (its `rejected` event) and may leave an empty holding record (VR-11).

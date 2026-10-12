@@ -1,0 +1,10 @@
+# VR-20..VR-23 regression tests run against the Milestone 9 working tree before the review-note fixes
+# (src/venue/venue.ts reconstructed with the four fixes reverted; all other files current).
+# Expected: the 5 VR-2x tests fail; the 7 other tests in the file are filtered out (-t "VR-2").
+     × VR-20 a failure while routing outputs after the commit is reported as outcome-unknown, not 'nothing recorded'
+     × VR-20 through the gateway the same failure answers outcome-unknown
+     × VR-21 recovery refuses journal text and a store together
+     × VR-22 a recovery that fails leaves the store byte-for-byte untouched (bad snapshot, poison command)
+     × VR-23 crash injection is not configurable through VenueOptions; only a test subclass can simulate a crash
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  5 failed | 7 skipped (12)
