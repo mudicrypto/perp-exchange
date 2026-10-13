@@ -1,5 +1,6 @@
 import { EngineIntegrityError, MatchingEngine, type EngineConfig, type EngineSnapshot } from "./engine.ts";
 import { canonicalJson, GENESIS_HASH, Journal, readJournal, sha256 } from "./journal.ts";
+import { assertIdKeyPolicy } from "./id-key.ts";
 import type { JournalStore } from "./storage.ts";
 import {
   engineCommandSchema,
@@ -53,10 +54,34 @@ export interface VenueOptions {
   readonly engine: EngineConfig;
   /** Durable journal store. Without one, the in-memory journal is the only record. */
   readonly store?: JournalStore;
+  /**
+   * Accept a registered deterministic test-fixture id key (tests, demo, benchmarks only).
+   * Never relaxes the key policy for any other key (MATCHING-RULES A-5).
+   */
+  readonly allowTestFixtureIdKey?: boolean;
+  /**
+   * Idempotency ledger entries kept (oldest evicted first; default 100 000). After eviction the
+   * engine's permanent client-id index still refuses the duplicate (A-4). Recorded in snapshots;
+   * restoring a snapshot under a different capacity is refused (VR-26).
+   */
+  readonly idempotencyCapacity?: number;
   /** Sequencer clock (ms). Timestamps are clamped to be non-decreasing. */
   readonly clock: () => number;
   /** Private events kept per account for polling clients (oldest dropped first). */
   readonly outboxCapacity?: number;
+}
+
+/**
+ * Idempotency ledger entry (MATCHING-RULES A-4): one per accepted new order, keyed by
+ * (account, client order id). Derived only from journaled commands and their deterministic
+ * results, so replaying the journal rebuilds it exactly.
+ */
+export interface IdempotencyRecord {
+  readonly seq: number;
+  /** Canonical JSON of the journaled (normalised) new-order command. */
+  readonly command: string;
+  /** Private events the command produced for the requesting account (the original response). */
+  readonly events: readonly PrivateEvent[];
 }
 
 export interface VenueSnapshot {
@@ -66,6 +91,10 @@ export interface VenueSnapshot {
   /** Hash of the journal entry the snapshot was taken after (binds snapshot to journal). */
   readonly journalHead: string;
   readonly outputHead: string;
+  /** Idempotency ledger at snapshot time, in eviction order, its capacity, and a hash over both (verified on restore). */
+  readonly idempotency: readonly (readonly [string, IdempotencyRecord])[];
+  readonly idempotencyCapacity: number;
+  readonly idempotencyHash: string;
 }
 
 export interface RecoveryReport {
@@ -91,8 +120,11 @@ export class Venue {
   listenerFailures = 0;
   historyComplete = true;
   private haltedReason: string | null = null;
+  private readonly ledger = new Map<string, IdempotencyRecord>();
 
-  constructor(options: VenueOptions, journal = new Journal(), engine = new MatchingEngine(options.engine)) {
+  constructor(options: VenueOptions, journal = new Journal(), engine?: MatchingEngine) {
+    assertIdKeyPolicy(options.engine.idKey, options.allowTestFixtureIdKey === true);
+    engine ??= new MatchingEngine(options.engine);
     this.options = options;
     this.journal = journal;
     this.engineRef = engine;
@@ -136,7 +168,7 @@ export class Venue {
     this.crashPoint("after-process", entry.seq);
     // Past the commit point every failure is "outcome unknown", never "nothing recorded".
     try {
-      this.route(result);
+      this.route(result, entry);
     } catch (error) {
       this.haltedReason = `output routing failed at seq ${entry.seq}`;
       throw new OutcomeUnknownError(entry.seq, `${this.haltedReason}: ${error instanceof Error ? error.message : String(error)}`);
@@ -165,11 +197,18 @@ export class Venue {
 
   private apply(entry: SequencedCommand): CommandResult {
     const result = this.engineRef.process(entry);
-    this.route(result);
+    this.route(result, entry);
     return result;
   }
 
-  private route(result: CommandResult): void {
+  private route(result: CommandResult, entry: SequencedCommand): void {
+    // Every routed event is delivered by reference to several consumers (the first response, the account's
+    // outbox, the public tape, each listener). Freezing makes them immutable, so no consumer can alter what
+    // another observes (VR-29). The engine builds a fresh object per event and keeps none of them; a
+    // request-rejected event's `ref` is the journaled command's own object, frozen with it.
+    for (const event of result.private) deepFreeze(event);
+    for (const message of result.public) deepFreeze(message);
+    this.recordIdempotency(result, entry);
     this.outputHash = sha256(`${this.outputHash}\n${canonicalJson(result)}`);
     this.executions.push(...result.executions);
     for (const t of result.transitions) this.transitions.push({ ...t, seq: result.seq });
@@ -193,6 +232,26 @@ export class Venue {
     }
   }
 
+  /** Ledger update: only accepted new orders consume a client order id (A-4, §11). */
+  private recordIdempotency(result: CommandResult, entry: SequencedCommand): void {
+    const command = entry.command;
+    if (command.type !== "new-order") return;
+    const events = result.private.filter((e) => e.accountId === command.accountId);
+    if (!events.some((e) => e.kind === "accepted")) return;
+    // A deep-frozen private copy: responses, outboxes and callers can never alter what later replays return (VR-25).
+    this.ledger.set(ledgerKey(command.accountId, command.clientOrderId), frozenRecord({ seq: entry.seq, command: canonicalJson(command), events }));
+    if (this.ledger.size > this.idempotencyCapacity) this.ledger.delete(this.ledger.keys().next().value!);
+  }
+
+  private get idempotencyCapacity(): number {
+    return this.options.idempotencyCapacity ?? DEFAULT_IDEMPOTENCY_CAPACITY;
+  }
+
+  /** The ledger entry for an accepted order, if it is still within capacity. Deep-frozen; callers clone before handing it out. */
+  acceptedOrder(accountId: string, clientOrderId: string): IdempotencyRecord | undefined {
+    return this.ledger.get(ledgerKey(accountId, clientOrderId));
+  }
+
   onPublic(listener: (message: PublicMessage) => void): () => void {
     this.publicListeners.add(listener);
     return () => this.publicListeners.delete(listener);
@@ -204,7 +263,17 @@ export class Venue {
   }
 
   snapshot(): VenueSnapshot {
-    return { engine: this.engineRef.snapshot(), stateHash: this.engineRef.stateHash(), journalHead: this.journal.head, outputHead: this.outputHash };
+    const idempotency = [...this.ledger].map(([k, r]) => [k, r] as const);
+    const idempotencyCapacity = this.idempotencyCapacity;
+    return {
+      engine: this.engineRef.snapshot(),
+      stateHash: this.engineRef.stateHash(),
+      journalHead: this.journal.head,
+      outputHead: this.outputHash,
+      idempotency,
+      idempotencyCapacity,
+      idempotencyHash: ledgerHash(idempotency, idempotencyCapacity),
+    };
   }
 
   /**
@@ -217,6 +286,7 @@ export class Venue {
    * replay have succeeded; a failed recovery leaves it untouched.
    */
   static recover(options: VenueOptions, journalJsonl?: string, snapshot?: VenueSnapshot): { venue: Venue; report: RecoveryReport } {
+    assertIdKeyPolicy(options.engine.idKey, options.allowTestFixtureIdKey === true);
     if (journalJsonl !== undefined && options.store) throw new Error("recover from journal text or from a store, not both");
     const text = journalJsonl ?? options.store?.read();
     if (text === undefined) throw new Error("no journal to recover from");
@@ -228,9 +298,15 @@ export class Venue {
     if (snapshot && snapshot.journalHead !== expectedHead) throw new Error("snapshot does not belong to this journal");
     const engine = snapshot ? MatchingEngine.restore(options.engine, snapshot.engine) : new MatchingEngine(options.engine);
     if (snapshot && engine.stateHash() !== snapshot.stateHash) throw new Error("snapshot state hash mismatch (corrupted or altered snapshot)");
+    if (snapshot && ledgerHash(snapshot.idempotency, snapshot.idempotencyCapacity) !== snapshot.idempotencyHash) throw new Error("snapshot idempotency ledger hash mismatch");
+    const capacity = options.idempotencyCapacity ?? DEFAULT_IDEMPOTENCY_CAPACITY;
+    if (snapshot && snapshot.idempotencyCapacity !== capacity) {
+      throw new Error(`snapshot idempotency capacity ${snapshot.idempotencyCapacity} differs from the configured ${capacity}; restore with the same capacity or recover by full replay (VR-26)`);
+    }
     const venue = new Venue(options, Journal.fromEntries(read.entries), engine);
     if (snapshot) {
       venue.outputHash = snapshot.outputHead;
+      for (const [k, r] of snapshot.idempotency) venue.ledger.set(k, frozenRecord(r));
       venue.historyComplete = false;
     }
     let replayed = 0;
@@ -250,4 +326,23 @@ export class Venue {
     }
     return { venue, report: { replayed, fromSnapshotSeq: fromSeq, tornTail: read.tornTail, journalHead: read.head } };
   }
+}
+
+const ledgerKey = (accountId: string, clientOrderId: string) => `${accountId}\u0000${clientOrderId}`;
+
+export const DEFAULT_IDEMPOTENCY_CAPACITY = 100_000;
+
+const ledgerHash = (entries: readonly (readonly [string, IdempotencyRecord])[], capacity: number) => sha256(canonicalJson({ capacity, entries }));
+
+/** Deep, private, immutable copy of a ledger record. */
+function frozenRecord(record: IdempotencyRecord): IdempotencyRecord {
+  return deepFreeze(structuredClone(record));
+}
+
+function deepFreeze<T>(value: T): T {
+  if (value && typeof value === "object" && !Object.isFrozen(value)) {
+    for (const v of Object.values(value)) deepFreeze(v);
+    Object.freeze(value);
+  }
+  return value;
 }

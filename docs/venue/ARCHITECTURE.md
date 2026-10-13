@@ -320,8 +320,12 @@ The order of work is:
 3. append to the durable `JournalStore`; its return is the commit point
 4. process deterministically
 5. hash outputs
-6. record outputs in the audit stores, public tape and per-account outboxes
+6. record outputs in the idempotency ledger (accepted orders, A-4), the audit stores, the public
+   tape and the per-account outboxes
 7. notify public listeners, each in isolation
+
+Routed events and public messages are deep-frozen before step 6, so every consumer (first response,
+outbox, tape, listeners) receives the same immutable objects (VR-29).
 
 Recovery is a verified read of the store, plus an optional snapshot (bound to its journal head and
 verified by `stateHash`), plus replay of the suffix.
@@ -330,9 +334,9 @@ verified by `stateHash`), plus replay of the suffix.
 
 | Case | What happens |
 |---|---|
-| Append fails, at any point | The outcome is unknown. The gateway answers `outcome-unknown` and the venue stops, so no later append can follow a torn line. Recovery truncates a torn tail. |
+| Append fails, at any point | The outcome is unknown. The gateway answers `outcome-unknown` and the venue stops, so no later append can follow a torn line. Recovery truncates a torn tail (an unparseable final line); a complete final line that fails validation is refused (VR-28). |
 | Internal fault | The engine stops (fail-stop). The faulting command was journaled, so its outcome is unknown. Later commands are refused **before** journaling (`unavailable`). |
-| Faulty public listener | Cannot affect the committed result, the private outboxes or other listeners |
+| Faulty public listener | Cannot affect the committed result, the private outboxes or other listeners; it cannot modify the messages it receives (frozen) |
 | Any other failure while routing outputs | The command is committed, so the venue stops and reports `outcome-unknown` (VR-20) |
 
 The prototype's only store is in memory, with fault injection. Its crash boundaries are tested in
@@ -343,7 +347,6 @@ Regenerated outputs keep their sequence numbers, so consumers can de-duplicate.
 **Not in the prototype:**
 
 - a file-backed or replicated store (fsync, replication); only `MemoryJournalStore` exists
-- durable idempotency records (VR-09)
 - an independently protected anchor for journal heads
 - a hot standby replaying the same journal
 - sequencer failover

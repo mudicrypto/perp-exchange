@@ -240,19 +240,38 @@ Verdict: **verified with limitations** (`docs/venue/VERIFICATION-REPORT.md`). No
 - [ ] File-backed or replicated store; independently protected anchor for journal heads; encryption at rest
 - [ ] Independent security review (SECURITY-CHECKLIST §B)
 
-## Milestone 10 — Watch-only account UI
+## Milestone 10 — Recovery integrity and idempotency (venue prototype)
+Scope: VR-09, VR-10 and VR-14, plus the findings of the read-only reviews of this milestone (VR-24 to VR-29). Engine unchanged.
+Specification and results: `docs/venue/RECOVERY-INTEGRITY.md`. Not deployable.
+- [x] Behavioural specification written before implementation: identical retries, conflicting retries, duplicate journal records, sequence conflicts, id-key policy
+- [x] Tests written first: against the Milestone 9 commit, 41 of 46 failed (18 behaviour, 14 classification, 9 new mechanism; 5 pin unchanged behaviour) (`m10-tests-against-27dee34.log`); against the unfixed M10 tree, 12 of the 16 review tests failed (`m10-review-fixes.log`); all pass after the change
+- [x] VR-09: venue idempotency ledger (deep-frozen records, fresh copy per replay) rebuilt from the journal and carried in snapshots with its capacity under a verified hash; identical and conflicting retries defined while retained and after eviction; no accepted order journaled or executed twice across restarts, evictions and storage faults (property)
+- [x] VR-10 / VR-24: rule D-5 fail-closed. Every duplicate journal record refuses recovery with a precise classification, and the store is left untouched; a store that acknowledges an append but persists the previous entry no longer loses the order silently
+- [x] VR-14: rule A-5. Id-key policy enforced by `Venue` and `Venue.recover`; fixture keys only with `allowTestFixtureIdKey`; fixture literals confined to `id-key.ts` and tests
+- [x] VR-26: snapshot restore under a different ledger capacity refused; full-replay behaviour under a changed capacity defined (responses only)
+- [x] VR-28: only an unparseable final line is a torn write; a complete final line that fails validation (hash, chain, sequence, timestamp, schema) is refused with the store untouched, with or without its newline. 15 of 19 final-review tests failed before the fixes (`m10-final-review-fixes.log`)
+- [x] VR-29: routed events and public messages deep-frozen in `Venue.route`; first response, private feed, journaled request reference, public tape and each listener isolated (tests)
+- [x] Terminal (filled, cancelled) order evicted from the ledger, then snapshot restore or full replay: retries refused as duplicates, no execution (tests)
+- [x] Crash-boundary property unchanged and passing; `engine.ts` unchanged
+- [ ] Independently persisted commit record or trust anchor (needed for any automatic repair of duplicate or torn journal tails, and to detect an acknowledged entry truncated or lost by a store that acknowledges before durability)
+- [ ] Keep a permanent client-ID index when addressing VR-13 (it alone prevents a second execution after ledger eviction)
+- [ ] Id-key management (generation in deployment, storage, rotation)
+- [ ] Ledger durability beyond the in-memory store; the ledger hash is not tamper-proof without an anchor
+- [ ] Still open from M9: VR-08, VR-13, VR-15, VR-18
+
+## Milestone 11 — Watch-only account UI
 - [ ] `HyperliquidAccountDataSource` (public address → `clearinghouseState`, `openOrders`, fills) via server
 - [ ] Address input with validation; never request keys/seeds
 - [ ] Positions/orders/fills tables; portfolio risk panel wired to `DefaultRiskEngine.portfolio`
 - [ ] Fee schedule in pre-trade estimates
 
-## Milestone 11 — Order lifecycle & reconciliation against live venue streams
+## Milestone 12 — Order lifecycle & reconciliation against live venue streams
 - [ ] Order state machine over `ORDER_STATUSES` with venue-confirmed transitions only
 - [ ] Reconciliation of local intents against venue order/fill streams (idempotent, sequence-aware)
 - [ ] Persistence adapter (server-side DB) for order journal and audit log
 - [ ] Venue-specific validation (e.g. Hyperliquid 5-significant-figure prices)
 
-## Milestone 12 — Testnet execution (explicitly configured, separately confirmed, security-reviewed)
+## Milestone 13 — Testnet execution (explicitly configured, separately confirmed, security-reviewed)
 - [ ] Wallet connection (signing in the user's wallet; no key custody)
 - [ ] Testnet-only execution adapter behind config + per-session confirmation
 - [ ] Authorization (`orders:submit`) enforced server-side

@@ -1,3 +1,4 @@
+import { TEST_FIXTURE_ID_KEY } from "./id-key.ts";
 import { SYNTHETIC_INSTRUMENTS } from "./instrument.ts";
 import { createLocalVenue, syntheticFlow } from "./synthetic.ts";
 import { Venue } from "./venue.ts";
@@ -156,7 +157,7 @@ export function runBench(scale = 1): BenchResult[] {
     }
     const jsonl = venue.journal.toJsonl();
     const t0 = process.hrtime.bigint();
-    const { report } = Venue.recover({ engine: { idKey: "local-prototype-key", publication: "immediate" }, clock: clock.read }, jsonl);
+    const { report } = Venue.recover({ engine: { idKey: TEST_FIXTURE_ID_KEY, publication: "immediate" }, clock: clock.read, allowTestFixtureIdKey: true }, jsonl);
     const ns = process.hrtime.bigint() - t0;
     results.push(summarise(`B5 recovery: replay ${report.replayed} journal entries`, new Array<number>(report.replayed).fill(Number(ns) / 1_000 / report.replayed), ns));
   }

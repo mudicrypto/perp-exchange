@@ -158,7 +158,7 @@ describe("determinism and recovery", () => {
           clock.advance(1);
           venue.submit(c);
         });
-        const options = { engine: { idKey: "local-prototype-key", publication }, clock: clock.read };
+        const options = { engine: { idKey: "local-prototype-key", publication }, clock: clock.read, allowTestFixtureIdKey: true };
         const jsonl = venue.journal.toJsonl();
         for (const snap of [undefined, snapshot]) {
           const { venue: again } = Venue.recover(options, jsonl, snap);

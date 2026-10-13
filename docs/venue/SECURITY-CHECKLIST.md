@@ -92,7 +92,9 @@ A ticked box means "true of this prototype". It does **not** mean "ready for liv
 
 - [x] Write-ahead, hash-chained journal; deterministic replay reproduces state and output hashes
   (D-1, D-2).
-- [x] Edits, reordering, injected invalid commands and torn tails are detected (D-2).
+- [x] Edits, reordering, injected invalid commands and torn tails are detected (D-2). Only an
+  unparseable final line counts as torn; a complete final line that fails validation is refused, with
+  or without its newline (M10 final review, VR-28).
 - [x] Snapshots are bound to the journal head, cross-checked on restore, and verified by `stateHash`
   (D-2, D-3; M9 VR-05).
 - [x] Fail-stop on internal faults (D-3). *M9 correction:* commands after the fault were still
@@ -102,12 +104,33 @@ A ticked box means "true of this prototype". It does **not** mean "ready for liv
   recovers to the last committed state, with outputs neither lost nor duplicated (M9;
   [RECOVERY-TEST-RESULTS.md](RECOVERY-TEST-RESULTS.md)). In-memory store only.
 - [x] A failing public listener cannot affect committed results or private delivery (M9, VR-02).
+- [x] Delivered events are immutable: the first response, the private feed, the public tape and every
+  listener receive deep-frozen objects, so no consumer can change what another observes (M10 final
+  review, VR-29). Execution records and the venue's own arrays remain mutable through the in-process
+  `Venue` object.
 - [x] After a fault, order queries refuse instead of serving half-applied state (M9, VR-19).
 - [x] Failures after the commit point are always `outcome-unknown`; recovery takes text or a store,
   never both, and changes the store only after it succeeds; crash simulation is a test-only
   subclass seam, not an option (M9 review, VR-20…VR-23).
-- [ ] Durable idempotency records (VR-09); duplicated final journal line recovery (VR-10); poison
-  command runbook (VR-18).
+- [x] Idempotency survives restarts. The ledger is rebuilt from the journal and carried, hash-verified,
+  in snapshots. Identical retries replay the original events; conflicting retries are refused; no
+  accepted order is executed twice (property-tested). M10, VR-09.
+- [x] Duplicate and conflicting journal records fail closed. Every duplicate, a reused sequence number,
+  a gap or an empty line refuses recovery with a precise classification, without changing the store.
+  A trailing copy of the final entry is not repaired, because it cannot be told apart from an
+  acknowledged append persisted with the wrong bytes. M10, VR-10 and VR-24, rule D-5.
+- [x] Idempotency records are immutable: deep-frozen ledger copies and a fresh copy per replay (VR-25).
+  The snapshot records its ledger capacity; a restore under another capacity is refused (VR-26).
+- [ ] Independently persisted commit record or trust anchor. Required for any automatic repair of
+  duplicate or torn journal tails, and for detecting an acknowledged entry that a store which
+  acknowledges before durability later truncates or loses.
+- [ ] Keep a permanent, recoverable client-ID index when addressing VR-13. After ledger eviction it is
+  the only protection against a second execution.
+- [x] Order-ID key policy enforced at the `Venue` boundary; fixture keys only with an explicit
+  test-only flag; fixture literals confined to `id-key.ts` and tests. M10, VR-14, rule A-5.
+- [ ] Id-key management: generation in deployment, secret storage, rotation. Verification of key
+  randomness is not possible.
+- [ ] Poison-command runbook (VR-18).
 - [x] Consumers de-duplicate regenerated outputs by sequence (D-4).
 - [ ] External anchoring of journal heads. A full-chain rewrite is undetectable without it (tested).
 - [ ] Durable storage, replication, failover, backup and restore drills. **n/a (prototype)**

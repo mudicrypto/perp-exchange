@@ -64,9 +64,10 @@ uninterrupted run of all commands.
 | Canonical serialisation: same command → same bytes → same hash | Holds. Recovery reproduces head and output hashes in every case above. | crash-recovery property; `recovery` D-1 |
 | Edited entry, swapped entries, injected command with a recomputed hash | Detected at the exact line (hash mismatch, sequence error, schema refusal) | `recovery` D-2 |
 | Full-chain rewrite | **Not detected** without an external anchor (verifies internally; different head) | `recovery` D-2 |
-| Torn final write | Dropped; recovery equals the prefix | `recovery` D-2; crash-recovery |
+| Torn final write (unparseable final line, no newline) | Dropped; recovery equals the prefix. Correct only under the store contract (§5). | `recovery` D-2; crash-recovery; recovery-final VR-28 |
+| Complete final entry that parses but fails validation, without its newline | **Was dropped as a torn write (VR-28, pre-existing since Milestone 8).** Now refused, store unchanged. | recovery-final VR-28 |
 | Complete final entry without its newline | Treated as committed; newline restored before the next append | crash-recovery "D-2 …" |
-| Duplicated final line (retried append) | Recovery refuses; fail-closed (VR-10, open) | crash-recovery "VR-10 …" |
+| Duplicated final line (retried append, or an acknowledged append persisted with the previous bytes) | **M10 (D-5), fail-closed:** every duplicate refuses recovery with a precise classification, and the store is left unchanged. This covers a trailing copy with or without a newline, an interior copy, a stale copy, sequence reuse with different content, a gap and an empty line. A first M10 version dropped trailing copies; the review showed this could silently lose an acknowledged order (VR-24), so it was reverted. | crash-recovery "VR-10 / D-5 …"; recovery-integrity D-5; recovery-review VR-24/VR-27 |
 | Invalid sequence (gap, duplicate, reorder) or timestamp going backwards | Refused by the reader and the engine | `recovery` D-1, D-2 |
 | Snapshot from another journal | Refused (journal-head binding) | `recovery` D-2 |
 | Snapshot with altered content (internally consistent) | **Was accepted (VR-05).** Now refused by the `stateHash` check. | crash-recovery "VR-05 …" |
@@ -98,7 +99,30 @@ See [VERIFICATION-REPORT.md](VERIFICATION-REPORT.md) §5. In short:
 
 - Real storage: fsync semantics, partial sector writes, reordering by the OS or disk, media errors,
   disk full, replication and fail-over (split brain).
+- A store that acknowledges an append before it is durable. If such a store later loses the end of an
+  acknowledged entry, recovery drops it as a torn write; if it loses the whole entry, nothing is
+  detected. Detecting either needs an independent commit record or trust anchor.
 - Concurrent writers: the prototype has a single writer.
 - Recovery-time objectives at production journal sizes. PERFORMANCE-RESULTS F7 measures 60 000
   entries only.
-- Idempotency records survive restarts: they do not (VR-09).
+- Idempotency at ledger capacity: beyond the newest 100 000 accepted orders, a retry gets the engine's duplicate rejection, not the original response (RECOVERY-INTEGRITY §6). Since Milestone 10 the ledger itself survives restarts (VR-09 resolved).
+
+## 6. Milestone 10 — idempotency and duplicate records across recovery
+
+Tests: `src/venue/recovery-integrity.test.ts`. Specification and full results:
+[RECOVERY-INTEGRITY.md](RECOVERY-INTEGRITY.md) §5.
+
+| Case | Result |
+|---|---|
+| Identical retry after a restart (full replay; snapshot + suffix) | Original events, `replayed: true`, not journaled |
+| Conflicting retry after a restart | `idempotency-conflict`, not journaled |
+| Crash after the journal commit (`after-journal`, `after-process`), then recovery and an identical retry | Original events; exactly one execution |
+| Random restarts, storage faults and retries (property, 150 runs, at least 300 retry checks per run) | No accepted order journaled or executed twice; every identical retry replayed, every conflicting retry refused |
+| Ledger after full replay and after snapshot recovery | Equal to the live ledger **with the same capacity**. A snapshot restore under a different capacity is refused (VR-26). An altered ledger or capacity in a snapshot is refused (hash). |
+| Retries after ledger eviction, live and after full replay or snapshot restore | Identical and conflicting retries both get `duplicate-client-order-id`; no second execution; the order can still be looked up by client order ID |
+| Faulty store: acknowledged append persisted as a copy of the previous entry | Recovery refuses; the store is untouched; the acknowledged order is not silently lost (VR-24) |
+| Duplicate and conflicting journal records | Rule D-5, fail-closed (row above) |
+| Terminal (filled, cancelled) order evicted from the ledger, then snapshot restore or full replay | Identical and conflicting retries get `duplicate-client-order-id`; no execution although crossing liquidity rests; lookup returns the terminal order (recovery-final A-4) |
+| Consumers mutating delivered events (first response, private feed, public listeners, stored tape) | Refused (objects frozen); no other consumer, the ledger, the tape or engine state changes (recovery-final VR-29) |
+
+The crash-boundary property in §2 passes unchanged.

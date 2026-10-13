@@ -1,4 +1,5 @@
 import { DEFAULT_GATEWAY_LIMITS, VenueGateway, type ClientMessage, type GatewayOptions } from "./gateway.ts";
+import { TEST_FIXTURE_ID_KEY } from "./id-key.ts";
 import { formatPrice, formatQuantity, SYNTHETIC_INSTRUMENTS, type AccountLimits, type InstrumentSpec } from "./instrument.ts";
 import { Venue } from "./venue.ts";
 
@@ -49,7 +50,13 @@ export function createLocalVenue(options: {
   gateway?: Partial<Pick<GatewayOptions, "messages" | "postOnlyRejects">>;
 }): LocalVenue {
   const clock = new ManualClock();
-  const venue = new Venue({ engine: { idKey: options.idKey ?? "local-prototype-key", publication: options.publication ?? "immediate" }, clock: clock.read });
+  // Synthetic fixture factory: without an explicit key it uses the deterministic test-fixture key,
+  // and says so (allowTestFixtureIdKey). A supplied key must satisfy the id-key policy (A-5).
+  const venue = new Venue({
+    engine: { idKey: options.idKey ?? TEST_FIXTURE_ID_KEY, publication: options.publication ?? "immediate" },
+    clock: clock.read,
+    allowTestFixtureIdKey: options.idKey === undefined,
+  });
   for (const spec of options.instruments ?? SYNTHETIC_INSTRUMENTS) venue.submit({ type: "admin.add-instrument", spec });
   for (const accountId of options.accounts) venue.submit({ type: "admin.add-account", accountId, limits: options.limits ?? SYNTHETIC_LIMITS });
   const gateway = new VenueGateway(venue, { clock: clock.read, ...DEFAULT_GATEWAY_LIMITS, ...options.gateway });

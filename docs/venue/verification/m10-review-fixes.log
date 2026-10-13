@@ -1,0 +1,39 @@
+# Review-fix regression tests (src/venue/recovery-review.test.ts) — VR-24, VR-25, VR-26, VR-27 + A-4 eviction coverage.
+# BEFORE: the Milestone 10 working tree as reviewed (scratch copy of src/ taken before any fix; working tree otherwise identical).
+# AFTER:  the fixed working tree.
+# Classes of BEFORE failures:
+#   behaviour (VR-24 silent drop): faulty store; 1 copy; 3 copies; copy without newline; reader classification (ok:true)  — 5
+#   message only (VR-27; journal was already refused): copy + blank line; interior copy of last entry; stale earlier copy; blank line — 4
+#   behaviour (VR-25 shared objects) — 2;  behaviour (VR-26 capacity not recorded/checked) — 1
+#   passing BEFORE (pin behaviour): eviction identical/conflicting; eviction + full replay/snapshot; full-replay capacity rule; torn/malformed — 4
+
+=== BEFORE
+     × D-5 a store that acknowledges an append but writes the previous entry again: the acknowledged order is not silently lost
+     × D-5 1 byte-identical copies of the final entry at the end of the journal are refused, not dropped
+     × D-5 3 byte-identical copies of the final entry at the end of the journal are refused, not dropped
+     × D-5 a copy of the final entry without a trailing newline is refused, not treated as a torn write
+     × D-5 a copy of the final entry followed by a blank line is refused as a duplicate (accurate message)
+     × D-5 an interior copy of the final-so-far entry is refused as a duplicate
+     × D-5 a stale copy of an earlier entry at the very end is named as a copy of that entry
+     × D-5 a blank line, at the end or in the middle, is refused as an empty line
+     × D-5 the reader's own classification is reported without the store being repaired
+     × A-4 mutating a returned response changes neither the ledger, later replays, snapshots, nor earlier responses
+     × A-4 ledger records cannot be mutated through acceptedOrder() or through a snapshot after restore
+     × A-4 a snapshot records its ledger capacity; restoring it under a different capacity is refused without touching the store
+⎯⎯⎯⎯⎯⎯ Failed Tests 12 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  12 failed | 4 passed (16)
+VR-24 / D-5 duplicate records fail closed > D-5 a store that acknowledges an append but writes th :: AssertionError: expected [Function] to throw an error
+VR-24 / D-5 duplicate records fail closed > D-5 3 byte-identical copies of the final entry at the :: AssertionError: expected [Function] to throw an error
+VR-24 / D-5 duplicate records fail closed > D-5 a copy of the final entry without a trailing newl :: AssertionError: expected [Function] to throw an error
+VR-24 / D-5 duplicate records fail closed > D-5 a copy of the final entry followed by a blank lin :: AssertionError: expected [Function] to throw error matching /line 10: duplicate of the last entry …/ but got 'journal corrupt at line 10: duplicate…'
+VR-24 / D-5 duplicate records fail closed > D-5 an interior copy of the final-so-far entry is ref :: AssertionError: expected [Function] to throw error matching /line 6: duplicate of the last entry \…/ but got 'journal corrupt at line 6: duplicate …'
+VR-27 / D-5 accurate refusal messages > D-5 a stale copy of an earlier entry at the very end is n :: AssertionError: expected [Function] to throw error matching /line 10: copy of earlier entry 4/ but got 'journal corrupt at line 10: duplicate…'
+VR-27 / D-5 accurate refusal messages > D-5 a blank line, at the end or in the middle, is refused :: AssertionError: expected [Function] to throw error matching /line 10: empty line/ but got 'journal corrupt at line 10: unparseab…'
+VR-27 / D-5 accurate refusal messages > D-5 the reader's own classification is reported without t :: AssertionError: expected { ok: true, …(5) } to match object { ok: false, failedAtLine: 10 }
+VR-25 / A-4 idempotency records are isolated from returned objects > A-4 mutating a returned resp :: AssertionError: expected { ok: true, replayed: true, …(1) } to deeply equal { ok: true, replayed: true, …(1) }
+VR-25 / A-4 idempotency records are isolated from returned objects > A-4 ledger records cannot be :: AssertionError: expected [Function] to throw an error
+VR-26 / A-4 ledger capacity across restarts > A-4 a snapshot records its ledger capacity; restori :: AssertionError: expected [Function] to throw an error
+
+=== AFTER
+ Test Files  1 passed (1)
+      Tests  16 passed (16)

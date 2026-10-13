@@ -1,3 +1,4 @@
+import { TEST_FIXTURE_ID_KEY } from "./id-key.ts";
 import type { GatewayResponse } from "./gateway.ts";
 import { formatPrice, formatQuantity, SYNTHETIC_INSTRUMENTS } from "./instrument.ts";
 import { PublicBookMirror } from "./public-feed.ts";
@@ -144,7 +145,7 @@ export function runDemo(seed = 7, flowMessages = 5_000): DemoSummary {
   for (const violation of report.violations.slice(0, 10)) log(`      ✗ ${violation}`);
 
   const { venue: recovered, report: recovery } = Venue.recover(
-    { engine: { idKey: "local-prototype-key", publication: "batched" }, clock: flow.clock.read },
+    { engine: { idKey: TEST_FIXTURE_ID_KEY, publication: "batched" }, clock: flow.clock.read, allowTestFixtureIdKey: true },
     flow.venue.journal.toJsonl(),
     snapshot,
   );

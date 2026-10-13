@@ -96,17 +96,35 @@ export type JournalVerification =
  *
  * A final line without a trailing newline that fails to parse is treated as a
  * torn write (crash mid-append) and dropped; any other failure is corruption.
+ * Only an unparseable line can be torn: a journal line is one JSON object closed
+ * by its last byte, so no strict prefix of it parses. A line that parses but
+ * fails validation (hash, chain, sequence, timestamp, schema) is a complete,
+ * invalid entry and is refused even when it is the last line and has no
+ * newline (VR-28).
+ *
+ * Duplicate and conflicting records (MATCHING-RULES D-5) are always refused
+ * (fail-closed). A byte-identical copy of the last entry cannot be told apart
+ * from a store that acknowledged a later append but persisted the previous
+ * bytes again, which would silently lose an acknowledged command (VR-24).
+ * Refusals are classified precisely: duplicate of the last entry, copy of an
+ * earlier entry, sequence number reused with different content, gap, empty
+ * line. A partial final line (a torn write) is still dropped as uncommitted:
+ * the store contract (storage.ts) acknowledges an append only once the whole
+ * line is stored.
  */
 export function readJournal(jsonl: string): JournalVerification {
   const lines = jsonl.split("\n");
   const complete = jsonl.endsWith("\n") || jsonl === "";
   if (complete) lines.pop();
   const entries: JournalEntry[] = [];
+  /** Raw line of every accepted entry, for byte comparison of duplicates. */
+  const rawLines: string[] = [];
   let prev = GENESIS_HASH;
   let prevTs = 0;
   let validLength = 0;
   for (let i = 0; i < lines.length; i++) {
     const isLast = i === lines.length - 1;
+    if (lines[i] === "") return { ok: false, validEntries: entries, failedAtLine: i + 1, reason: "empty line" };
     let raw: unknown;
     try {
       raw = JSON.parse(lines[i]!);
@@ -114,12 +132,26 @@ export function readJournal(jsonl: string): JournalVerification {
       if (isLast && !complete) return { ok: true, entries, head: prev, tornTail: true, validLength };
       return { ok: false, validEntries: entries, failedAtLine: i + 1, reason: "unparseable entry" };
     }
-    const failure = checkEntry(raw, entries.length + 1, prev, prevTs);
-    if (typeof failure === "string") {
-      if (isLast && !complete) return { ok: true, entries, head: prev, tornTail: true, validLength };
-      return { ok: false, validEntries: entries, failedAtLine: i + 1, reason: failure };
+    const expectedSeq = entries.length + 1;
+    const seq = raw && typeof raw === "object" ? (raw as Record<string, unknown>).seq : undefined;
+    if (typeof seq === "number" && Number.isSafeInteger(seq) && seq >= 1 && seq < expectedSeq) {
+      const line = lines[i]!;
+      if (line !== rawLines[seq - 1]) {
+        return { ok: false, validEntries: entries, failedAtLine: i + 1, reason: `sequence number ${seq} reused with different content` };
+      }
+      const reason =
+        seq === entries.length
+          ? `duplicate of the last entry (seq ${seq}); the journal cannot establish whether it is a retried append or a later acknowledged entry persisted with the wrong bytes, so recovery refuses (D-5)`
+          : `copy of earlier entry ${seq}`;
+      return { ok: false, validEntries: entries, failedAtLine: i + 1, reason };
     }
+    if (typeof seq === "number" && Number.isSafeInteger(seq) && seq > expectedSeq) {
+      return { ok: false, validEntries: entries, failedAtLine: i + 1, reason: `sequence gap: expected ${expectedSeq}, found ${seq}` };
+    }
+    const failure = checkEntry(raw, expectedSeq, prev, prevTs);
+    if (typeof failure === "string") return { ok: false, validEntries: entries, failedAtLine: i + 1, reason: failure };
     entries.push(failure);
+    rawLines.push(lines[i]!);
     prev = failure.hash;
     prevTs = failure.ts;
     // A complete entry without its trailing newline still counts (the hash covers the whole entry);

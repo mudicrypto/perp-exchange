@@ -250,23 +250,41 @@ No test or isolation rule was weakened. The venue's ESLint isolation rules are u
   inside the displayed spread toward the probe budget, or require a minimum FOK size.
 - **Test:** `privacy-review.test.ts` "VR-08 …" pins the current behaviour.
 
-### VR-09: Idempotency records are not durable — **Low, Open**
+### VR-09: Idempotency records are not durable — **Low, Resolved in Milestone 10**
 
 - **Rule:** A-4.
 - **Evidence:** records live in gateway memory. If a client retries after a crash, there is no
   duplicate execution: the engine refuses the duplicate client ID, which is journaled state. But the
   client gets `duplicate-client-order-id` instead of its original response, and must look the order
   up by client order ID.
-- **Test:** covered by the outcome-unknown flow in `verification.test.ts` "VR-01 …" (lookup by
-  client order ID after recovery).
+- **Test (Milestone 9):** covered by the outcome-unknown flow in `verification.test.ts` "VR-01 …"
+  (lookup by client order ID after recovery).
+- **Resolution (Milestone 10):** a venue idempotency ledger is rebuilt from the journal and carried
+  in snapshots under a verified hash. An identical retry after a restart now returns the original
+  events without journaling. A conflicting retry is `idempotency-conflict`. A residual remains at
+  capacity eviction. Rule A-4; [RECOVERY-INTEGRITY.md](RECOVERY-INTEGRITY.md) §1, §5.
 
-### VR-10: A duplicated final line stops recovery (fail-closed) — **Low, Open**
+### VR-10: A duplicated final line stops recovery (fail-closed) — **Low, Resolved in Milestone 10**
 
 - **Rule:** D-2.
 - **Evidence:** an append retried after a lost acknowledgement duplicates the last line. The reader
   treats this as corruption, so the venue stays down until an operator intervenes.
 - **Assessment:** safe, but unavailable. A writer that is idempotent on (seq, hash) would avoid it.
-- **Test:** `crash-recovery.test.ts` "VR-10 …".
+- **Test (Milestone 9):** `crash-recovery.test.ts` "VR-10 …". The test was updated in Milestone 10
+  to the new rule.
+- **Resolution (Milestone 10):** rule D-5, **fail-closed**.
+  - Every duplicate refuses recovery with a precise classification, and the store is left unchanged.
+    This covers a trailing copy of the final entry, with or without a newline, an interior copy, a
+    stale copy, sequence reuse with different content, a gap and an empty line.
+  - The first Milestone 10 version dropped trailing copies. The review showed that this could
+    silently lose an acknowledged command (VR-24), so it was reverted.
+  - **What changed relative to Milestone 9:**
+    - Precise classification.
+    - The no-newline copy of the final entry, which Milestone 9 silently dropped as a torn tail, is
+      now refused.
+  - **Availability:** still depends on an operator. Safe automatic repair would need an independently
+    persisted commit record.
+  - [RECOVERY-INTEGRITY.md](RECOVERY-INTEGRITY.md) §2, §5, §7.
 
 ### VR-11: Rejected orders create empty account holdings — **Info, Accepted**
 
@@ -290,16 +308,27 @@ No test or isolation rule was weakened. The venue's ESLint isolation rules are u
   Outboxes keep 10 000 events per account and drop the oldest without notice. Clients can only
   detect the loss through a gap in `accountSeq`.
 - **Mitigation needed:** retention and archiving; an explicit gap marker.
+- **Dependency (recorded in Milestone 10):** the engine's client-ID index is what prevents a second
+  execution once an idempotency-ledger entry has been evicted (A-4). Any retention fix for VR-13 must
+  keep a permanent, recoverable client-ID index.
 - **Test:** none (operational).
 
-### VR-14: Opaque IDs rest entirely on the secrecy of the ID key; fixtures use a constant — **Low, Open**
+### VR-14: Opaque IDs rest entirely on the secrecy of the ID key; fixtures use a constant — **Low, Resolved in Milestone 10 (policy); key management open**
 
 - **Rule:** H-8.
 - **Evidence:** with the fixture key `local-prototype-key`, an order ID maps straight back to the
   global sequence number.
 - **Mitigation:** the key must be a managed secret per deployment. The fixture key is acceptable
   only for synthetic, local use.
-- **Test:** `privacy-review.test.ts` "VR-14 …".
+- **Test:** `privacy-review.test.ts` "VR-14 …". It still demonstrates the dependency on the key.
+- **Resolution (Milestone 10):** rule A-5.
+  - `Venue` and `Venue.recover` refuse keys that are short, outside the base64url alphabet or of low
+    diversity.
+  - They refuse the registered fixture keys unless `allowTestFixtureIdKey: true` is passed.
+  - Fixture literals are confined to `id-key.ts` and tests (static check).
+  - **Still open:** rotation, storage and distribution of the key; verification of its randomness.
+    The engine itself does not enforce the policy.
+  - [RECOVERY-INTEGRITY.md](RECOVERY-INTEGRITY.md) §3, §6.
 
 ### VR-15: Timing side channel from hidden-only price levels — **Low, Open**
 
@@ -484,16 +513,127 @@ These are the final results. Logs are in `docs/venue/verification/final/`.
 - **High:** none open. VR-01 is resolved.
 - **Medium:** none open. VR-02, VR-03, VR-04, VR-05, VR-07 and VR-19 are resolved.
 - **Resolved in the review follow-up:** VR-20, VR-21 and VR-22 (Low) and VR-23 (Info).
-- **Low:** VR-08, VR-09, VR-10, VR-13, VR-14, VR-15 and VR-18 (partially mitigated).
+- **Resolved in Milestone 10:** VR-09 and VR-10 (Low). VR-14 (Low) is resolved as a policy; key management stays open.
+- **Low, open:** VR-08, VR-13, VR-15 and VR-18 (partially mitigated).
 - **Info:** VR-16 and VR-17 (design).
 
 These are not findings against the specification, but they remain the highest risks of the design
 as a whole:
 
 - **No real authentication.** Sessions are local tokens.
-- **Durability is unverified.** Only the in-memory store has been tested.
+- **Durability is unverified.** Only the in-memory store has been tested. That includes the idempotency ledger, which is as durable as the journal it is rebuilt from.
 - **No trust anchor.** The hash chain has no independently protected anchor.
 - **The operator and the process can read all hidden orders**, which are also stored in plaintext.
 
 Any use beyond a synthetic local prototype needs the independent reviews listed in
 [SECURITY-CHECKLIST.md](SECURITY-CHECKLIST.md) §B.
+
+## 8. Milestone 10: recovery integrity and idempotency
+
+**Scope:** VR-09, VR-10 and VR-14 only. Specification and detailed results:
+[RECOVERY-INTEGRITY.md](RECOVERY-INTEGRITY.md). `src/venue/engine.ts` is unchanged (`git diff 27dee34
+-- src/venue/engine.ts` is empty).
+
+**Verdict for this milestone:** verified with limitations. VR-09, VR-10 and VR-14 are resolved within
+the tested scope. So are the four findings of the read-only review of this milestone (VR-24 to
+VR-27) and the two pre-existing defects found by the final read-only review (VR-28, VR-29;
+RECOVERY-INTEGRITY §7). The open items are listed below. The venue remains a synthetic, local
+prototype and is not deployable.
+
+### Evidence
+
+- **Tests written first.** `recovery-integrity.test.ts` (30 tests) was written before the
+  implementation; `recovery-review.test.ts` (16 tests) was written before the review fixes.
+- **Against `27dee34`:** 41 of the 46 failed and 5 passed; the 5 that pass pin unchanged behaviour.
+  The 41 failures break down as:
+  - **18 behaviour:** VR-09 (6), VR-14 (10), and the no-newline duplicate silently dropped by
+    `27dee34` (2)
+  - **14 classification only:** `27dee34` already refused those journals, with a generic message
+  - **9 new mechanism:** the ledger or its capacity does not exist in `27dee34`
+
+  Log: `docs/venue/verification/m10-tests-against-27dee34.log`.
+- **Against the unfixed Milestone 10 tree:** the 16 review tests gave 12 failed, 4 passed:
+  - VR-24 silent drop (5)
+  - VR-27 messages (4)
+  - VR-25 (2)
+  - VR-26 (1)
+
+  Log: `docs/venue/verification/m10-review-fixes.log`.
+- **Against the tree before the final-review fixes:** the 19 tests in `recovery-final.test.ts` gave
+  15 failed, 4 passed:
+  - VR-28: a complete but invalid final line without a newline dropped as a torn write (11)
+  - VR-29: shared event objects between consumers (4)
+  - The 4 that pass pin behaviour that was already correct: genuine torn tails, malformed lines with
+    a newline, and two terminal-order eviction tests that close a coverage gap.
+
+  Log: `docs/venue/verification/m10-final-review-fixes.log`.
+- **Key properties hold after the change:**
+  - Idempotency property: 150 runs with restarts, snapshots, storage faults and retries, at least
+    300 retry checks per run. No accepted order is journaled or executed twice.
+  - The crash-boundary property (150 runs, five boundaries) passes unchanged.
+- **Existing tests changed:**
+  - Fixture-key call sites now pass `allowTestFixtureIdKey: true`, with their assertions unchanged.
+  - One H-8 test now uses generated strong keys.
+  - The Milestone 9 VR-10 test asserted a generic refusal. It now asserts the specific D-5 refusal,
+    the store left untouched, and the interior case.
+  - Three D-5 tests from the first Milestone 10 version asserted drop-and-report. After VR-24 they
+    assert refusal. No assertion was removed or loosened.
+
+### Checks
+
+Logs are in `docs/venue/verification/m10-final/`.
+
+| Check | Result |
+|---|---|
+| Venue tests | 207 passed (12 files) |
+| Full unit suite | 584 passed (48 files) |
+| Typecheck / lint / build / bundle scan | pass / pass / pass / clean |
+| E2E | 52 passed. The log contains Node warnings about `NO_COLOR` being ignored, caused by setting both colour variables for log capture; the Milestone 9 log has the same. It also contains a web-server line "Venue request failed (network)": the app's live adapter has no outbound network in this sandbox; the Milestone 9 log has it too. |
+| Demo | reconciliation OK; state and output hashes identical to Milestone 9 (`a11cdf37…`, `54733390…`) |
+
+### Benchmarks
+
+Measured as an alternating A/B against `27dee34` in one session (PERFORMANCE-RESULTS §6). The
+reportable differences:
+
+- Recovery replay is about 15 % slower, consistent with recording ledger entries.
+- Gateway entry is about 9 % faster.
+- Immediate publication moved −12 %. This is unexplained and not treated as a measured regression.
+- Everything else is within the noise floor. Code identical in both versions moved 7 %.
+- **Review fixes** (PERFORMANCE-RESULTS §7): inconclusive. Code identical in both versions moved
+  +14 % with non-overlapping ranges, and the order-entry scenarios disagree in sign (F2 +9 %, F3–F5
+  −11 % to −20 %). No regression or improvement is established. Recovery showed no change beyond the
+  noise floor in that session.
+- **Final-review fixes:** the per-event freeze added for VR-29 was not benchmarked.
+
+### Review findings (VR-24 to VR-29)
+
+| ID | Severity | Status | Summary |
+|---|---|---|---|
+| VR-24 | Medium | Resolved | The first D-5 version dropped a trailing duplicate, so a store that acknowledged an append but persisted the previous entry again silently lost an acknowledged, published order. D-5 is now fail-closed. |
+| VR-25 | Low | Resolved | Ledger records, replays and snapshots shared mutable event objects. Records are now deep-frozen copies, and each replay returns a fresh copy. |
+| VR-26 | Low | Resolved | The ledger after a restart depended on the capacity in use at recovery. Snapshots now record and verify their capacity, and full-replay behaviour under a changed capacity is defined (responses only, never execution). |
+| VR-27 | Info | Resolved | Refusal messages were inaccurate. They now name the duplicate of the last entry, a copy of an earlier entry, or an empty line. |
+| VR-28 | Medium | Resolved | Pre-existing since Milestone 8. `readJournal` dropped *any* invalid final line without a newline as a torn write, including a complete line that parses but fails validation, so a corrupted acknowledged entry was silently discarded. Only an unparseable final line is now treated as torn; a parseable invalid line is refused. This does **not** detect an acknowledged entry that a non-conforming store truncated or lost. |
+| VR-29 | Low | Resolved | Pre-existing since Milestone 8. The first response, the private feed, the public tape and every public listener shared event objects (and a `request-rejected` event shared the journaled command's `ref`), so one consumer could change what another observed. `Venue.route` now deep-freezes every routed event and public message; `engine.ts` unchanged. |
+
+### Open after Milestone 10
+
+- **From Milestone 9:** VR-08 (FOK absence probe), VR-13 (unbounded growth), VR-15 (timing channel)
+  and VR-18 (poison-command runbook). VR-16 and VR-17 remain open by design.
+- **Id-key management:** generation in deployment, storage and rotation. Key randomness cannot be
+  verified, and the engine does not enforce the policy.
+- **Ledger:** after eviction, identical and conflicting retries get the same `duplicate-client-order-id`
+  answer, and each is journaled. Its snapshot hash is not tamper-proof without an independent anchor,
+  and it is only as durable as the in-memory store tested here.
+- **Client-ID index dependency:** no double execution after eviction rests on the engine's permanent
+  client-ID index. That index is part of the unbounded growth in VR-13, and must be kept by any VR-13
+  fix.
+- **Duplicate journal records:** fail-closed, so availability depends on an operator. Safe automatic
+  repair needs an independently persisted commit record or trust anchor.
+- **Torn-tail assumption:** an unparseable final line is dropped as uncommitted. This assumes the
+  store never acknowledges a write before it is durable. In a store that does, an acknowledged entry
+  that is truncated mid-line or missing entirely is not detected (VR-28 does not change this).
+- **Output immutability scope:** routed events and public messages are frozen (VR-29). Execution
+  records and the venue's own arrays (`executions`, `publicTape`, outboxes) are reachable, mutable,
+  through the in-process `Venue` object.

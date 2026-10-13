@@ -295,12 +295,15 @@ interval:
     schema, and its sequence and hash chain checked.
   - Recovery takes journal text or a store, never both. The store is repaired only after the
     journal, the snapshot and the replay have all succeeded (VR-21, VR-22).
-  - A torn final line is dropped (and truncated from the store): that command was never
-    acknowledged.
+  - A torn final line, meaning an **unparseable** final line without a newline, is dropped (and
+    truncated from the store). Under the store contract that command was never acknowledged; the
+    reader cannot verify the contract.
+  - A final line that parses as JSON but fails validation is a complete, corrupt entry, not a torn
+    write. It refuses recovery even without a trailing newline (VR-28).
   - A complete final entry without its newline counts as committed. The newline is restored before
     the next append.
-  - A duplicated final line, for example from a retried append, is corruption: recovery refuses
-    (fail-closed, VR-10).
+  - Duplicate and conflicting records follow D-5: every one refuses recovery, with a precise
+    classification.
   - Any other inconsistency is corruption, and recovery stops.
   - A snapshot must reference the journal entry it was taken after, and the restored state must
     reproduce the snapshot's `stateHash` (VR-05).
@@ -321,6 +324,23 @@ interval:
     and command `seq`.
   - Consumers drop sequence numbers they have already processed.
   - A public consumer that sees a gap marks its book stale.
+- **D-5** **Duplicate and conflicting journal records: fail-closed** (details:
+  [RECOVERY-INTEGRITY.md](RECOVERY-INTEGRITY.md) §2).
+  - Every duplicate refuses recovery, with a precise classification:
+    - `duplicate of the last entry (seq k)`, including a copy at the very end of the file, with or
+      without a newline
+    - `copy of earlier entry j`
+    - `sequence number N reused with different content`, including a valid-hash re-serialisation
+    - `sequence gap`
+    - `empty line`
+  - A refused recovery leaves the store untouched.
+  - A byte-identical copy of the last entry is **not** treated as harmless. It cannot be told apart
+    from a store that acknowledged a later append but persisted the previous bytes, which would lose
+    an acknowledged command (VR-24). Automatic repair would need an independently persisted commit
+    record, which does not exist.
+  - A partial final line (torn write, unparseable) is still dropped as uncommitted. This relies on
+    the store contract that an append is acknowledged only once it is durable. A store that breaks
+    it can lose an acknowledged entry by truncation or omission without detection.
 
 ## 10. Gateway and access
 
@@ -335,23 +355,48 @@ interval:
   - Every private event is routed only to its account.
   - A gateway response contains only the caller's events, even when the command also produced
     events for a counterparty.
+  - Delivered events and public messages are immutable. The first response, the private feed, the
+    public tape and every public listener receive frozen objects, so no consumer can change what
+    another observes (VR-29).
 - **A-3** **Message rate limit.**
   - Limited per account with a sliding window (default 200 messages per second).
   - Excess messages are refused before they are journaled, with `retryAfterMs`.
   - Refusals are logged with timestamp, account and code only, never the payload. The log keeps the
     most recent 10 000 records, plus totals per code (VR-04).
-- **A-4** **Idempotent order entry.**
+- **A-4** **Idempotent order entry** (details: [RECOVERY-INTEGRITY.md](RECOVERY-INTEGRITY.md) §1).
   - Keyed by account and client order ID.
-  - An identical retry of an **accepted** order returns the original response, marked `replayed`,
-    and is not journaled again.
-  - A rejected order creates no idempotency record, so an identical retry is evaluated again
-    (consistent with §11; VR-06).
-  - Idempotency records are in memory. After a restart, a retry gets `duplicate-client-order-id`
-    from the engine instead of the original response; it is still never executed twice (VR-09).
-  - `outcome-unknown`: the client should look the order up by client order ID once the venue is
-    back, before retrying.
-  - A different payload under a used ID is refused with `idempotency-conflict`.
-  - After the idempotency record is evicted, the engine still refuses the duplicate client ID.
+  - Two messages are the **same request** if and only if they normalise to the same engine command
+    (integer ticks and lots, defaults applied).
+  - **While the ledger entry is retained** (same process, after a full replay, or after a snapshot
+    restore):
+    - An identical retry returns `replayed: true` with a fresh copy of the original events, and is
+      not journaled.
+    - A conflicting retry gets `idempotency-conflict`, and is not journaled.
+  - The **idempotency ledger** holds deep-frozen copies of accepted orders' commands and events. It is
+    rebuilt from the journal, and carried in snapshots with its capacity under a verified hash.
+  - **After eviction** (capacity *C*, 100 000 by default; the most recent *C* accepted orders are
+    retained):
+    - Identical and conflicting retries both get `rejected: duplicate-client-order-id` and are
+      journaled as rejections.
+    - The original order can be looked up with `gateway.order(token, { clientOrderId })`.
+  - **No second execution, in every case**, is enforced by the engine's permanent client-ID index, not
+    by the ledger. Any change to the unbounded-growth risk VR-13 must keep that index.
+  - **Capacity across restarts:** a snapshot restore under a different capacity is refused. A full
+    replay follows the configured capacity; this changes which retries replay, never execution.
+  - A rejected order creates no ledger entry, so a retry is evaluated again (§11).
+  - `outcome-unknown`: once the venue is recovered, an identical retry returns the original events if
+    the command was committed and accepted. Otherwise it is evaluated as a new request.
+- **A-5** **Order-ID key policy** (details: [RECOVERY-INTEGRITY.md](RECOVERY-INTEGRITY.md) §3).
+  - `Venue` and `Venue.recover` refuse an `idKey` that:
+    - is shorter than 43 characters
+    - is outside the base64url alphabet
+    - has fewer than 16 distinct characters
+    - is a registered test-fixture key without `allowTestFixtureIdKey: true`
+  - The flag admits only the registered fixture keys; it never relaxes the policy for any other key.
+  - `generateIdKey()` produces a conforming key (32 random bytes).
+  - Errors never echo the key.
+  - Fixture key literals exist only in `id-key.ts` and tests (static check).
+  - Key rotation and storage are not covered (open).
 
 ## 11. Order of validation
 

@@ -1,0 +1,103 @@
+# Milestone 10 tests (final versions of src/venue/recovery-integrity.test.ts and src/venue/recovery-review.test.ts)
+# run against the Milestone 9 commit 27dee34 (git archive export). Supersedes the earlier 27/30 run, which predates the
+# review fixes (VR-24..VR-27) that reverted D-5 to fail-closed and added the review regression tests.
+# Reproduce:
+#   mkdir d && git archive 27dee34 | tar -x -C d && ln -s $PWD/node_modules d/node_modules
+#   cp src/venue/recovery-integrity.test.ts src/venue/recovery-review.test.ts d/src/venue/
+#   (cd d && npx vitest run src/venue/recovery-integrity.test.ts src/venue/recovery-review.test.ts)
+#
+# Result: 41 failed, 5 passed (46).
+# Classes of the 41 failures:
+#   behaviour (18)      27dee34 does the wrong thing:
+#                       VR-09 idempotency after restart (6: identical/snapshot/conflicting/outcome-unknown/normalised/property);
+#                       VR-14 key policy (10);
+#                       a complete copy of the final entry WITHOUT a trailing newline is silently dropped as a torn tail (2:
+#                       recovery-review "copy … without a trailing newline", recovery-integrity "duplicated final line without its newline").
+#                       This is the VR-24 silent-loss shape, already present in 27dee34 for the no-newline case.
+#   classification (14) 27dee34 already refuses the journal, with the generic "sequence gap or reorder (expected N)" or
+#                       "unparseable entry" message instead of the D-5 classification (duplicate of the last entry, copy of
+#                       earlier entry, reuse with different content, gap, empty line).
+#   new mechanism (9)   the test needs the venue idempotency ledger or its capacity, which 27dee34 does not have.
+# Passing on 27dee34 (5): rejected request evaluated again after restart; strong key accepted; stopped-venue replay;
+#                       reader refuses a trailing duplicate (generic message); torn partial line dropped / malformed line refused.
+
+     × D-5 a store that acknowledges an append but writes the previous entry again: the acknowledged order is not silently lost
+     × D-5 1 byte-identical copies of the final entry at the end of the journal are refused, not dropped
+     × D-5 3 byte-identical copies of the final entry at the end of the journal are refused, not dropped
+     × D-5 a copy of the final entry without a trailing newline is refused, not treated as a torn write
+     × D-5 a copy of the final entry followed by a blank line is refused as a duplicate (accurate message)
+     × D-5 an interior copy of the final-so-far entry is refused as a duplicate
+     × D-5 a stale copy of an earlier entry at the very end is named as a copy of that entry
+     × D-5 a blank line, at the end or in the middle, is refused as an empty line
+     × A-4 mutating a returned response changes neither the ledger, later replays, snapshots, nor earlier responses
+     × A-4 ledger records cannot be mutated through acceptedOrder() or through a snapshot after restore
+     × A-4 identical and conflicting retries after eviction both get duplicate-client-order-id; never a second execution; lookup by client order id still works
+     × A-4 the same holds after a full replay and after a snapshot restore with the same capacity
+     × A-4 a snapshot records its ledger capacity; restoring it under a different capacity is refused without touching the store
+     × A-4 a full replay rebuilds the ledger for the configured capacity: same capacity gives the same ledger; another capacity changes only which retries replay, never execution
+     × A-4 an identical retry after a restart (full replay) returns the original events and is not journaled again
+     × A-4 the same holds after recovery from a snapshot taken after the order was accepted
+     × A-4 a conflicting retry after a restart is refused without being journaled
+     × A-4 an outcome-unknown request is resolved by an identical retry once the venue is recovered
+     × A-4 messages that normalise to the same engine command are the same request ("1999.0" vs "1999.00")
+     × A-4 the ledger rebuilt by full replay and the ledger restored from a snapshot equal the live ledger
+     × A-4 an altered idempotency ledger in a snapshot is refused
+     × A-4 residual: after a ledger entry is evicted, a retry is refused by the engine as a duplicate — never executed twice
+     × A-4 property: across random restarts, storage faults and retries, accepted orders are never journaled or executed twice
+     × D-5 1 byte-identical copies of the final line refuse recovery and leave the store untouched
+     × D-5 3 byte-identical copies of the final line refuse recovery and leave the store untouched
+     × D-5 a duplicated final line without its newline is refused the same way (not treated as a torn write)
+     × D-5 an interior duplicate (a copy followed by further entries) is refused
+     × D-5 a trailing duplicate followed by a torn write is refused (ambiguous)
+     × D-5 a re-serialised copy of the final entry (valid hash, different bytes) is refused as reuse with different content
+     × D-5 a different command under an already-used sequence number is refused, at the end and in the interior
+     × D-5 a sequence gap is refused as a gap
+     × A-5 refuses a missing key without echoing it
+     × A-5 refuses a empty key without echoing it
+     × A-5 refuses a short key without echoing it
+     × A-5 refuses a 42 characters key without echoing it
+     × A-5 refuses a outside base64url key without echoing it
+     × A-5 refuses a low diversity key without echoing it
+     × A-5 a test-fixture key is refused unless explicitly allowed, and the flag never relaxes the policy for other keys
+     × A-5 recovery enforces the same policy
+     × A-5 the synthetic factory uses the fixture key explicitly; a weak custom key is refused
+     × A-5 fixture key literals appear only in the key-policy module and tests
+⎯⎯⎯⎯⎯⎯ Failed Tests 41 ⎯⎯⎯⎯⎯⎯⎯
+      Tests  41 failed | 5 passed (46)
+
+# First error per failing test:
+A-4 / VR-09 idempotency across restarts > A-4 an identical retry after a restart (full replay) returns t :: AssertionError: expected { ok: true, replayed: false, …(1) } to deeply equal { ok: true, replayed: true, …(1) }
+A-4 / VR-09 idempotency across restarts > A-4 the same holds after recovery from a snapshot taken after  :: AssertionError: expected { ok: true, replayed: false, …(1) } to deeply equal { ok: true, replayed: true, …(1) }
+A-4 / VR-09 idempotency across restarts > A-4 a conflicting retry after a restart is refused without bei :: AssertionError: expected { ok: true, replayed: false, …(1) } to match object { ok: false, …(1) }
+A-4 / VR-09 idempotency across restarts > A-4 an outcome-unknown request is resolved by an identical ret :: AssertionError: expected { ok: true, replayed: false, …(1) } to match object { ok: true, replayed: true, …(1) }
+A-4 / VR-09 idempotency across restarts > A-4 messages that normalise to the same engine command are the :: AssertionError: expected { ok: false, error: { …(2) } } to deeply equal { ok: true, replayed: true, …(1) }
+A-4 / VR-09 idempotency across restarts > A-4 the ledger rebuilt by full replay and the ledger restored  :: TypeError: Cannot read properties of undefined (reading 'length')
+A-4 / VR-09 idempotency across restarts > A-4 an altered idempotency ledger in a snapshot is refused :: TypeError: Cannot read properties of undefined (reading '0')
+A-4 / VR-09 idempotency across restarts > A-4 residual: after a ledger entry is evicted, a retry is refu :: AssertionError: expected { ok: true, replayed: true, …(1) } to match object { ok: true, replayed: false, …(1) }
+A-4 / VR-09 idempotency across restarts > A-4 property: across random restarts, storage faults and retri :: Error: Property failed after 3 tests
+A-4 / VR-09 idempotency across restarts > A-4 property: across random restarts, storage faults and retri :: Caused by: AssertionError: expected { ok: true, replayed: false, …(1) } to deeply equal { ok: true, replayed: true, …(1) }
+D-5 / VR-10 duplicate and conflicting journal records > D-5 3 byte-identical copies of the final line re :: AssertionError: expected [Function] to throw error matching /line 16: duplicate of the last entry …/ but got 'journal corrupt at line 16: sequence …'
+D-5 / VR-10 duplicate and conflicting journal records > D-5 a duplicated final line without its newline  :: AssertionError: expected [Function] to throw an error
+D-5 / VR-10 duplicate and conflicting journal records > D-5 an interior duplicate (a copy followed by fu :: AssertionError: expected [Function] to throw error matching /line 9: duplicate of the last entry \…/ but got 'journal corrupt at line 9: sequence g…'
+D-5 / VR-10 duplicate and conflicting journal records > D-5 a trailing duplicate followed by a torn writ :: AssertionError: expected [Function] to throw error matching /line 16: duplicate of the last entry …/ but got 'journal corrupt at line 16: sequence …'
+D-5 / VR-10 duplicate and conflicting journal records > D-5 a re-serialised copy of the final entry (val :: AssertionError: expected [Function] to throw error matching /sequence number \d+ reused with diffe…/ but got 'journal corrupt at line 16: sequence …'
+D-5 / VR-10 duplicate and conflicting journal records > D-5 a different command under an already-used se :: AssertionError: expected [Function] to throw error matching /sequence number 15 reused with differ…/ but got 'journal corrupt at line 16: sequence …'
+D-5 / VR-10 duplicate and conflicting journal records > D-5 a sequence gap is refused as a gap :: AssertionError: expected [Function] to throw error matching /sequence gap: expected 6, found 7/ but got 'journal corrupt at line 6: sequence g…'
+A-5 / VR-14 order-ID key policy > A-5 refuses a low diversity key without echoing it :: AssertionError: expected [Function] to throw an error
+A-5 / VR-14 order-ID key policy > A-5 a test-fixture key is refused unless explicitly allowed, and the f :: AssertionError: expected [Function] to throw an error
+A-5 / VR-14 order-ID key policy > A-5 recovery enforces the same policy :: AssertionError: expected [Function] to throw an error
+A-5 / VR-14 order-ID key policy > A-5 the synthetic factory uses the fixture key explicitly; a weak cust :: AssertionError: expected [Function] to throw an error
+A-5 / VR-14 order-ID key policy > A-5 fixture key literals appear only in the key-policy module and test :: AssertionError: expected [ 'bench.ts', 'demo.ts', …(2) ] to deeply equal []
+VR-24 / D-5 duplicate records fail closed > D-5 a store that acknowledges an append but writes the previous :: AssertionError: expected [Function] to throw error matching /duplicate of the last entry \(seq 9\)…/ but got 'journal corrupt at line 10: sequence …'
+VR-24 / D-5 duplicate records fail closed > D-5 3 byte-identical copies of the final entry at the end of th :: AssertionError: expected [Function] to throw error matching /line 10: duplicate of the last entry …/ but got 'journal corrupt at line 10: sequence …'
+VR-24 / D-5 duplicate records fail closed > D-5 a copy of the final entry without a trailing newline is ref :: AssertionError: expected [Function] to throw an error
+VR-24 / D-5 duplicate records fail closed > D-5 a copy of the final entry followed by a blank line is refus :: AssertionError: expected [Function] to throw error matching /line 10: duplicate of the last entry …/ but got 'journal corrupt at line 10: sequence …'
+VR-24 / D-5 duplicate records fail closed > D-5 an interior copy of the final-so-far entry is refused as a  :: AssertionError: expected [Function] to throw error matching /line 6: duplicate of the last entry \…/ but got 'journal corrupt at line 6: sequence g…'
+VR-27 / D-5 accurate refusal messages > D-5 a stale copy of an earlier entry at the very end is named as a  :: AssertionError: expected [Function] to throw error matching /line 10: copy of earlier entry 4/ but got 'journal corrupt at line 10: sequence …'
+VR-27 / D-5 accurate refusal messages > D-5 a blank line, at the end or in the middle, is refused as an emp :: AssertionError: expected [Function] to throw error matching /line 10: empty line/ but got 'journal corrupt at line 10: unparseab…'
+VR-25 / A-4 idempotency records are isolated from returned objects > A-4 mutating a returned response chang :: TypeError: venue.acceptedOrder is not a function
+VR-25 / A-4 idempotency records are isolated from returned objects > A-4 ledger records cannot be mutated t :: TypeError: venue.acceptedOrder is not a function
+A-4 retries after ledger eviction > A-4 identical and conflicting retries after eviction both get duplicate :: TypeError: venue.acceptedOrder is not a function
+A-4 retries after ledger eviction > A-4 the same holds after a full replay and after a snapshot restore wit :: TypeError: venue.acceptedOrder is not a function
+VR-26 / A-4 ledger capacity across restarts > A-4 a snapshot records its ledger capacity; restoring it unde :: AssertionError: expected [Function] to throw an error
+VR-26 / A-4 ledger capacity across restarts > A-4 a full replay rebuilds the ledger for the configured capa :: TypeError: Cannot read properties of undefined (reading 'map')

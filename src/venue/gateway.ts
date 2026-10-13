@@ -3,7 +3,7 @@ import { z } from "zod";
 import { priceToTicks, quantityToLots, type InstrumentSpec } from "./instrument.ts";
 import { canonicalJson } from "./journal.ts";
 import { WindowLimiter } from "./rate-limit.ts";
-import { STP_MODES, SIDES, TIME_IN_FORCE, VISIBILITIES, type EngineCommand, type OrderRef, type OrderView, type PrivateEvent } from "./types.ts";
+import { engineCommandSchema, STP_MODES, SIDES, TIME_IN_FORCE, VISIBILITIES, type EngineCommand, type OrderRef, type OrderView, type PrivateEvent } from "./types.ts";
 import { OutcomeUnknownError, VenueUnavailableError, type Venue } from "./venue.ts";
 
 /**
@@ -17,8 +17,10 @@ import { OutcomeUnknownError, VenueUnavailableError, type Venue } from "./venue.
  *   converted exactly to ticks and lots or refused.
  * - Abuse controls: per-account message rate, a separate throttle on
  *   post-only rejections of new orders and replaces (the cheapest
- *   hidden-liquidity probes), idempotent retries keyed by client order id,
- *   a bounded refusal log.
+ *   hidden-liquidity probes), a bounded refusal log.
+ * - Idempotency: identical retries of accepted orders are answered from the
+ *   venue's idempotency ledger, which survives restarts because it is rebuilt
+ *   from the journal (MATCHING-RULES A-4).
  * - Output: a response carries only the caller's own private events.
  *
  * There is no network listener; tests and the demo call `handle` directly.
@@ -70,8 +72,6 @@ export interface GatewayOptions {
   readonly messages: { readonly limit: number; readonly windowMs: number };
   /** Post-only rejections per account per window before post-only orders are throttled. */
   readonly postOnlyRejects: { readonly limit: number; readonly windowMs: number };
-  /** Idempotency records kept (oldest dropped; the engine still refuses duplicate client ids). */
-  readonly idempotencyCapacity?: number;
   /** Individual refusal records kept for monitoring (oldest dropped; totals are always counted). */
   readonly refusalLogCapacity?: number;
 }
@@ -98,7 +98,6 @@ export class VenueGateway {
   private readonly sessions = new Map<string, string>();
   private readonly messageLimiter: WindowLimiter;
   private readonly postOnlyLimiter: WindowLimiter;
-  private readonly idempotency = new Map<string, { fingerprint: string; response: GatewayResponse }>();
   /** Most recent gateway-level refusals (never journaled), bounded; codes only, never payloads. */
   readonly refusals: { ts: number; accountId: string | null; code: GatewayErrorCode }[] = [];
   /** Total refusals per code since start (not bounded by the log capacity). */
@@ -182,22 +181,11 @@ export class VenueGateway {
   }
 
   private newOrder(now: number, accountId: string, message: Extract<z.output<typeof clientMessageSchema>, { op: "new" }>): GatewayResponse {
-    const key = `${accountId}\u0000${message.clientOrderId}`;
-    const fingerprint = canonicalJson(message);
-    const previous = this.idempotency.get(key);
-    if (previous) {
-      if (previous.fingerprint !== fingerprint) return this.refuse(now, accountId, fail("idempotency-conflict", "This client order id was already used for a different order."));
-      return previous.response.ok ? { ...previous.response, replayed: true } : previous.response;
-    }
     const spec = this.venue.engine.instrumentSpec(message.instrumentId);
     if (!spec) return this.refuse(now, accountId, fail("invalid-request", "Unknown instrument."));
-    if (message.postOnly) {
-      const wait = this.postOnlyLimiter.blockedFor(accountId, now);
-      if (wait > 0) return this.refuse(now, accountId, fail("rate-limited", "Too many rejected post-only orders.", wait));
-    }
     const converted = this.convert(spec, message.price, message.quantity);
     if (!converted.ok) return this.refuse(now, accountId, converted.response);
-    const response = this.forward(accountId, {
+    const command: EngineCommand = {
       type: "new-order",
       accountId,
       clientOrderId: message.clientOrderId,
@@ -210,15 +198,27 @@ export class VenueGateway {
       visibility: message.visibility,
       postOnly: message.postOnly,
       stp: message.selfTradePrevention,
-    });
+    };
+    // Idempotency (A-4): the venue's ledger, rebuilt from the journal on recovery, is the authority.
+    // Two messages are the same request iff they normalise to the same engine command.
+    const accepted = this.venue.acceptedOrder(accountId, message.clientOrderId);
+    if (accepted) {
+      if (accepted.command !== canonicalJson(engineCommandSchema.parse(command))) {
+        return this.refuse(now, accountId, fail("idempotency-conflict", "This client order id was already used for a different order."));
+      }
+      // A fresh copy per replay: the caller may mutate it without affecting the ledger or other responses (VR-25).
+      return { ok: true, replayed: true, events: structuredClone(accepted.events) as PrivateEvent[] };
+    }
+    if (message.postOnly) {
+      const wait = this.postOnlyLimiter.blockedFor(accountId, now);
+      if (wait > 0) return this.refuse(now, accountId, fail("rate-limited", "Too many rejected post-only orders.", wait));
+    }
+    const response = this.forward(accountId, command);
     this.countPostOnlyRejection(response, now, accountId);
-    // Only an accepted order consumes the client order id (MATCHING-RULES §11): a rejected request
-    // created nothing, so an identical retry is evaluated again rather than answered from a cache.
-    if (!response.ok || !response.events.some((e) => e.kind === "accepted")) return response;
-    this.idempotency.set(key, { fingerprint, response });
-    if (this.idempotency.size > (this.options.idempotencyCapacity ?? 100_000)) this.idempotency.delete(this.idempotency.keys().next().value!);
+    // Only an accepted order consumes the client order id (§11); the venue records it in the ledger.
     return response;
   }
+
 
   private convert(
     spec: InstrumentSpec,

@@ -323,7 +323,7 @@ describe("Phase E — gateway and sequencing", () => {
         expect(lv.gateway.handle(lv.tokens.get(account)!, newMsg({ clientOrderId: "after" }))).toMatchObject({ ok: false, error: { code: "unavailable" } });
       }
       expect(lv.venue.journal.lastSeq).toBe(seq);
-      const { venue } = Venue.recover({ engine: { idKey: "local-prototype-key", publication: "immediate" }, clock: lv.clock.read }, lv.venue.journal.toJsonl());
+      const { venue } = Venue.recover({ engine: { idKey: "local-prototype-key", publication: "immediate" }, clock: lv.clock.read, allowTestFixtureIdKey: true }, lv.venue.journal.toJsonl());
       // The journaled command takes effect on recovery; the refused ones do not.
       expect(venue.engine.orderFor("syn-a", { clientOrderId: "boom" })).toMatchObject({ status: "new" });
       expect(venue.engine.orderFor("syn-b", { clientOrderId: "after" })).toBeNull();

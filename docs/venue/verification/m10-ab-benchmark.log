@@ -1,0 +1,66 @@
+# Milestone 9 (27dee34 export) vs Milestone 10 working tree, alternating A/B in one session:
+#   3 rounds x (M9, M10), npm run venue:perf scale 0.5, 1 run each; seeds identical (1001 / 2001).
+#   Environment: node v22.22.0, 4 x Intel(R) Xeon(R) Processor @ 2.10GHz, 16 GiB
+#   Light concurrent activity during rounds 1-2: read-only git diff and small documentation edits.
+#   Script: for round in 1 2 3; for side in m9 m10: node src/venue/cli/perf.ts 0.5 1
+
+=== round 1 m9
+| F1 matching, no persistence | 1 | 30000 mixed commands, 16 accounts | 30000 | 130,070 | 3.4 | 21.2 | 44.0 | 4278 |
+| F2 matching + journal (memory store) | 1 | 30000 mixed commands; store 10.3 MiB | 30000 | 16,937 | 38.2 | 140.6 | 240.6 | 16846 |
+| F3 publication (immediate) | 1 | 30000 commands; 19828 public msgs; mirror validates each | 30000 | 17,352 | 37.4 | 142.1 | 235.5 | 3410 |
+| F3 publication (batched) | 1 | 30000 commands; 14096 public msgs; mirror validates each; publish every 50 | 30000 | 16,813 | 36.9 | 147.5 | 264.3 | 4633 |
+| F4 gateway mixed entry/cancel/execution | 1 | 30000 synthetic messages (seeded) | 30000 | 12,618 | 53.6 | 177.5 | 265.7 | 69129 |
+| F5 bursty (queueing + service) | 1 | bursts of 2000 every 200 ms, open loop | 30000 | 15,973 | 60251.2 | 130970.7 | 147424.2 | 158603 |
+| F6 large book | 1 | 75000 resting orders (25 % hidden) + 30000 mixed commands | 30000 | 16,911 | 37.9 | 137.9 | 227.8 | 39781 |
+| F7 recovery (full replay) | 1 | 30018 entries replayed; snapshot 2.2 MiB | 30018 | 23,866 | 41.9 | 41.9 | 41.9 | 42 |
+| F7 recovery (snapshot + suffix) | 1 | 14999 entries replayed; snapshot 2.2 MiB | 14999 | 16,343 | 61.2 | 61.2 | 61.2 | 61 |
+=== round 1 m10
+| F1 matching, no persistence | 1 | 30000 mixed commands, 16 accounts | 30000 | 120,974 | 3.5 | 22.6 | 47.4 | 7519 |
+| F2 matching + journal (memory store) | 1 | 30000 mixed commands; store 10.3 MiB | 30000 | 16,053 | 42.6 | 147.7 | 246.9 | 13800 |
+| F3 publication (immediate) | 1 | 30000 commands; 19828 public msgs; mirror validates each | 30000 | 14,437 | 44.4 | 170.7 | 267.1 | 4997 |
+| F3 publication (batched) | 1 | 30000 commands; 14096 public msgs; mirror validates each; publish every 50 | 30000 | 17,167 | 39.4 | 140.5 | 249.9 | 3581 |
+| F4 gateway mixed entry/cancel/execution | 1 | 30000 synthetic messages (seeded) | 30000 | 14,917 | 44.0 | 146.7 | 238.6 | 40844 |
+| F5 bursty (queueing + service) | 1 | bursts of 2000 every 200 ms, open loop | 30000 | 17,278 | 56464.4 | 110235.5 | 134679.7 | 144447 |
+| F6 large book | 1 | 75000 resting orders (25 % hidden) + 30000 mixed commands | 30000 | 16,944 | 42.6 | 136.2 | 215.5 | 10724 |
+| F7 recovery (full replay) | 1 | 30018 entries replayed; snapshot 9.1 MiB | 30018 | 16,215 | 61.7 | 61.7 | 61.7 | 62 |
+| F7 recovery (snapshot + suffix) | 1 | 14999 entries replayed; snapshot 9.1 MiB | 14999 | 11,758 | 85.1 | 85.1 | 85.1 | 85 |
+=== round 2 m9
+| F1 matching, no persistence | 1 | 30000 mixed commands, 16 accounts | 30000 | 147,719 | 3.1 | 18.4 | 39.2 | 4370 |
+| F2 matching + journal (memory store) | 1 | 30000 mixed commands; store 10.3 MiB | 30000 | 18,423 | 36.1 | 129.5 | 215.6 | 16010 |
+| F3 publication (immediate) | 1 | 30000 commands; 19828 public msgs; mirror validates each | 30000 | 17,835 | 37.0 | 137.3 | 236.5 | 3760 |
+| F3 publication (batched) | 1 | 30000 commands; 14096 public msgs; mirror validates each; publish every 50 | 30000 | 19,875 | 33.1 | 123.3 | 214.3 | 3984 |
+| F4 gateway mixed entry/cancel/execution | 1 | 30000 synthetic messages (seeded) | 30000 | 14,225 | 46.5 | 161.6 | 260.0 | 6009 |
+| F5 bursty (queueing + service) | 1 | bursts of 2000 every 200 ms, open loop | 30000 | 18,235 | 53448.8 | 105521.2 | 127439.0 | 150477 |
+| F6 large book | 1 | 75000 resting orders (25 % hidden) + 30000 mixed commands | 30000 | 18,218 | 36.3 | 129.7 | 217.9 | 7256 |
+| F7 recovery (full replay) | 1 | 30018 entries replayed; snapshot 2.2 MiB | 30018 | 20,871 | 47.9 | 47.9 | 47.9 | 48 |
+| F7 recovery (snapshot + suffix) | 1 | 14999 entries replayed; snapshot 2.2 MiB | 14999 | 13,597 | 73.5 | 73.5 | 73.5 | 74 |
+=== round 2 m10
+| F1 matching, no persistence | 1 | 30000 mixed commands, 16 accounts | 30000 | 119,428 | 3.6 | 23.1 | 54.4 | 6636 |
+| F2 matching + journal (memory store) | 1 | 30000 mixed commands; store 10.3 MiB | 30000 | 14,577 | 43.9 | 164.2 | 263.8 | 31530 |
+| F3 publication (immediate) | 1 | 30000 commands; 19828 public msgs; mirror validates each | 30000 | 16,869 | 41.7 | 142.1 | 236.1 | 3335 |
+| F3 publication (batched) | 1 | 30000 commands; 14096 public msgs; mirror validates each; publish every 50 | 30000 | 17,180 | 38.4 | 136.9 | 236.1 | 43773 |
+| F4 gateway mixed entry/cancel/execution | 1 | 30000 synthetic messages (seeded) | 30000 | 14,990 | 43.6 | 146.0 | 232.5 | 31154 |
+| F5 bursty (queueing + service) | 1 | bursts of 2000 every 200 ms, open loop | 30000 | 15,988 | 59142.9 | 124604.1 | 148980.0 | 162114 |
+| F6 large book | 1 | 75000 resting orders (25 % hidden) + 30000 mixed commands | 30000 | 16,519 | 42.1 | 139.3 | 219.1 | 18984 |
+| F7 recovery (full replay) | 1 | 30018 entries replayed; snapshot 9.1 MiB | 30018 | 18,790 | 53.2 | 53.2 | 53.2 | 53 |
+| F7 recovery (snapshot + suffix) | 1 | 14999 entries replayed; snapshot 9.1 MiB | 14999 | 11,199 | 89.3 | 89.3 | 89.3 | 89 |
+=== round 3 m9
+| F1 matching, no persistence | 1 | 30000 mixed commands, 16 accounts | 30000 | 117,750 | 3.9 | 23.6 | 50.6 | 4537 |
+| F2 matching + journal (memory store) | 1 | 30000 mixed commands; store 10.3 MiB | 30000 | 15,161 | 40.4 | 156.9 | 256.5 | 53215 |
+| F3 publication (immediate) | 1 | 30000 commands; 19828 public msgs; mirror validates each | 30000 | 19,212 | 36.3 | 125.3 | 197.7 | 4126 |
+| F3 publication (batched) | 1 | 30000 commands; 14096 public msgs; mirror validates each; publish every 50 | 30000 | 15,412 | 39.2 | 160.8 | 286.9 | 6556 |
+| F4 gateway mixed entry/cancel/execution | 1 | 30000 synthetic messages (seeded) | 30000 | 13,782 | 46.3 | 158.8 | 254.5 | 35234 |
+| F5 bursty (queueing + service) | 1 | bursts of 2000 every 200 ms, open loop | 30000 | 18,583 | 53193.5 | 108963.3 | 139360.0 | 154306 |
+| F6 large book | 1 | 75000 resting orders (25 % hidden) + 30000 mixed commands | 30000 | 13,991 | 43.0 | 173.2 | 266.7 | 8223 |
+| F7 recovery (full replay) | 1 | 30018 entries replayed; snapshot 2.2 MiB | 30018 | 21,352 | 46.8 | 46.8 | 46.8 | 47 |
+| F7 recovery (snapshot + suffix) | 1 | 14999 entries replayed; snapshot 2.2 MiB | 14999 | 13,954 | 71.7 | 71.7 | 71.7 | 72 |
+=== round 3 m10
+| F1 matching, no persistence | 1 | 30000 mixed commands, 16 accounts | 30000 | 131,981 | 3.6 | 21.7 | 41.6 | 3271 |
+| F2 matching + journal (memory store) | 1 | 30000 mixed commands; store 10.3 MiB | 30000 | 18,438 | 39.1 | 127.4 | 201.0 | 14768 |
+| F3 publication (immediate) | 1 | 30000 commands; 19828 public msgs; mirror validates each | 30000 | 15,650 | 42.5 | 156.7 | 251.5 | 6629 |
+| F3 publication (batched) | 1 | 30000 commands; 14096 public msgs; mirror validates each; publish every 50 | 30000 | 17,348 | 38.7 | 138.6 | 249.0 | 5637 |
+| F4 gateway mixed entry/cancel/execution | 1 | 30000 synthetic messages (seeded) | 30000 | 15,320 | 42.6 | 141.9 | 227.1 | 54253 |
+| F5 bursty (queueing + service) | 1 | bursts of 2000 every 200 ms, open loop | 30000 | 18,267 | 53331.1 | 107060.3 | 131102.5 | 145170 |
+| F6 large book | 1 | 75000 resting orders (25 % hidden) + 30000 mixed commands | 30000 | 16,557 | 41.8 | 139.1 | 226.9 | 14770 |
+| F7 recovery (full replay) | 1 | 30018 entries replayed; snapshot 9.1 MiB | 30018 | 18,199 | 54.9 | 54.9 | 54.9 | 55 |
+| F7 recovery (snapshot + suffix) | 1 | 14999 entries replayed; snapshot 9.1 MiB | 14999 | 12,998 | 76.9 | 76.9 | 76.9 | 77 |

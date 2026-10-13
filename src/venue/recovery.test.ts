@@ -11,7 +11,7 @@ import { Venue } from "./venue";
 /** Durable processing: journal integrity, crash recovery, fail-stop, consumer de-duplication. */
 
 const ACCOUNTS = ["syn-p1", "syn-p2", "syn-p3", "syn-p4"];
-const OPTIONS = (clock: () => number, publication: "immediate" | "batched" = "immediate") => ({ engine: { idKey: "local-prototype-key", publication }, clock });
+const OPTIONS = (clock: () => number, publication: "immediate" | "batched" = "immediate") => ({ engine: { idKey: "local-prototype-key", publication }, clock, allowTestFixtureIdKey: true });
 
 function populated(messages = 400) {
   const lv = createLocalVenue({ accounts: ACCOUNTS });

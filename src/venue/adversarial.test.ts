@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { generateIdKey } from "./id-key";
 import { createLocalVenue } from "./synthetic";
 import { harness, ALPHA } from "./test-helpers";
 import type { PrivateEvent } from "./types";
@@ -170,8 +171,9 @@ describe("hidden-liquidity probing and leakage channels", () => {
   });
 
   it("H-8 a different id key yields different identifiers for the same flow", () => {
-    const a = createLocalVenue({ accounts, idKey: "key-one" });
-    const b = createLocalVenue({ accounts, idKey: "key-two" });
+    // Two independently generated keys that satisfy the id-key policy (A-5).
+    const a = createLocalVenue({ accounts, idKey: generateIdKey() });
+    const b = createLocalVenue({ accounts, idKey: generateIdKey() });
     const ra = a.gateway.handle(a.tokens.get("syn-a")!, newMsg({ clientOrderId: "same" }));
     const rb = b.gateway.handle(b.tokens.get("syn-a")!, newMsg({ clientOrderId: "same" }));
     const id = (r: typeof ra) => (r.ok && r.events[0]!.kind === "accepted" ? r.events[0]!.order.orderId : null);

@@ -1,5 +1,6 @@
 import { arch, cpus, platform, release, totalmem } from "node:os";
 import { MatchingEngine } from "./engine.ts";
+import { PERF_FIXTURE_ID_KEY } from "./id-key.ts";
 import { canonicalJson } from "./journal.ts";
 import { PublicBookMirror } from "./public-feed.ts";
 import { MemoryJournalStore } from "./storage.ts";
@@ -28,7 +29,9 @@ export interface PerfResult {
 }
 
 const LIMITS = { maxOpenOrders: 10_000, maxOrderNotional: 1e12, maxPositionLots: 1e12 };
-const ENGINE = { idKey: "perf-key", publication: "immediate" as const };
+const ENGINE = { idKey: PERF_FIXTURE_ID_KEY, publication: "immediate" as const };
+/** Benchmarks use the deterministic perf fixture key explicitly (A-5). */
+const FIXTURE = { allowTestFixtureIdKey: true } as const;
 const ACCOUNTS = Array.from({ length: 16 }, (_, i) => `syn-q${i}`);
 
 function quantile(sorted: Float64Array, q: number) {
@@ -127,7 +130,7 @@ export function runPerf({ scale, runs }: PerfOptions): PerfResult[] {
     // F2. Matching with journal writes: schema check + hash chain + canonical JSON + store append + routing.
     {
       const store = new MemoryJournalStore();
-      const venue = new Venue({ engine: ENGINE, clock: () => 1_700_000_000_000, store });
+      const venue = new Venue({ engine: ENGINE, ...FIXTURE, clock: () => 1_700_000_000_000, store });
       for (const c of setup) venue.submit(c);
       const m = measure(flow.length, (i) => venue.submit(flow[i]!));
       results.push(summarise("F2 matching + journal (memory store)", `${n} mixed commands; store ${(store.read().length / 2 ** 20).toFixed(1)} MiB`, run, m.samples, m.seconds));
@@ -135,7 +138,7 @@ export function runPerf({ scale, runs }: PerfOptions): PerfResult[] {
 
     // F3. Publication: F2 plus a validating public mirror and private-event polling for every account.
     for (const publication of ["immediate", "batched"] as const) {
-      const venue = new Venue({ engine: { ...ENGINE, publication }, clock: () => 1_700_000_000_000, store: new MemoryJournalStore() });
+      const venue = new Venue({ engine: { ...ENGINE, publication }, ...FIXTURE, clock: () => 1_700_000_000_000, store: new MemoryJournalStore() });
       const mirror = new PublicBookMirror();
       venue.onPublic((msg) => mirror.apply(msg));
       for (const c of setup) venue.submit(c);
@@ -163,7 +166,7 @@ export function runPerf({ scale, runs }: PerfOptions): PerfResult[] {
 
     // F5. Bursty traffic, open loop: bursts arrive at once; latency = queueing + service (measured).
     {
-      const venue = new Venue({ engine: ENGINE, clock: () => 1_700_000_000_000, store: new MemoryJournalStore() });
+      const venue = new Venue({ engine: ENGINE, ...FIXTURE, clock: () => 1_700_000_000_000, store: new MemoryJournalStore() });
       for (const c of setup) venue.submit(c);
       const burst = 2_000;
       const gapUs = 200_000; // 200 ms between bursts (virtual arrival schedule)
@@ -184,7 +187,7 @@ export function runPerf({ scale, runs }: PerfOptions): PerfResult[] {
 
     // F6. Large book: 100k resting orders over 300 levels per side (outside the flow range), then mixed flow near the touch.
     {
-      const venue = new Venue({ engine: ENGINE, clock: () => 1_700_000_000_000, store: new MemoryJournalStore() });
+      const venue = new Venue({ engine: ENGINE, ...FIXTURE, clock: () => 1_700_000_000_000, store: new MemoryJournalStore() });
       for (const c of setup) venue.submit(c);
       const depth = Math.round(100_000 * Math.min(1, scale * 1.5));
       for (let i = 0; i < depth; i++) {
@@ -198,7 +201,7 @@ export function runPerf({ scale, runs }: PerfOptions): PerfResult[] {
     // F7. Recovery: replay the F2-sized journal from scratch, and from a mid-run snapshot.
     {
       const store = new MemoryJournalStore();
-      const venue = new Venue({ engine: ENGINE, clock: () => 1_700_000_000_000, store });
+      const venue = new Venue({ engine: ENGINE, ...FIXTURE, clock: () => 1_700_000_000_000, store });
       for (const c of setup) venue.submit(c);
       let snapshot: ReturnType<Venue["snapshot"]> | undefined;
       flow.forEach((c, i) => {
@@ -208,7 +211,7 @@ export function runPerf({ scale, runs }: PerfOptions): PerfResult[] {
       const text = store.read();
       for (const [label, snap] of [["full replay", undefined], ["snapshot + suffix", snapshot]] as const) {
         const t0 = process.hrtime.bigint();
-        const { report } = Venue.recover({ engine: ENGINE, clock: () => 0 }, text, snap);
+        const { report } = Venue.recover({ engine: ENGINE, ...FIXTURE, clock: () => 0 }, text, snap);
         const seconds = Number(process.hrtime.bigint() - t0) / 1e9;
         const perEntry = (seconds * 1e6) / Math.max(1, report.replayed);
         results.push(summarise(`F7 recovery (${label})`, `${report.replayed} entries replayed; snapshot ${(canonicalJson(snapshot).length / 2 ** 20).toFixed(1)} MiB`, run, new Float64Array(report.replayed).fill(perEntry), seconds));

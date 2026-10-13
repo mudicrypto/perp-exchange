@@ -109,3 +109,88 @@ each configuration. Two runs are reported.
 - Nearest-rank percentiles over single runs, with the median of 3 reported. No HDR histogram, no
   confidence intervals.
 - Not measured: S5–S8, S10 and S11 from the plan, apart from what F3, F5 and F6 cover.
+
+## 6. Milestone 10: comparison with Milestone 9 (A/B)
+
+Milestone 10 adds work in three places:
+
+- an idempotency-ledger record (canonical JSON of the command) per accepted new order
+- the gateway normalises a message before the idempotency check, instead of hashing the raw message
+- snapshots carry the ledger and its hash
+
+To report a difference only under comparable conditions, both versions were run **alternately in
+one session**, with the same seeds and parameters: the `27dee34` export, then the working tree,
+three rounds, `venue:perf` at scale 0.5, one run each. Raw output and conditions:
+`docs/venue/verification/m10-ab-benchmark.log`. Some read-only `git diff` and small documentation
+edits ran during rounds 1–2.
+
+| Scenario | M9 median ops/s (3 rounds) | M10 median ops/s (3 rounds) | Δ | Ranges overlap? |
+|---|---|---|---|---|
+| F1 matching only (code identical in both) | 130 070 (117 750–147 719) | 120 974 (119 428–131 981) | −7 % | yes |
+| F2 matching + journal | 16 937 (15 161–18 423) | 16 053 (14 577–18 438) | −5 % | yes |
+| F3 publication, immediate | 17 835 (17 352–19 212) | 15 650 (14 437–16 869) | −12 % | no |
+| F3 publication, batched | 16 813 (15 412–19 875) | 17 180 (17 167–17 348) | +2 % | yes |
+| F4 gateway mixed flow | 13 782 (12 618–14 225) | 14 990 (14 917–15 320) | +9 % | no |
+| F5 bursty | 18 235 (15 973–18 583) | 17 278 (15 988–18 267) | −5 % | yes |
+| F6 large book | 16 911 (13 991–18 218) | 16 557 (16 519–16 944) | −2 % | yes |
+| F7 recovery, full replay | 21 352 (20 871–23 866) | 18 199 (16 215–18 790) | −15 % | no |
+| F7 recovery, snapshot + suffix | 13 954 (13 597–16 343) | 11 758 (11 199–12 998) | −16 % | no |
+
+**Reading:**
+
+- **Noise floor.** F1 runs code that is identical in both versions, yet it moved −7 %. Differences
+  of that size are noise.
+- **Recovery is about 15 % slower, consistently.** The ranges do not overlap. This is consistent
+  with recording a ledger entry (canonical JSON) for every accepted order during replay, and with
+  hashing the ledger when a snapshot is restored.
+- **The gateway path is about 9 % faster.** The ranges do not overlap. This is consistent with no
+  longer serialising every incoming new-order message for an idempotency fingerprint.
+- **Immediate publication (−12 %, no overlap) is not explained.** F2 uses the same submit path and
+  stayed within noise, and batched publication did not move. Treat it as unresolved, not as a
+  measured regression.
+- **Scope.** Three rounds per side on a shared host are a small sample. These results show no gross
+  regression and one plausible cost (recovery). They are not precise effect sizes.
+
+The main tables in §2 and §4 still describe the Milestone 9 run. They were not re-run for
+Milestone 10.
+
+## 7. Milestone 10 review fixes: comparison (A/B)
+
+The review fixes add a deep copy and freeze of every accepted order's events when the order is
+recorded in the idempotency ledger (VR-25), and a copy for each replay.
+
+**Method:** the unfixed Milestone 10 tree (a scratch copy) against the fixed tree, alternating in one
+session with nothing else running. Three rounds per side, `venue:perf` scale 0.5. Raw output:
+`docs/venue/verification/m10-review-fixes-ab-benchmark.log`.
+
+| Scenario | Before fixes, median ops/s | After fixes, median ops/s | Δ | Ranges overlap? |
+|---|---|---|---|---|
+| F1 matching only (code identical in both) | 120 593 (104 873–129 744) | 136 889 (130 598–145 778) | +14 % | no |
+| F2 matching + journal | 12 674 (12 538–16 185) | 13 782 (13 185–13 795) | +9 % | yes |
+| F3 publication, immediate | 15 177 (15 093–15 582) | 13 482 (13 170–13 851) | −11 % | no |
+| F3 publication, batched | 16 352 (16 031–16 963) | 13 616 (12 988–14 363) | −17 % | no |
+| F4 gateway mixed flow | 14 905 (14 837–14 952) | 11 937 (11 858–11 976) | −20 % | no |
+| F5 bursty | 15 702 (14 931–17 264) | 13 824 (13 622–14 390) | −12 % | no |
+| F6 large book | 15 454 (13 855–15 706) | 13 419 (13 070–14 093) | −13 % | yes |
+| F7 recovery, full replay | 16 028 (14 325–16 974) | 15 596 (13 783–16 166) | −3 % | yes |
+| F7 recovery, snapshot + suffix | 11 311 (10 238–11 624) | 9 611 (9 501–10 308) | −15 % | yes |
+
+**Reading:**
+
+- **These runs are inconclusive. They establish neither a regression nor an improvement.**
+- **The noise floor exceeds most of the differences.** F1 runs code identical in both versions,
+  yet it moved +14 % with non-overlapping ranges. Non-overlapping ranges are therefore not evidence
+  of a real change in this session, and differences of −11 % to −20 % (F3, F4, F5) are within the
+  observed noise.
+- **The order-entry results contradict each other.** F2 records the same ledger entries as F3–F5,
+  yet it moved +9 %. No effect size for the per-order copy and freeze can be stated from these runs.
+- **Recovery, measured separately:** full replay −3 % with overlapping ranges; snapshot + suffix
+  −15 % with ranges that overlap only marginally. Neither shows a change beyond the noise floor. (The
+  Milestone 9 comparison in §6 showed a more consistent recovery cost of about 15 %, against a
+  smaller noise floor of 7 %; see there.)
+- **What would settle it:** more rounds per side on an isolated or pinned host, with confidence
+  intervals rather than ranges.
+- **Not measured at all:** the final-review fix that deep-freezes every routed event and public
+  message (VR-29). It adds a per-event freeze on every command; no A/B run was made for it.
+- **A cheaper design is possible** if this matters later: freeze once without cloning, and give
+  responses their own copies. It was not pursued, to keep the fix minimal and obviously correct.

@@ -1,0 +1,65 @@
+# Final-review regression tests (src/venue/recovery-final.test.ts) — VR-28 (D1), VR-29 (D2), A-4 terminal-order eviction coverage.
+# Pre-fix tree: a copy of the Milestone 10 working tree taken before these fixes (src only; scratch copy, node_modules linked).
+#   cp src/venue/recovery-final.test.ts <pre-fix-copy>/src/venue/ && (cd <pre-fix-copy> && npx vitest run src/venue/recovery-final.test.ts)
+# Expected before the fixes: 15 failures (11 VR-28, 4 VR-29). The 4 passing tests are not defect
+# demonstrations: genuinely truncated tails and malformed lines with a newline were already handled, and the
+# terminal-order eviction tests close a coverage gap (the engine's permanent client-id index already protected it).
+
+=== BEFORE (pre-fix copy) ===
+FAIL  VR-28 / D-2 a complete but invalid final entry is corruption, not a torn write D-2 an acknowledged final entry with a corrupted hash and no trailing newline refuses recovery; the journal is unchanged
+        AssertionError: expected [Function] to throw an error
+FAIL  VR-28 / D-2 a complete but invalid final entry is corruption, not a torn write D-2 a complete final entry without a newline with wrong prev hash is refused, not dropped
+        AssertionError: expected [Function] to throw an error
+FAIL  VR-28 / D-2 a complete but invalid final entry is corruption, not a torn write D-2 a complete final entry without a newline with schema violation in the command is refused, not dropped
+        AssertionError: expected [Function] to throw an error
+FAIL  VR-28 / D-2 a complete but invalid final entry is corruption, not a torn write D-2 a complete final entry without a newline with unexpected field is refused, not dropped
+        AssertionError: expected [Function] to throw an error
+FAIL  VR-28 / D-2 a complete but invalid final entry is corruption, not a torn write D-2 a complete final entry without a newline with sequence number ahead (gap) is refused, not dropped
+        AssertionError: expected [Function] to throw an error
+FAIL  VR-28 / D-2 a complete but invalid final entry is corruption, not a torn write D-2 a complete final entry without a newline with sequence number not an integer is refused, not dropped
+        AssertionError: expected [Function] to throw an error
+FAIL  VR-28 / D-2 a complete but invalid final entry is corruption, not a torn write D-2 a complete final entry without a newline with invalid timestamp is refused, not dropped
+        AssertionError: expected [Function] to throw an error
+FAIL  VR-28 / D-2 a complete but invalid final entry is corruption, not a torn write D-2 a final line that parses as JSON but is not an entry (null) is refused, not dropped
+        AssertionError: expected [Function] to throw an error
+FAIL  VR-28 / D-2 a complete but invalid final entry is corruption, not a torn write D-2 a final line that parses as JSON but is not an entry (42) is refused, not dropped
+        AssertionError: expected [Function] to throw an error
+FAIL  VR-28 / D-2 a complete but invalid final entry is corruption, not a torn write D-2 a final line that parses as JSON but is not an entry ("text") is refused, not dropped
+        AssertionError: expected [Function] to throw an error
+FAIL  VR-28 / D-2 a complete but invalid final entry is corruption, not a torn write D-2 a final line that parses as JSON but is not an entry ([]) is refused, not dropped
+        AssertionError: expected [Function] to throw an error
+PASS  VR-28 / D-2 a complete but invalid final entry is corruption, not a torn write D-2 a genuinely truncated final line (unparseable, no newline) is still dropped as an uncommitted torn write
+PASS  VR-28 / D-2 a complete but invalid final entry is corruption, not a torn write D-2 malformed lines followed by a newline, or in the middle, are refused as before
+FAIL  VR-29 / A-2 event objects are isolated between consumers A-2 mutating the first private response changes neither the private feed, the replay, the ledger, the tape nor engine state
+        AssertionError: expected [] to deeply equal [ { kind: 'accepted', …(4) }, …(1) ]
+FAIL  VR-29 / A-2 event objects are isolated between consumers A-2 mutating events read from the private feed changes neither later reads, the first response nor engine state
+        AssertionError: expected [] to deeply equal [ { kind: 'accepted', …(4) }, …(1) ]
+FAIL  VR-29 / A-2 event objects are isolated between consumers A-2 a response that echoes the request reference cannot alter the journaled command
+        AssertionError: expected { seq: 4, ts: +0, …(3) } to deeply equal { seq: 4, ts: +0, …(3) }
+FAIL  VR-29 / A-2 event objects are isolated between consumers A-2 a public listener cannot change what later listeners receive, the stored tape or engine state
+        AssertionError: expected [ { kind: 'status', …(4) }, …(5) ] to deeply equal [ { kind: 'status', …(4) }, …(5) ]
+PASS  A-4 terminal orders evicted from the ledger and restored from a snapshot A-4 a filled order evicted from the ledger cannot execute again after a snapshot restore or a full replay
+PASS  A-4 terminal orders evicted from the ledger and restored from a snapshot A-4 a cancelled order evicted from the ledger cannot execute again after a snapshot restore or a full replay
+Totals: 15 failed, 4 passed, 19 total
+
+=== AFTER (fixed working tree) ===
+PASS  VR-28 / D-2 a complete but invalid final entry is corruption, not a torn write D-2 an acknowledged final entry with a corrupted hash and no trailing newline refuses recovery; the journal is unchanged
+PASS  VR-28 / D-2 a complete but invalid final entry is corruption, not a torn write D-2 a complete final entry without a newline with wrong prev hash is refused, not dropped
+PASS  VR-28 / D-2 a complete but invalid final entry is corruption, not a torn write D-2 a complete final entry without a newline with schema violation in the command is refused, not dropped
+PASS  VR-28 / D-2 a complete but invalid final entry is corruption, not a torn write D-2 a complete final entry without a newline with unexpected field is refused, not dropped
+PASS  VR-28 / D-2 a complete but invalid final entry is corruption, not a torn write D-2 a complete final entry without a newline with sequence number ahead (gap) is refused, not dropped
+PASS  VR-28 / D-2 a complete but invalid final entry is corruption, not a torn write D-2 a complete final entry without a newline with sequence number not an integer is refused, not dropped
+PASS  VR-28 / D-2 a complete but invalid final entry is corruption, not a torn write D-2 a complete final entry without a newline with invalid timestamp is refused, not dropped
+PASS  VR-28 / D-2 a complete but invalid final entry is corruption, not a torn write D-2 a final line that parses as JSON but is not an entry (null) is refused, not dropped
+PASS  VR-28 / D-2 a complete but invalid final entry is corruption, not a torn write D-2 a final line that parses as JSON but is not an entry (42) is refused, not dropped
+PASS  VR-28 / D-2 a complete but invalid final entry is corruption, not a torn write D-2 a final line that parses as JSON but is not an entry ("text") is refused, not dropped
+PASS  VR-28 / D-2 a complete but invalid final entry is corruption, not a torn write D-2 a final line that parses as JSON but is not an entry ([]) is refused, not dropped
+PASS  VR-28 / D-2 a complete but invalid final entry is corruption, not a torn write D-2 a genuinely truncated final line (unparseable, no newline) is still dropped as an uncommitted torn write
+PASS  VR-28 / D-2 a complete but invalid final entry is corruption, not a torn write D-2 malformed lines followed by a newline, or in the middle, are refused as before
+PASS  VR-29 / A-2 event objects are isolated between consumers A-2 mutating the first private response changes neither the private feed, the replay, the ledger, the tape nor engine state
+PASS  VR-29 / A-2 event objects are isolated between consumers A-2 mutating events read from the private feed changes neither later reads, the first response nor engine state
+PASS  VR-29 / A-2 event objects are isolated between consumers A-2 a response that echoes the request reference cannot alter the journaled command
+PASS  VR-29 / A-2 event objects are isolated between consumers A-2 a public listener cannot change what later listeners receive, the stored tape or engine state
+PASS  A-4 terminal orders evicted from the ledger and restored from a snapshot A-4 a filled order evicted from the ledger cannot execute again after a snapshot restore or a full replay
+PASS  A-4 terminal orders evicted from the ledger and restored from a snapshot A-4 a cancelled order evicted from the ledger cannot execute again after a snapshot restore or a full replay
+Totals: 0 failed, 19 passed, 19 total
