@@ -52,13 +52,18 @@ export type RejectReason =
   | "order-not-modifiable"
   | "replace-quantity-below-filled"
   | "replace-no-change"
-  | "invalid-command";
+  | "invalid-command"
+  /** The journaled command was quarantined by an operator after it faulted deterministically (D-7). */
+  | "quarantined";
 
 const int = z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER);
 const posInt = z.number().int().positive().max(Number.MAX_SAFE_INTEGER);
 const instrumentId = z.string().min(1).max(32);
 const clientOrderId = z.string().regex(/^[A-Za-z0-9_-]{1,36}$/);
 const orderId = z.string().regex(/^o[0-9a-f]{16}$/);
+const entryHash = z.string().regex(/^[0-9a-f]{64}$/);
+/** Free-text operator metadata. Not authenticated: the prototype has no operator identity (MATCHING-RULES D-6, D-7). */
+const operatorText = (max: number) => z.string().min(1).max(max);
 
 export const orderRefSchema = z.union([z.object({ orderId }).strict(), z.object({ clientOrderId }).strict()]);
 export type OrderRef = z.infer<typeof orderRefSchema>;
@@ -91,6 +96,43 @@ export const engineCommandSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("admin.add-account"), accountId: accountIdSchema, limits: accountLimitsSchema }).strict(),
   z.object({ type: z.literal("admin.set-status"), instrumentId, status: z.enum(TRADING_STATUSES) }).strict(),
   z.object({ type: z.literal("admin.suspend-account"), accountId: accountIdSchema }).strict(),
+  // Operator quarantine of the poison command journaled immediately before this record (D-7). The voided
+  // command takes no effect on any replay; optionally the same record suspends the command's account.
+  z
+    .object({
+      type: z.literal("admin.quarantine"),
+      seq: posInt,
+      hash: entryHash,
+      reason: operatorText(500),
+      approvedBy: operatorText(200),
+      suspendAccount: z.boolean(),
+      accountId: accountIdSchema.optional(),
+      evidence: z
+        .object({
+          /** What the submitting client was told: never a successful acknowledgement. */
+          clientOutcome: z.enum(["outcome-unknown", "no-response"]),
+          /** Operator attestation that recovery runs the engine build that faulted live (D-1 makes the fault reproducible). */
+          sameEngineBuild: z.literal(true),
+          /** Highest public sequence any consumer observed (checked against the state before the entry). */
+          observedPublicSeq: int,
+          /** Highest private sequence each consumer observed, per account (checked likewise). */
+          observedAccountSeqs: z.record(accountIdSchema, int),
+          notes: operatorText(1000),
+        })
+        .strict(),
+    })
+    .strict(),
+  // Audit record of an operator commit-anchor bootstrap (D-6). Changes no engine state.
+  z
+    .object({
+      type: z.literal("admin.anchor-bootstrap"),
+      seq: posInt,
+      hash: entryHash,
+      prior: z.enum(["missing", "unreadable"]),
+      reason: operatorText(500),
+      approvedBy: operatorText(200),
+    })
+    .strict(),
 ]);
 
 export type EngineCommand = z.infer<typeof engineCommandSchema>;

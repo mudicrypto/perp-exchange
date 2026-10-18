@@ -3,7 +3,7 @@ import { DEFAULT_GATEWAY_LIMITS, VenueGateway, type ClientMessage, type GatewayR
 import { SYNTHETIC_INSTRUMENTS } from "./instrument";
 import { MemoryJournalStore } from "./storage";
 import { SYNTHETIC_LIMITS } from "./synthetic";
-import { ALPHA } from "./test-helpers";
+import { ALPHA, anchorFor } from "./test-helpers";
 import type { PublicMessage } from "./types";
 import { Venue, type VenueOptions } from "./venue";
 
@@ -19,7 +19,7 @@ import { Venue, type VenueOptions } from "./venue";
 
 const ACCOUNTS = ["syn-a", "syn-b"];
 const options = (store?: MemoryJournalStore, extra: Record<string, unknown> = {}): VenueOptions =>
-  ({ engine: { idKey: "local-prototype-key", publication: "immediate" }, clock: () => 0, allowTestFixtureIdKey: true, ...(store ? { store } : {}), ...extra }) as VenueOptions;
+  ({ engine: { idKey: "local-prototype-key", publication: "immediate" }, clock: () => 0, allowTestFixtureIdKey: true, ...(store ? { store, anchor: anchorFor(store) } : {}), ...extra }) as VenueOptions;
 
 function world(store?: MemoryJournalStore, extra: Record<string, unknown> = {}) {
   const venue = new Venue(options(store, extra));
@@ -114,7 +114,9 @@ describe("VR-28 / D-2 a complete but invalid final entry is corruption, not a to
     for (const cut of [1, 17, Math.floor(last.length / 2), last.length - 1]) {
       const store = new MemoryJournalStore();
       store.append(prefix + last.slice(0, cut));
-      const { venue, report } = Venue.recover(options(store));
+      // A hand-built journal has no commit anchor: this checks the reader under the Milestone 10 store contract.
+      // With an anchor, a truncated *anchored* entry is refused instead (durability-anchor.test.ts, D-6).
+      const { venue, report } = Venue.recover(options(store, { anchor: undefined, allowUnanchored: true }));
       expect(report).toMatchObject({ tornTail: true, replayed: 3 });
       expect(venue.engine.stateHash()).toBe(before);
       expect(store.read()).toBe(prefix); // repaired only after recovery succeeded

@@ -4,7 +4,7 @@ import { SYNTHETIC_INSTRUMENTS } from "./instrument";
 import { readJournal } from "./journal";
 import { MemoryJournalStore } from "./storage";
 import { SYNTHETIC_LIMITS } from "./synthetic";
-import { ALPHA } from "./test-helpers";
+import { ALPHA, anchorFor } from "./test-helpers";
 import type { EngineCommand } from "./types";
 import { Venue, type VenueOptions } from "./venue";
 
@@ -21,7 +21,7 @@ import { Venue, type VenueOptions } from "./venue";
 
 const ACCOUNTS = ["syn-a", "syn-b"];
 const options = (store?: MemoryJournalStore, extra: Record<string, unknown> = {}): VenueOptions =>
-  ({ engine: { idKey: "local-prototype-key", publication: "immediate" }, clock: () => 0, allowTestFixtureIdKey: true, ...(store ? { store } : {}), ...extra }) as VenueOptions;
+  ({ engine: { idKey: "local-prototype-key", publication: "immediate" }, clock: () => 0, allowTestFixtureIdKey: true, ...(store ? { store, anchor: anchorFor(store) } : {}), ...extra }) as VenueOptions;
 
 function setup(venue: Venue): Venue {
   venue.submit({ type: "admin.add-instrument", spec: SYNTHETIC_INSTRUMENTS[0]! });
@@ -95,7 +95,8 @@ describe("VR-24 / D-5 duplicate records fail closed", () => {
     // store contract (an append is acknowledged only once the full line is stored). Dropped and reported.
     const torn = new MemoryJournalStore();
     torn.append(text + lines.at(-1)!.slice(0, 50));
-    const { venue: recovered, report } = Venue.recover(options(torn));
+    // Hand-built journal without a commit anchor (Milestone 10 store contract); the anchored case is D-6.
+    const { venue: recovered, report } = Venue.recover(options(torn, { anchor: undefined, allowUnanchored: true }));
     expect(report).toMatchObject({ tornTail: true });
     expect(recovered.engine.stateHash()).toBe(venue.engine.stateHash());
     refuses(`${text}{"seq":10,"ts":0,\n`, /line 10: unparseable entry/);

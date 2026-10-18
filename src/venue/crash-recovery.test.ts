@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { canonicalJson, readJournal } from "./journal";
 import { MemoryJournalStore, type AppendFault } from "./storage";
 import { createLocalVenue, seededRandom, SYNTHETIC_LIMITS } from "./synthetic";
-import { ALPHA } from "./test-helpers";
+import { ALPHA, anchorFor } from "./test-helpers";
 import type { EngineCommand, PrivateEvent, PublicMessage } from "./types";
 import { OutcomeUnknownError, Venue, type PersistenceBoundary, type VenueOptions } from "./venue";
 
@@ -112,7 +112,7 @@ describe("crash at persistence boundaries", () => {
         const commands = flow(seed, 80);
         const k = 4 + (at % (commands.length - 4)); // crash while submitting commands[k]
         const store = new MemoryJournalStore();
-        const options: VenueOptions = { engine: ENGINE, allowTestFixtureIdKey: true, clock: () => 1_700_000_000_000, store };
+        const options: VenueOptions = { engine: ENGINE, allowTestFixtureIdKey: true, clock: () => 1_700_000_000_000, store, anchor: anchorFor(store) };
         const live = new CrashingVenue(options, boundary, k + 1);
         const consumer = new Consumer();
         consumer.attach(live);
@@ -130,7 +130,7 @@ describe("crash at persistence boundaries", () => {
         }
         expect(interrupted).toBe(true);
         // The "process" is gone; anything it holds in memory is lost. Recover from the store alone.
-        const { venue: recovered, report } = Venue.recover({ engine: ENGINE, allowTestFixtureIdKey: true, clock: () => 1_700_000_000_000, store });
+        const { venue: recovered, report } = Venue.recover({ engine: ENGINE, allowTestFixtureIdKey: true, clock: () => 1_700_000_000_000, store, anchor: anchorFor(store) });
         expect(report.tornTail).toBe(boundary === "torn-write");
         consumer.attach(recovered);
         for (const m of recovered.publicTape) if (m.publicSeq > (consumer.tape.at(-1)?.publicSeq ?? 0)) consumer.tape.push(m);
@@ -145,7 +145,7 @@ describe("crash at persistence boundaries", () => {
 
         // The recovered venue keeps appending to the same store; a second recovery sees one valid journal.
         for (const c of commands.slice(committed.length)) recovered.submit(c);
-        const again = Venue.recover({ engine: ENGINE, allowTestFixtureIdKey: true, clock: () => 1_700_000_000_000, store });
+        const again = Venue.recover({ engine: ENGINE, allowTestFixtureIdKey: true, clock: () => 1_700_000_000_000, store, anchor: anchorFor(store) });
         expect(again.report.tornTail).toBe(false);
         expect(again.venue.engine.stateHash()).toBe(reference(commands).engine.stateHash());
       }),
@@ -155,7 +155,7 @@ describe("crash at persistence boundaries", () => {
 
   it("VR-07 a failed append stops the venue: no later command can follow a torn line in the store", () => {
     const store = new MemoryJournalStore();
-    const venue = new Venue({ engine: ENGINE, allowTestFixtureIdKey: true, clock: () => 0, store });
+    const venue = new Venue({ engine: ENGINE, allowTestFixtureIdKey: true, clock: () => 0, store, anchor: anchorFor(store) });
     const commands = flow(1, 10);
     commands.slice(0, 6).forEach((c) => venue.submit(c));
     store.failNextAppend = "torn-write";
@@ -168,11 +168,11 @@ describe("crash at persistence boundaries", () => {
 
   it("D-2 a complete final entry without its newline is committed, and recovery restores the newline before appending", () => {
     const store = new MemoryJournalStore();
-    const venue = new Venue({ engine: ENGINE, allowTestFixtureIdKey: true, clock: () => 0, store });
+    const venue = new Venue({ engine: ENGINE, allowTestFixtureIdKey: true, clock: () => 0, store, anchor: anchorFor(store) });
     const commands = flow(2, 10);
     commands.forEach((c) => venue.submit(c));
     store.truncate(store.read().length - 1);
-    const { venue: recovered } = Venue.recover({ engine: ENGINE, allowTestFixtureIdKey: true, clock: () => 0, store });
+    const { venue: recovered } = Venue.recover({ engine: ENGINE, allowTestFixtureIdKey: true, clock: () => 0, store, anchor: anchorFor(store) });
     expect(recovered.journal.lastSeq).toBe(commands.length);
     recovered.submit({ type: "publish" });
     expect(readJournal(store.read())).toMatchObject({ ok: true, tornTail: false });
@@ -182,16 +182,16 @@ describe("crash at persistence boundaries", () => {
     // Milestone 9 refused any duplicate. Milestone 10 first dropped a trailing copy (D-5), which could hide a lost
     // acknowledged entry (VR-24); the rule is fail-closed again. Full coverage: recovery-review.test.ts.
     const store = new MemoryJournalStore();
-    const venue = new Venue({ engine: ENGINE, allowTestFixtureIdKey: true, clock: () => 0, store });
+    const venue = new Venue({ engine: ENGINE, allowTestFixtureIdKey: true, clock: () => 0, store, anchor: anchorFor(store) });
     flow(3, 5).forEach((c) => venue.submit(c));
     const lines = store.read().trimEnd().split("\n");
     store.append(`${lines.at(-1)}\n`);
     const persisted = store.read();
-    expect(() => Venue.recover({ engine: ENGINE, allowTestFixtureIdKey: true, clock: () => 0, store })).toThrow(/duplicate of the last entry/);
+    expect(() => Venue.recover({ engine: ENGINE, allowTestFixtureIdKey: true, clock: () => 0, store, anchor: anchorFor(store) })).toThrow(/duplicate of the last entry/);
     expect(store.read()).toBe(persisted);
     const interior = new MemoryJournalStore();
     interior.append(`${[...lines.slice(0, 3), lines[2]!, ...lines.slice(3)].join("\n")}\n`);
-    expect(() => Venue.recover({ engine: ENGINE, allowTestFixtureIdKey: true, clock: () => 0, store: interior })).toThrow(/line 4: duplicate of the last entry \(seq 3\)/);
+    expect(() => Venue.recover({ engine: ENGINE, allowTestFixtureIdKey: true, clock: () => 0, store: interior, anchor: anchorFor(interior) })).toThrow(/line 4: duplicate of the last entry \(seq 3\)/);
   });
 
 
@@ -225,7 +225,7 @@ describe("crash at persistence boundaries", () => {
 
   it("externally visible results never get ahead of the durable journal", () => {
     const store = new MemoryJournalStore();
-    const venue = new Venue({ engine: ENGINE, allowTestFixtureIdKey: true, clock: () => 0, store });
+    const venue = new Venue({ engine: ENGINE, allowTestFixtureIdKey: true, clock: () => 0, store, anchor: anchorFor(store) });
     const committedSeqs = () => new Set(store.read().trimEnd().split("\n").filter(Boolean).map((l) => (JSON.parse(l) as { seq: number }).seq));
     let checked = 0;
     venue.onPublic(() => {
@@ -249,7 +249,7 @@ describe("recovery-contract review notes (Milestone 9 review)", () => {
     const store = new MemoryJournalStore();
     const lv = createLocalVenue({ accounts: ACCOUNTS });
     // Rebuild the same venue on a store so the committed command can be recovered.
-    const venue = new Venue({ engine: ENGINE, allowTestFixtureIdKey: true, clock: lv.clock.read, store });
+    const venue = new Venue({ engine: ENGINE, allowTestFixtureIdKey: true, clock: lv.clock.read, store, anchor: anchorFor(store) });
     for (const e of lv.venue.journal.entries) venue.submit(e.command);
     const route = vi.spyOn(Venue.prototype as unknown as { route(r: unknown): void }, "route").mockImplementationOnce(() => {
       throw new Error("routing fault");
@@ -258,7 +258,7 @@ describe("recovery-contract review notes (Milestone 9 review)", () => {
     route.mockRestore();
     expect(venue.stoppedReason).toMatch(/output routing failed/);
     expect(() => venue.submit(order("after"))).toThrow(/venue stopped/);
-    const { venue: recovered } = Venue.recover({ engine: ENGINE, allowTestFixtureIdKey: true, clock: lv.clock.read, store });
+    const { venue: recovered } = Venue.recover({ engine: ENGINE, allowTestFixtureIdKey: true, clock: lv.clock.read, store, anchor: anchorFor(store) });
     expect(recovered.engine.orderFor("syn-a", { clientOrderId: "routed" })).toMatchObject({ status: "new" });
     expect(recovered.engine.orderFor("syn-a", { clientOrderId: "after" })).toBeNull();
   });
@@ -275,14 +275,14 @@ describe("recovery-contract review notes (Milestone 9 review)", () => {
 
   it("VR-21 recovery refuses journal text and a store together", () => {
     const store = new MemoryJournalStore();
-    const venue = new Venue({ engine: ENGINE, allowTestFixtureIdKey: true, clock: () => 0, store });
+    const venue = new Venue({ engine: ENGINE, allowTestFixtureIdKey: true, clock: () => 0, store, anchor: anchorFor(store) });
     flow(6, 5).forEach((c) => venue.submit(c));
-    expect(() => Venue.recover({ engine: ENGINE, allowTestFixtureIdKey: true, clock: () => 0, store }, venue.journal.toJsonl())).toThrow(/not both/);
+    expect(() => Venue.recover({ engine: ENGINE, allowTestFixtureIdKey: true, clock: () => 0, store, anchor: anchorFor(store) }, venue.journal.toJsonl())).toThrow(/not both/);
   });
 
   it("VR-22 a recovery that fails leaves the store byte-for-byte untouched (bad snapshot, poison command)", () => {
     const store = new MemoryJournalStore();
-    const venue = new Venue({ engine: ENGINE, allowTestFixtureIdKey: true, clock: () => 0, store });
+    const venue = new Venue({ engine: ENGINE, allowTestFixtureIdKey: true, clock: () => 0, store, anchor: anchorFor(store) });
     flow(7, 30).forEach((c) => venue.submit(c));
     const snapshot = venue.snapshot();
     venue.submit(order("poison"));
@@ -293,7 +293,7 @@ describe("recovery-contract review notes (Milestone 9 review)", () => {
     expect(readJournal(before)).toMatchObject({ ok: true, tornTail: true });
 
     const altered = { ...snapshot, stateHash: "0".repeat(64) };
-    expect(() => Venue.recover({ engine: ENGINE, allowTestFixtureIdKey: true, clock: () => 0, store }, undefined, altered)).toThrow(/state hash mismatch/);
+    expect(() => Venue.recover({ engine: ENGINE, allowTestFixtureIdKey: true, clock: () => 0, store, anchor: anchorFor(store) }, undefined, altered)).toThrow(/state hash mismatch/);
     expect(store.read()).toBe(before);
 
     const original = BookSide.prototype.add;
@@ -302,14 +302,14 @@ describe("recovery-contract review notes (Milestone 9 review)", () => {
       return original.call(this, o);
     };
     try {
-      expect(() => Venue.recover({ engine: ENGINE, allowTestFixtureIdKey: true, clock: () => 0, store })).toThrow(/replay stopped/);
+      expect(() => Venue.recover({ engine: ENGINE, allowTestFixtureIdKey: true, clock: () => 0, store, anchor: anchorFor(store) })).toThrow(/replay stopped/);
     } finally {
       BookSide.prototype.add = original;
     }
     expect(store.read()).toBe(before);
 
     // Once recovery succeeds, the torn tail is repaired.
-    Venue.recover({ engine: ENGINE, allowTestFixtureIdKey: true, clock: () => 0, store });
+    Venue.recover({ engine: ENGINE, allowTestFixtureIdKey: true, clock: () => 0, store, anchor: anchorFor(store) });
     expect(readJournal(store.read())).toMatchObject({ ok: true, tornTail: false });
   });
 

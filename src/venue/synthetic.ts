@@ -47,7 +47,7 @@ export function createLocalVenue(options: {
   limits?: AccountLimits;
   publication?: "immediate" | "batched";
   idKey?: string;
-  gateway?: Partial<Pick<GatewayOptions, "messages" | "postOnlyRejects">>;
+  gateway?: Partial<Pick<GatewayOptions, "messages" | "postOnlyRejects" | "fokUnfilled">>;
 }): LocalVenue {
   const clock = new ManualClock();
   // Synthetic fixture factory: without an explicit key it uses the deterministic test-fixture key,

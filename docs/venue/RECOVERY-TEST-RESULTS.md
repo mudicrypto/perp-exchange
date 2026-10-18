@@ -126,3 +126,31 @@ Tests: `src/venue/recovery-integrity.test.ts`. Specification and full results:
 | Consumers mutating delivered events (first response, private feed, public listeners, stored tape) | Refused (objects frozen); no other consumer, the ledger, the tape or engine state changes (recovery-final VR-29) |
 
 The crash-boundary property in §2 passes unchanged.
+
+## 7. Milestone 11 — commit anchor, quarantine and retention across recovery
+
+Details and decisions: [DURABILITY-AND-RETENTION.md](DURABILITY-AND-RETENTION.md).
+
+- **Crash-boundary properties (both 150 runs):**
+  - The Milestone 9 property (five boundaries; consumer outputs neither lost nor duplicated) now runs on
+    anchored stores and passes unchanged.
+  - A new anchored property covers eight boundaries: journal append before/torn/after, anchor write
+    before/torn/after, after the journal, after processing.
+  - Every case recovers to the last committed state. A torn anchor refuses until an operator bootstrap, after
+    which the trading state equals the reference.
+- **Detection** (`durability-anchor.test.ts`): each of the following is refused with both stores untouched:
+  - the whole final acknowledged entry missing, or several lost;
+  - an acknowledged entry truncated mid-line (four cut points);
+  - a hash mismatch, or an anchor ahead of an empty journal;
+  - a missing or unreadable anchor;
+  - a store that acknowledged an append and persisted nothing, or the previous bytes.
+
+  A torn line after the anchor is still dropped and repaired. Snapshot + suffix recovery checks the anchor.
+- **Quarantine** (`poison-quarantine.test.ts`):
+  - Recovery voids the final poison command and journals the decision.
+  - Full replay, snapshot + suffix and a replica from text reproduce the same state and output hashes with the
+    fault still present and no operator input.
+  - Crashes while journaling the decision are safe to repeat.
+- **Retention** (`retention.test.ts`): gaps are reported after outbox overflow and after a snapshot restore,
+  and there is none after a full replay. Client-ID deduplication and terminal lookup survive restarts with
+  every retention at its minimum.

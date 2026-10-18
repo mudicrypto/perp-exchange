@@ -50,7 +50,7 @@ function timeEach(scenario: string, count: number, op: (i: number) => void): Ben
 }
 
 const accounts = (n: number) => Array.from({ length: n }, (_, i) => `syn-b${i}`);
-const unlimited = { messages: { limit: 1e9, windowMs: 1_000 }, postOnlyRejects: { limit: 1e9, windowMs: 1_000 } };
+const unlimited = { messages: { limit: 1e9, windowMs: 1_000 }, postOnlyRejects: { limit: 1e9, windowMs: 1_000 }, fokUnfilled: { limit: 1e9, windowMs: 1_000 } };
 
 export function runBench(scale = 1): BenchResult[] {
   const n = Math.max(1_000, Math.round(50_000 * scale));

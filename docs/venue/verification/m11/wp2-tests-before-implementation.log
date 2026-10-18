@@ -1,0 +1,14 @@
+# WP2 tests (poison-quarantine.test.ts) against 9812049 + WP1, before the WP2 implementation
+     × D-7 the operator quarantines the final faulting entry: recovery completes, the client gets a definitive rejection, the decision is journaled and anchored 9ms
+     × D-7 later plain recoveries (full replay, snapshot + suffix) reproduce the same state and outputs without operator input, fault still present 3ms
+     × D-7 an identical resubmission of the quarantined command is refused before journaling; the gateway answers quarantined 3ms
+     × D-7 suspendAccount suspends the account in the same journaled decision 3ms
+     × D-7 refused: wrong sequence, wrong hash, a snapshot at the entry, incomplete or contradicting evidence 6ms
+     × D-7 refused: an entry that does not fault (it may have produced acknowledged outputs) and an entry in the middle of the journal 3ms
+     × D-7 refused: suspendAccount for a command without an account, a quarantine of a quarantine record, and a snapshot at or after the entry 4ms
+     × D-7 a crash while journaling the quarantine record is safe: repeat the quarantine (torn) or recover plainly (written) 3ms
+     × D-7 a journaled quarantine record that does not reference the immediately preceding entry is refused 4ms
+     × D-7 quarantined cancel and replace requests resolve with request-rejected: quarantined 3ms
+⎯⎯⎯⎯⎯⎯ Failed Tests 10 ⎯⎯⎯⎯⎯⎯⎯
+ Test Files  1 failed (1)
+      Tests  10 failed | 1 passed (11)

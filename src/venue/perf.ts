@@ -3,7 +3,7 @@ import { MatchingEngine } from "./engine.ts";
 import { PERF_FIXTURE_ID_KEY } from "./id-key.ts";
 import { canonicalJson } from "./journal.ts";
 import { PublicBookMirror } from "./public-feed.ts";
-import { MemoryJournalStore } from "./storage.ts";
+import { MemoryAnchorStore, MemoryJournalStore } from "./storage.ts";
 import { createLocalVenue, seededRandom, syntheticFlow } from "./synthetic.ts";
 import type { EngineCommand, SequencedCommand } from "./types.ts";
 import { Venue } from "./venue.ts";
@@ -130,7 +130,7 @@ export function runPerf({ scale, runs }: PerfOptions): PerfResult[] {
     // F2. Matching with journal writes: schema check + hash chain + canonical JSON + store append + routing.
     {
       const store = new MemoryJournalStore();
-      const venue = new Venue({ engine: ENGINE, ...FIXTURE, clock: () => 1_700_000_000_000, store });
+      const venue = new Venue({ engine: ENGINE, ...FIXTURE, clock: () => 1_700_000_000_000, store, anchor: new MemoryAnchorStore() });
       for (const c of setup) venue.submit(c);
       const m = measure(flow.length, (i) => venue.submit(flow[i]!));
       results.push(summarise("F2 matching + journal (memory store)", `${n} mixed commands; store ${(store.read().length / 2 ** 20).toFixed(1)} MiB`, run, m.samples, m.seconds));
@@ -138,7 +138,7 @@ export function runPerf({ scale, runs }: PerfOptions): PerfResult[] {
 
     // F3. Publication: F2 plus a validating public mirror and private-event polling for every account.
     for (const publication of ["immediate", "batched"] as const) {
-      const venue = new Venue({ engine: { ...ENGINE, publication }, ...FIXTURE, clock: () => 1_700_000_000_000, store: new MemoryJournalStore() });
+      const venue = new Venue({ engine: { ...ENGINE, publication }, ...FIXTURE, clock: () => 1_700_000_000_000, store: new MemoryJournalStore(), anchor: new MemoryAnchorStore() });
       const mirror = new PublicBookMirror();
       venue.onPublic((msg) => mirror.apply(msg));
       for (const c of setup) venue.submit(c);
@@ -155,7 +155,7 @@ export function runPerf({ scale, runs }: PerfOptions): PerfResult[] {
 
     // F4. Mixed order entry through the gateway (auth, Zod, decimal conversion, idempotency, rate limits).
     {
-      const { gateway, clock, tokens } = createLocalVenue({ accounts: ACCOUNTS, limits: LIMITS, gateway: { messages: { limit: 1e9, windowMs: 1_000 }, postOnlyRejects: { limit: 1e9, windowMs: 1_000 } } });
+      const { gateway, clock, tokens } = createLocalVenue({ accounts: ACCOUNTS, limits: LIMITS, gateway: { messages: { limit: 1e9, windowMs: 1_000 }, postOnlyRejects: { limit: 1e9, windowMs: 1_000 }, fokUnfilled: { limit: 1e9, windowMs: 1_000 } } });
       const messages = syntheticFlow(2_000 + run, n, ACCOUNTS);
       const m = measure(messages.length, (i) => {
         clock.advance(1);
@@ -166,7 +166,7 @@ export function runPerf({ scale, runs }: PerfOptions): PerfResult[] {
 
     // F5. Bursty traffic, open loop: bursts arrive at once; latency = queueing + service (measured).
     {
-      const venue = new Venue({ engine: ENGINE, ...FIXTURE, clock: () => 1_700_000_000_000, store: new MemoryJournalStore() });
+      const venue = new Venue({ engine: ENGINE, ...FIXTURE, clock: () => 1_700_000_000_000, store: new MemoryJournalStore(), anchor: new MemoryAnchorStore() });
       for (const c of setup) venue.submit(c);
       const burst = 2_000;
       const gapUs = 200_000; // 200 ms between bursts (virtual arrival schedule)
@@ -187,7 +187,7 @@ export function runPerf({ scale, runs }: PerfOptions): PerfResult[] {
 
     // F6. Large book: 100k resting orders over 300 levels per side (outside the flow range), then mixed flow near the touch.
     {
-      const venue = new Venue({ engine: ENGINE, ...FIXTURE, clock: () => 1_700_000_000_000, store: new MemoryJournalStore() });
+      const venue = new Venue({ engine: ENGINE, ...FIXTURE, clock: () => 1_700_000_000_000, store: new MemoryJournalStore(), anchor: new MemoryAnchorStore() });
       for (const c of setup) venue.submit(c);
       const depth = Math.round(100_000 * Math.min(1, scale * 1.5));
       for (let i = 0; i < depth; i++) {
@@ -201,7 +201,7 @@ export function runPerf({ scale, runs }: PerfOptions): PerfResult[] {
     // F7. Recovery: replay the F2-sized journal from scratch, and from a mid-run snapshot.
     {
       const store = new MemoryJournalStore();
-      const venue = new Venue({ engine: ENGINE, ...FIXTURE, clock: () => 1_700_000_000_000, store });
+      const venue = new Venue({ engine: ENGINE, ...FIXTURE, clock: () => 1_700_000_000_000, store, anchor: new MemoryAnchorStore() });
       for (const c of setup) venue.submit(c);
       let snapshot: ReturnType<Venue["snapshot"]> | undefined;
       flow.forEach((c, i) => {
@@ -232,7 +232,7 @@ export function timingProbe(rounds = 5, perRound = 4_000, via: "engine" | "gatew
   for (let r = 0; r < rounds; r++) {
     for (const cfg of out) {
       const { venue, gateway, tokens } = createLocalVenue({
-        gateway: { messages: { limit: 1e9, windowMs: 1_000 }, postOnlyRejects: { limit: 1e9, windowMs: 1_000 } },
+        gateway: { messages: { limit: 1e9, windowMs: 1_000 }, postOnlyRejects: { limit: 1e9, windowMs: 1_000 }, fokUnfilled: { limit: 1e9, windowMs: 1_000 } },
         accounts: ["syn-h", "syn-t"],
         limits: LIMITS,
         instruments: [{ id: "SYN-T", priceDecimals: 0, tickUnits: 1, sizeDecimals: 0, lotUnits: 1, minPriceTicks: 1, maxPriceTicks: 1_000_000, minQtyLots: 1, maxQtyLots: 1_000_000, priceBandBps: 5_000, minHiddenQtyLots: 1, referencePriceTicks: 200_000 }],
@@ -273,4 +273,60 @@ export function formatPerf(results: readonly PerfResult[]): string {
       `| ${r.scenario} | ${r.run} | ${r.params} | ${r.operations} | ${Math.round(r.opsPerSecond).toLocaleString("en-US")} | ${r.p50us.toFixed(1)} | ${r.p95us.toFixed(1)} | ${r.p99us.toFixed(1)} | ${r.maxUs.toFixed(0)} |`,
   );
   return ["| Scenario | Run | Parameters | Ops | Ops/s | p50 µs | p95 µs | p99 µs | max µs |", "|---|---|---|---|---|---|---|---|---|", ...rows].join("\n");
+}
+
+export interface MemoryResult {
+  readonly config: string;
+  readonly acceptedOrders: number;
+  readonly heapBytesPerAcceptedOrder: number;
+  readonly journalStoreBytesPerAcceptedOrder: number;
+  readonly retained: Record<string, number>;
+}
+
+/**
+ * VR-13 memory probe (Milestone 11, A-6): retained heap per accepted order on an anchored, store-backed
+ * venue, for flows of terminal orders (each pair: a resting sell filled by an IOC buy). Run with
+ * `node --expose-gc` (npm run venue:memory), one configuration per process (`only`), so collections happen
+ * before each reading and no configuration's garbage distorts another's. The store's text
+ * is reported separately: in the prototype it is the "durable" journal itself and lives in the heap.
+ */
+export function memoryProbe(pairs = 50_000, only?: number): MemoryResult[] {
+  const gc = (globalThis as { gc?: () => void }).gc;
+  const heap = () => {
+    gc?.();
+    gc?.();
+    return process.memoryUsage().heapUsed;
+  };
+  const configs = [
+    { config: "defaults (audit caps disabled)", retention: undefined },
+    { config: "all audit caps = 1 000", retention: { executions: 1_000, transitions: 1_000, publicTape: 1_000, adminErrors: 1_000 } },
+  ];
+  const out: MemoryResult[] = [];
+  for (const { config, retention } of only === undefined ? configs : configs.slice(only, only + 1)) {
+    const store = new MemoryJournalStore();
+    const before = heap();
+    const venue = new Venue({ engine: ENGINE, ...FIXTURE, clock: () => 1_700_000_000_000, store, anchor: new MemoryAnchorStore(), ...(retention ? { auditRetention: retention } : {}) });
+    venue.submit({ type: "admin.add-instrument", spec: { id: "SYN-M", priceDecimals: 0, tickUnits: 1, sizeDecimals: 0, lotUnits: 1, minPriceTicks: 1, maxPriceTicks: 1_000_000, minQtyLots: 1, maxQtyLots: 1_000_000, priceBandBps: 1_000, minHiddenQtyLots: 1, referencePriceTicks: 10_000 } });
+    for (const a of ["syn-m1", "syn-m2"]) venue.submit({ type: "admin.add-account", accountId: a, limits: LIMITS });
+    for (let i = 0; i < pairs; i++) {
+      venue.submit({ type: "new-order", accountId: "syn-m1", clientOrderId: `s${i}`, instrumentId: "SYN-M", side: "sell", orderType: "limit", priceTicks: 10_000, qtyLots: 1, tif: "gtc", visibility: i % 4 === 0 ? "hidden" : "displayed", postOnly: false, stp: "cancel-taker" });
+      venue.submit({ type: "new-order", accountId: "syn-m2", clientOrderId: `b${i}`, instrumentId: "SYN-M", side: "buy", orderType: "limit", priceTicks: 10_000, qtyLots: 1, tif: "ioc", visibility: "displayed", postOnly: false, stp: "cancel-taker" });
+    }
+    const used = heap() - before;
+    const accepted = pairs * 2;
+    out.push({
+      config,
+      acceptedOrders: accepted,
+      heapBytesPerAcceptedOrder: used / accepted,
+      journalStoreBytesPerAcceptedOrder: (store.read().length * 2) / accepted, // UTF-16 upper bound
+      retained: {
+        journalEntries: venue.journal.entries.length,
+        executions: venue.executions.length,
+        transitions: venue.transitions.length,
+        publicTape: venue.publicTape.length,
+        idempotencyLedger: Math.min(accepted, 100_000),
+      },
+    });
+  }
+  return out;
 }

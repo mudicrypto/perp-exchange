@@ -100,7 +100,8 @@ These are deliberate, documented omissions:
 - **M-8** **FOK is all-or-nothing and atomic.**
   - The match is planned without changing anything.
   - If the plan does not fill the whole quantity, nothing in it is applied: no fills and no STP
-    cancellations. The order is accepted, then cancelled with `fok-unfilled`.
+    cancellations. The order is accepted, then cancelled with `fok-unfilled`. Each `fok-unfilled`
+    counts toward the account's FOK budget at the gateway (H-7).
 - **M-9** **Market orders.**
   - Treated as IOC or FOK limit orders priced at the band edge: reference × (1 ± band).
   - They never rest. They cannot be GTC, hidden or post-only.
@@ -242,8 +243,12 @@ control**. They are not hidden cryptographically.
     account until the window passes. Reconnecting does not reset the budget.
   - IOC probing is not throttled separately, but it costs an execution and is visible to
     surveillance.
-  - **Leak (open, VR-08):** a FOK that cannot fill reveals "less than Q at or better than P" without
-    executing.
+  - **Leak (budgeted since Milestone 11, VR-08):** a FOK that cannot fill reveals "less than Q at or
+    better than P" without executing. Every unfilled FOK (limit or market) counts toward a separate
+    per-account budget (`fokUnfilled`, default 20 per minute). Once it is spent, new FOK orders are
+    refused (`rate-limited`) before journaling until the window passes. Reconnecting does not reset it.
+    Counting depends only on the caller's own outcome, so the throttle reveals nothing further. Within
+    the budget the probe is still free, and Sybil accounts multiply it.
 - **H-8** **No side channels through identifiers or sequences.**
   - Order, fill and execution IDs are a keyed hash of an internal counter (`o…`, `f…`, `x…`).
     Sequential IDs would let a client count other participants' activity, hidden activity included,
@@ -289,15 +294,17 @@ interval:
     and the output hash chain.
 - **D-2** **Journal integrity.**
   - The journal is written ahead of processing and is hash-chained.
-  - With a `JournalStore`, the commit point is the store's `append` returning. Any append error
-    means the outcome is unknown, and the venue stops (VR-07).
+  - With a `JournalStore`, the commit point is the store's `append` returning **and**, since Milestone
+    11, the commit-anchor write returning (D-6). Any error in either means the outcome is unknown, and
+    the venue stops (VR-07).
   - On read it is treated as untrusted. Each entry is parsed, its command validated with the
     schema, and its sequence and hash chain checked.
   - Recovery takes journal text or a store, never both. The store is repaired only after the
     journal, the snapshot and the replay have all succeeded (VR-21, VR-22).
   - A torn final line, meaning an **unparseable** final line without a newline, is dropped (and
-    truncated from the store). Under the store contract that command was never acknowledged; the
-    reader cannot verify the contract.
+    truncated from the store). Under the store contract that command was never acknowledged. The
+    reader cannot verify the contract; since Milestone 11 the commit anchor does (D-6): a torn line at
+    or before the anchored sequence is refused, never dropped.
   - A final line that parses as JSON but fails validation is a complete, corrupt entry, not a torn
     write. It refuses recovery even without a trailing newline (VR-28).
   - A complete final entry without its newline counts as committed. The newline is restored before
@@ -317,7 +324,8 @@ interval:
   - While stopped, order and open-order queries refuse rather than serve possibly half-applied
     state. Private events (committed outputs only) stay readable (VR-19).
   - A command that faults deterministically also faults on replay. Recovery then stops and names
-    its sequence number (VR-18).
+    its sequence number (VR-18). Since Milestone 11 an operator may quarantine it if it is the final
+    entry (D-7); that is the only exception to "a journaled command takes effect on recovery".
   - A snapshot whose holdings disagree with its orders is refused on restore.
 - **D-4** **Duplicate outputs after recovery.**
   - Outputs regenerated after recovery carry the same sequence numbers: `publicSeq`, `accountSeq`,
@@ -341,6 +349,53 @@ interval:
   - A partial final line (torn write, unparseable) is still dropped as uncommitted. This relies on
     the store contract that an append is acknowledged only once it is durable. A store that breaks
     it can lose an acknowledged entry by truncation or omission without detection.
+
+- **D-6** **Commit anchor** (Milestone 11; details: [DURABILITY-AND-RETENTION.md](DURABILITY-AND-RETENTION.md) §1).
+  - A store-backed venue has a `CommitAnchorStore` beside its `JournalStore`. For every command the sequencer
+    appends the entry to the journal, then writes the anchor `{ seq, hash }`, then processes. **Both writes
+    together are the commit point.** If either fails, the outcome is unknown: the gateway answers
+    `outcome-unknown` and the venue stops (D-3).
+  - Recovery requires the journal to contain the anchored entry with the anchored hash. It refuses, without
+    changing either store, when:
+    - the journal ends before the anchored sequence number (acknowledged entries missing);
+    - the anchored entry is the incomplete final line (an acknowledged entry truncated: never dropped as torn);
+    - the anchored entry's hash differs;
+    - the anchor is missing for a non-empty journal, unreadable or invalid.
+  - Complete entries after the anchor are applied (their client got `outcome-unknown`); an unparseable final
+    line after the anchor is still dropped as a torn write (D-2).
+  - **Operator bootstrap** of a missing or unreadable anchor: only through `Venue.recover` with an explicit
+    `bootstrapAnchor { reason, approvedBy }`, after a verified full replay (no snapshot). It journals an
+    `admin.anchor-bootstrap` audit record, which anchors the journal and changes no engine state. A readable
+    anchor is never replaced. `approvedBy` is free-text metadata, **not** an authenticated approval.
+  - A store without an anchor is refused unless `allowUnanchored: true` is passed explicitly (the Milestone
+    10 behaviour). Duplicate and conflicting entries stay fail-closed (D-5): no automatic repair.
+  - In memory, the anchor detects integrity faults of a non-conforming store. It is **not** evidence of
+    physical durability, and it does not stop an insider who can rewrite both stores (§5 of the report).
+
+- **D-7** **Quarantine of a poison command** (Milestone 11, VR-18; details:
+  [DURABILITY-AND-RETENTION.md](DURABILITY-AND-RETENTION.md) §2; runbook:
+  [runbooks/POISON-COMMAND.md](runbooks/POISON-COMMAND.md)).
+  - Only an operator can quarantine, only through `Venue.recover` with an explicit `quarantine` request, and
+    only when **all** of these hold; otherwise recovery refuses without changing either store:
+    - the entry is the **final** valid journal entry (fail-stop, D-3, means a live fault is always last; a
+      fault in the middle of the journal signals non-determinism and is never quarantined);
+    - its hash matches;
+    - its fault **reproduces** (checked on a scratch copy of the state just before it);
+    - the evidence attests the same engine build and a non-successful client outcome, and the observed
+      public and per-account sequences do not exceed those that existed before the entry (no externally
+      acknowledged execution, fill or other output);
+    - no snapshot includes the entry.
+  - The quarantined entry is **voided** deterministically: it takes no effect, and the submitter gets a
+    definitive `rejected` / `request-rejected` with reason `quarantined` (other commands: an admin error).
+  - The decision is journaled immediately after the voided entry as `admin.quarantine` (anchored, D-6). Every
+    later replay — full, from a snapshot, or by a replica — voids the same entry without operator input. A
+    record that does not reference the immediately preceding entry is refused as corruption.
+  - The identical command is refused before journaling from then on (`quarantined`); `suspendAccount`
+    suspends its account in the same record.
+  - **Journal-schema change:** `admin.quarantine` and `admin.anchor-bootstrap` are new command types. A
+    Milestone 10 reader refuses a journal that contains them (`invalid command`); journals without them are
+    unchanged and read by both.
+  - `approvedBy`, `reason` and `notes` are free-text metadata, **not** an authenticated approval.
 
 ## 10. Gateway and access
 
@@ -398,6 +453,21 @@ interval:
   - Fixture key literals exist only in `id-key.ts` and tests (static check).
   - Key rotation and storage are not covered (open).
 
+- **A-6** **Retention and its limits** (Milestone 11, VR-13; details:
+  [DURABILITY-AND-RETENTION.md](DURABILITY-AND-RETENTION.md) §3).
+  - **Private events:** each account's outbox keeps the most recent `outboxCapacity` events (default
+    10 000). Loss is **explicit**: `Venue.privateEventsPage` / `gateway.eventsPage` return
+    `{ events, firstAvailableAccountSeq, latestAccountSeq, gap }`, and `gap` is true whenever events after the
+    caller's cursor were dropped or are not retained (outbox overflow, or a restore from a snapshot). The
+    client then resynchronises from its order queries. The older `events()` reader is unchanged and silent.
+  - **Audit stores** (`executions`, `transitions`, `publicTape`, `adminErrors`): optional caps
+    (`auditRetention`), **disabled by default**. When a cap evicts, `auditEvicted` counts it and
+    `historyComplete` becomes false; full reconciliation is done by replaying the journal.
+  - **Never trimmed:** the engine's client-ID index and its terminal orders. They are what refuses a second
+    execution after an idempotency-ledger eviction (A-4) and what answers a lookup by client order ID, so they
+    grow with every accepted order in the prototype. The long-term design is a durable client-ID index and
+    order archive, not a bounded client-ID validity window.
+
 ## 11. Order of validation
 
 New orders are checked in this order, and the first failure decides the rejection reason:
@@ -411,6 +481,11 @@ New orders are checked in this order, and the first failure decides the rejectio
 7. duplicate client ID
 8. risk
 9. post-only crossing
+
+The gateway runs its own checks first (RECOVERY-INTEGRITY §1, extended in Milestone 11): session and
+rate limit, schema, instrument and exact decimal conversion, idempotency-ledger lookup, post-only
+throttle, **unfilled-FOK throttle (H-7)**, then the sequencer. The sequencer refuses an operator record
+(D-6, D-7) and a quarantined command (D-7) before journaling.
 
 All checks happen before any state changes. A rejected order consumes neither its client ID, at the
 engine or the gateway, nor any book, order, position or public state. It does consume one

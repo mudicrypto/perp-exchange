@@ -1,0 +1,200 @@
+=== perf-baseline-1.log
+Environment: node v22.22.0, linux 6.18.44-fc-v139 x64, 4 × Intel(R) Xeon(R) Processor @ 2.10GHz, 16 GiB RAM
+Parameters: scale 1, runs 1, seeds 1001.. (engine flow) / 2001.. (gateway flow)
+
+| Scenario | Run | Parameters | Ops | Ops/s | p50 µs | p95 µs | p99 µs | max µs |
+|---|---|---|---|---|---|---|---|---|
+| F1 matching, no persistence | 1 | 60000 mixed commands, 16 accounts | 60000 | 134,308 | 3.4 | 19.3 | 40.2 | 5761 |
+| F2 matching + journal (memory store) | 1 | 60000 mixed commands; store 20.6 MiB | 60000 | 15,464 | 45.7 | 148.1 | 231.6 | 25511 |
+| F3 publication (immediate) | 1 | 60000 commands; 39893 public msgs; mirror validates each | 60000 | 14,102 | 47.6 | 166.0 | 271.2 | 32113 |
+| F3 publication (batched) | 1 | 60000 commands; 28249 public msgs; mirror validates each; publish every 50 | 60000 | 14,163 | 44.8 | 160.7 | 277.7 | 98109 |
+| F4 gateway mixed entry/cancel/execution | 1 | 60000 synthetic messages (seeded) | 60000 | 13,158 | 49.4 | 165.8 | 264.3 | 9274 |
+| F5 bursty (queueing + service) | 1 | bursts of 2000 every 200 ms, open loop | 60000 | 12,003 | 80735.2 | 170844.5 | 196541.1 | 217395 |
+| F6 large book | 1 | 100000 resting orders (25 % hidden) + 60000 mixed commands | 60000 | 14,460 | 48.7 | 153.0 | 246.1 | 12346 |
+| F7 recovery (full replay) | 1 | 60018 entries replayed; snapshot 18.3 MiB | 60018 | 15,535 | 64.4 | 64.4 | 64.4 | 64 |
+| F7 recovery (snapshot + suffix) | 1 | 29999 entries replayed; snapshot 18.3 MiB | 29999 | 10,970 | 91.2 | 91.2 | 91.2 | 91 |
+
+Timing probe (engine path) — median µs of a displayed add at a new level in front of N hidden-only levels, per round:
+  hidden-only levels      0: 2.8, 2.9, 2.7, 2.8, 4.8
+  hidden-only levels   1000: 5.9, 3.1, 3.0, 3.0, 5.4
+  hidden-only levels  50000: 7.8, 7.7, 7.8, 10.5, 10.6
+
+Timing probe (gateway path) — median µs of a displayed add at a new level in front of N hidden-only levels, per round:
+  hidden-only levels      0: 234.9, 250.5, 209.9, 246.4, 222.7
+  hidden-only levels   1000: 216.6, 269.4, 290.3, 252.4, 225.2
+  hidden-only levels  50000: 230.2, 217.8, 237.3, 231.3, 236.3
+=== perf-baseline-2.log
+Environment: node v22.22.0, linux 6.18.44-fc-v139 x64, 4 × Intel(R) Xeon(R) Processor @ 2.10GHz, 16 GiB RAM
+Parameters: scale 1, runs 1, seeds 1001.. (engine flow) / 2001.. (gateway flow)
+
+| Scenario | Run | Parameters | Ops | Ops/s | p50 µs | p95 µs | p99 µs | max µs |
+|---|---|---|---|---|---|---|---|---|
+| F1 matching, no persistence | 1 | 60000 mixed commands, 16 accounts | 60000 | 140,822 | 3.5 | 18.4 | 39.7 | 7065 |
+| F2 matching + journal (memory store) | 1 | 60000 mixed commands; store 20.6 MiB | 60000 | 13,935 | 47.4 | 165.6 | 273.8 | 48299 |
+| F3 publication (immediate) | 1 | 60000 commands; 39893 public msgs; mirror validates each | 60000 | 15,572 | 46.2 | 147.0 | 233.1 | 56292 |
+| F3 publication (batched) | 1 | 60000 commands; 28249 public msgs; mirror validates each; publish every 50 | 60000 | 15,657 | 43.1 | 144.4 | 235.1 | 61535 |
+| F4 gateway mixed entry/cancel/execution | 1 | 60000 synthetic messages (seeded) | 60000 | 14,396 | 47.3 | 148.5 | 228.5 | 5949 |
+| F5 bursty (queueing + service) | 1 | bursts of 2000 every 200 ms, open loop | 60000 | 15,171 | 64509.2 | 124378.2 | 155687.7 | 226571 |
+| F6 large book | 1 | 100000 resting orders (25 % hidden) + 60000 mixed commands | 60000 | 15,330 | 47.6 | 144.3 | 228.5 | 11227 |
+| F7 recovery (full replay) | 1 | 60018 entries replayed; snapshot 18.3 MiB | 60018 | 15,814 | 63.2 | 63.2 | 63.2 | 63 |
+| F7 recovery (snapshot + suffix) | 1 | 29999 entries replayed; snapshot 18.3 MiB | 29999 | 9,422 | 106.1 | 106.1 | 106.1 | 106 |
+
+Timing probe (engine path) — median µs of a displayed add at a new level in front of N hidden-only levels, per round:
+  hidden-only levels      0: 2.8, 4.7, 2.7, 2.7, 2.7
+  hidden-only levels   1000: 3.0, 4.8, 3.1, 3.1, 2.9
+  hidden-only levels  50000: 9.8, 7.6, 7.5, 7.6, 7.4
+
+Timing probe (gateway path) — median µs of a displayed add at a new level in front of N hidden-only levels, per round:
+  hidden-only levels      0: 224.8, 226.6, 240.8, 210.8, 210.5
+  hidden-only levels   1000: 233.8, 216.7, 234.7, 220.9, 230.7
+  hidden-only levels  50000: 232.6, 223.0, 239.8, 224.4, 255.6
+=== perf-baseline-3.log
+Environment: node v22.22.0, linux 6.18.44-fc-v139 x64, 4 × Intel(R) Xeon(R) Processor @ 2.10GHz, 16 GiB RAM
+Parameters: scale 1, runs 1, seeds 1001.. (engine flow) / 2001.. (gateway flow)
+
+| Scenario | Run | Parameters | Ops | Ops/s | p50 µs | p95 µs | p99 µs | max µs |
+|---|---|---|---|---|---|---|---|---|
+| F1 matching, no persistence | 1 | 60000 mixed commands, 16 accounts | 60000 | 138,449 | 3.5 | 17.5 | 36.8 | 7568 |
+| F2 matching + journal (memory store) | 1 | 60000 mixed commands; store 20.6 MiB | 60000 | 14,791 | 46.7 | 157.6 | 264.8 | 25508 |
+| F3 publication (immediate) | 1 | 60000 commands; 39893 public msgs; mirror validates each | 60000 | 15,355 | 46.8 | 147.9 | 234.2 | 21705 |
+| F3 publication (batched) | 1 | 60000 commands; 28249 public msgs; mirror validates each; publish every 50 | 60000 | 14,671 | 44.0 | 153.7 | 261.1 | 125447 |
+| F4 gateway mixed entry/cancel/execution | 1 | 60000 synthetic messages (seeded) | 60000 | 12,551 | 50.9 | 176.8 | 282.7 | 6405 |
+| F5 bursty (queueing + service) | 1 | bursts of 2000 every 200 ms, open loop | 60000 | 15,561 | 62930.9 | 121458.4 | 133217.7 | 159677 |
+| F6 large book | 1 | 100000 resting orders (25 % hidden) + 60000 mixed commands | 60000 | 14,315 | 49.1 | 158.9 | 248.7 | 6573 |
+| F7 recovery (full replay) | 1 | 60018 entries replayed; snapshot 18.3 MiB | 60018 | 17,316 | 57.8 | 57.8 | 57.8 | 58 |
+| F7 recovery (snapshot + suffix) | 1 | 29999 entries replayed; snapshot 18.3 MiB | 29999 | 10,297 | 97.1 | 97.1 | 97.1 | 97 |
+
+Timing probe (engine path) — median µs of a displayed add at a new level in front of N hidden-only levels, per round:
+  hidden-only levels      0: 2.9, 3.9, 4.4, 3.0, 2.8
+  hidden-only levels   1000: 3.0, 3.9, 2.9, 3.0, 3.0
+  hidden-only levels  50000: 7.3, 7.8, 7.1, 7.2, 7.1
+
+Timing probe (gateway path) — median µs of a displayed add at a new level in front of N hidden-only levels, per round:
+  hidden-only levels      0: 229.6, 244.8, 224.7, 215.4, 217.9
+  hidden-only levels   1000: 232.8, 228.9, 253.1, 212.0, 227.8
+  hidden-only levels  50000: 226.3, 221.6, 232.5, 240.3, 224.6
+=== perf-baseline-4.log
+Environment: node v22.22.0, linux 6.18.44-fc-v139 x64, 4 × Intel(R) Xeon(R) Processor @ 2.10GHz, 16 GiB RAM
+Parameters: scale 1, runs 1, seeds 1001.. (engine flow) / 2001.. (gateway flow)
+
+| Scenario | Run | Parameters | Ops | Ops/s | p50 µs | p95 µs | p99 µs | max µs |
+|---|---|---|---|---|---|---|---|---|
+| F1 matching, no persistence | 1 | 60000 mixed commands, 16 accounts | 60000 | 114,876 | 4.2 | 23.5 | 54.5 | 8590 |
+| F2 matching + journal (memory store) | 1 | 60000 mixed commands; store 20.6 MiB | 60000 | 14,656 | 47.0 | 157.4 | 257.8 | 37824 |
+| F3 publication (immediate) | 1 | 60000 commands; 39893 public msgs; mirror validates each | 60000 | 14,780 | 46.9 | 158.3 | 258.0 | 28724 |
+| F3 publication (batched) | 1 | 60000 commands; 28249 public msgs; mirror validates each; publish every 50 | 60000 | 14,116 | 44.9 | 161.2 | 272.4 | 90939 |
+| F4 gateway mixed entry/cancel/execution | 1 | 60000 synthetic messages (seeded) | 60000 | 13,157 | 49.5 | 162.2 | 254.7 | 13191 |
+| F5 bursty (queueing + service) | 1 | bursts of 2000 every 200 ms, open loop | 60000 | 13,433 | 70230.7 | 154414.2 | 187647.8 | 224266 |
+| F6 large book | 1 | 100000 resting orders (25 % hidden) + 60000 mixed commands | 60000 | 15,008 | 48.2 | 148.2 | 233.4 | 10039 |
+| F7 recovery (full replay) | 1 | 60018 entries replayed; snapshot 18.3 MiB | 60018 | 13,034 | 76.7 | 76.7 | 76.7 | 77 |
+| F7 recovery (snapshot + suffix) | 1 | 29999 entries replayed; snapshot 18.3 MiB | 29999 | 10,080 | 99.2 | 99.2 | 99.2 | 99 |
+
+Timing probe (engine path) — median µs of a displayed add at a new level in front of N hidden-only levels, per round:
+  hidden-only levels      0: 2.9, 3.0, 5.0, 2.8, 2.7
+  hidden-only levels   1000: 3.1, 2.9, 5.2, 4.4, 4.3
+  hidden-only levels  50000: 9.8, 10.6, 9.6, 9.3, 9.9
+
+Timing probe (gateway path) — median µs of a displayed add at a new level in front of N hidden-only levels, per round:
+  hidden-only levels      0: 233.8, 246.5, 221.5, 223.0, 235.0
+  hidden-only levels   1000: 227.0, 251.6, 221.9, 208.3, 221.5
+  hidden-only levels  50000: 231.1, 236.2, 224.7, 232.7, 219.8
+=== perf-m11-1.log
+Environment: node v22.22.0, linux 6.18.44-fc-v139 x64, 4 × Intel(R) Xeon(R) Processor @ 2.10GHz, 16 GiB RAM
+Parameters: scale 1, runs 1, seeds 1001.. (engine flow) / 2001.. (gateway flow)
+
+| Scenario | Run | Parameters | Ops | Ops/s | p50 µs | p95 µs | p99 µs | max µs |
+|---|---|---|---|---|---|---|---|---|
+| F1 matching, no persistence | 1 | 60000 mixed commands, 16 accounts | 60000 | 154,220 | 3.3 | 16.5 | 34.1 | 6584 |
+| F2 matching + journal (memory store) | 1 | 60000 mixed commands; store 20.6 MiB | 60000 | 14,899 | 47.3 | 147.3 | 239.5 | 38379 |
+| F3 publication (immediate) | 1 | 60000 commands; 39893 public msgs; mirror validates each | 60000 | 15,539 | 47.3 | 144.2 | 227.0 | 31024 |
+| F3 publication (batched) | 1 | 60000 commands; 28249 public msgs; mirror validates each; publish every 50 | 60000 | 14,740 | 45.2 | 149.2 | 242.9 | 106449 |
+| F4 gateway mixed entry/cancel/execution | 1 | 60000 synthetic messages (seeded) | 60000 | 13,084 | 49.6 | 165.2 | 266.7 | 6482 |
+| F5 bursty (queueing + service) | 1 | bursts of 2000 every 200 ms, open loop | 60000 | 12,399 | 78159.6 | 171234.4 | 258191.6 | 298447 |
+| F6 large book | 1 | 100000 resting orders (25 % hidden) + 60000 mixed commands | 60000 | 12,734 | 52.2 | 178.3 | 287.2 | 8259 |
+| F7 recovery (full replay) | 1 | 60018 entries replayed; snapshot 18.3 MiB | 60018 | 14,542 | 68.8 | 68.8 | 68.8 | 69 |
+| F7 recovery (snapshot + suffix) | 1 | 29999 entries replayed; snapshot 18.3 MiB | 29999 | 9,510 | 105.2 | 105.2 | 105.2 | 105 |
+
+Timing probe (engine path) — median µs of a displayed add at a new level in front of N hidden-only levels, per round:
+  hidden-only levels      0: 2.8, 2.9, 2.7, 2.8, 2.6
+  hidden-only levels   1000: 3.3, 3.0, 3.1, 2.9, 3.0
+  hidden-only levels  50000: 7.4, 7.3, 7.3, 7.0, 7.8
+
+Timing probe (gateway path) — median µs of a displayed add at a new level in front of N hidden-only levels, per round:
+  hidden-only levels      0: 210.4, 221.0, 220.6, 219.9, 250.4
+  hidden-only levels   1000: 236.1, 239.5, 223.6, 225.8, 249.0
+  hidden-only levels  50000: 237.7, 238.5, 242.7, 260.8, 266.6
+=== perf-m11-2.log
+Environment: node v22.22.0, linux 6.18.44-fc-v139 x64, 4 × Intel(R) Xeon(R) Processor @ 2.10GHz, 16 GiB RAM
+Parameters: scale 1, runs 1, seeds 1001.. (engine flow) / 2001.. (gateway flow)
+
+| Scenario | Run | Parameters | Ops | Ops/s | p50 µs | p95 µs | p99 µs | max µs |
+|---|---|---|---|---|---|---|---|---|
+| F1 matching, no persistence | 1 | 60000 mixed commands, 16 accounts | 60000 | 149,004 | 3.3 | 15.8 | 34.6 | 11278 |
+| F2 matching + journal (memory store) | 1 | 60000 mixed commands; store 20.6 MiB | 60000 | 15,383 | 47.4 | 145.3 | 235.3 | 29271 |
+| F3 publication (immediate) | 1 | 60000 commands; 39893 public msgs; mirror validates each | 60000 | 14,624 | 48.7 | 157.6 | 248.2 | 32494 |
+| F3 publication (batched) | 1 | 60000 commands; 28249 public msgs; mirror validates each; publish every 50 | 60000 | 14,614 | 46.6 | 154.8 | 249.5 | 48888 |
+| F4 gateway mixed entry/cancel/execution | 1 | 60000 synthetic messages (seeded) | 60000 | 12,376 | 51.9 | 175.3 | 275.8 | 28208 |
+| F5 bursty (queueing + service) | 1 | bursts of 2000 every 200 ms, open loop | 60000 | 14,083 | 68526.3 | 136742.3 | 181703.1 | 211398 |
+| F6 large book | 1 | 100000 resting orders (25 % hidden) + 60000 mixed commands | 60000 | 13,978 | 50.1 | 155.5 | 247.1 | 6426 |
+| F7 recovery (full replay) | 1 | 60018 entries replayed; snapshot 18.3 MiB | 60018 | 16,805 | 59.5 | 59.5 | 59.5 | 60 |
+| F7 recovery (snapshot + suffix) | 1 | 29999 entries replayed; snapshot 18.3 MiB | 29999 | 10,198 | 98.1 | 98.1 | 98.1 | 98 |
+
+Timing probe (engine path) — median µs of a displayed add at a new level in front of N hidden-only levels, per round:
+  hidden-only levels      0: 2.9, 2.9, 2.8, 4.4, 2.7
+  hidden-only levels   1000: 3.1, 3.1, 3.0, 3.2, 2.8
+  hidden-only levels  50000: 9.4, 9.5, 10.1, 7.3, 9.5
+
+Timing probe (gateway path) — median µs of a displayed add at a new level in front of N hidden-only levels, per round:
+  hidden-only levels      0: 247.7, 227.1, 221.3, 229.8, 261.3
+  hidden-only levels   1000: 227.4, 235.3, 241.5, 268.3, 232.4
+  hidden-only levels  50000: 227.9, 241.6, 237.4, 282.4, 211.0
+=== perf-m11-3.log
+Environment: node v22.22.0, linux 6.18.44-fc-v139 x64, 4 × Intel(R) Xeon(R) Processor @ 2.10GHz, 16 GiB RAM
+Parameters: scale 1, runs 1, seeds 1001.. (engine flow) / 2001.. (gateway flow)
+
+| Scenario | Run | Parameters | Ops | Ops/s | p50 µs | p95 µs | p99 µs | max µs |
+|---|---|---|---|---|---|---|---|---|
+| F1 matching, no persistence | 1 | 60000 mixed commands, 16 accounts | 60000 | 99,020 | 4.7 | 26.5 | 55.5 | 34286 |
+| F2 matching + journal (memory store) | 1 | 60000 mixed commands; store 20.6 MiB | 60000 | 12,722 | 50.0 | 184.8 | 312.1 | 90176 |
+| F3 publication (immediate) | 1 | 60000 commands; 39893 public msgs; mirror validates each | 60000 | 14,522 | 48.7 | 154.7 | 244.4 | 10103 |
+| F3 publication (batched) | 1 | 60000 commands; 28249 public msgs; mirror validates each; publish every 50 | 60000 | 13,212 | 47.5 | 171.5 | 299.7 | 15077 |
+| F4 gateway mixed entry/cancel/execution | 1 | 60000 synthetic messages (seeded) | 60000 | 12,651 | 49.9 | 158.4 | 241.3 | 74388 |
+| F5 bursty (queueing + service) | 1 | bursts of 2000 every 200 ms, open loop | 60000 | 14,033 | 69824.1 | 139994.7 | 165329.7 | 195262 |
+| F6 large book | 1 | 100000 resting orders (25 % hidden) + 60000 mixed commands | 60000 | 12,525 | 51.6 | 167.6 | 267.6 | 158193 |
+| F7 recovery (full replay) | 1 | 60018 entries replayed; snapshot 18.3 MiB | 60018 | 14,076 | 71.0 | 71.0 | 71.0 | 71 |
+| F7 recovery (snapshot + suffix) | 1 | 29999 entries replayed; snapshot 18.3 MiB | 29999 | 8,298 | 120.5 | 120.5 | 120.5 | 121 |
+
+Timing probe (engine path) — median µs of a displayed add at a new level in front of N hidden-only levels, per round:
+  hidden-only levels      0: 3.0, 2.7, 2.7, 3.0, 3.0
+  hidden-only levels   1000: 3.2, 3.2, 3.1, 3.2, 3.7
+  hidden-only levels  50000: 9.8, 9.9, 9.5, 9.5, 10.0
+
+Timing probe (gateway path) — median µs of a displayed add at a new level in front of N hidden-only levels, per round:
+  hidden-only levels      0: 266.0, 260.0, 223.9, 246.9, 242.0
+  hidden-only levels   1000: 242.6, 224.4, 213.3, 250.4, 237.2
+  hidden-only levels  50000: 249.7, 261.8, 256.1, 246.6, 239.7
+=== perf-m11-4.log
+Environment: node v22.22.0, linux 6.18.44-fc-v139 x64, 4 × Intel(R) Xeon(R) Processor @ 2.10GHz, 16 GiB RAM
+Parameters: scale 1, runs 1, seeds 1001.. (engine flow) / 2001.. (gateway flow)
+
+| Scenario | Run | Parameters | Ops | Ops/s | p50 µs | p95 µs | p99 µs | max µs |
+|---|---|---|---|---|---|---|---|---|
+| F1 matching, no persistence | 1 | 60000 mixed commands, 16 accounts | 60000 | 156,022 | 3.4 | 16.1 | 32.7 | 8084 |
+| F2 matching + journal (memory store) | 1 | 60000 mixed commands; store 20.6 MiB | 60000 | 14,851 | 47.3 | 151.5 | 249.3 | 21066 |
+| F3 publication (immediate) | 1 | 60000 commands; 39893 public msgs; mirror validates each | 60000 | 14,235 | 48.2 | 163.1 | 267.5 | 13311 |
+| F3 publication (batched) | 1 | 60000 commands; 28249 public msgs; mirror validates each; publish every 50 | 60000 | 14,730 | 45.2 | 158.7 | 264.0 | 30208 |
+| F4 gateway mixed entry/cancel/execution | 1 | 60000 synthetic messages (seeded) | 60000 | 12,557 | 50.1 | 168.1 | 267.6 | 137141 |
+| F5 bursty (queueing + service) | 1 | bursts of 2000 every 200 ms, open loop | 60000 | 12,254 | 78309.6 | 171818.8 | 191924.3 | 204336 |
+| F6 large book | 1 | 100000 resting orders (25 % hidden) + 60000 mixed commands | 60000 | 11,064 | 54.8 | 202.3 | 361.2 | 97825 |
+| F7 recovery (full replay) | 1 | 60018 entries replayed; snapshot 18.3 MiB | 60018 | 16,465 | 60.7 | 60.7 | 60.7 | 61 |
+| F7 recovery (snapshot + suffix) | 1 | 29999 entries replayed; snapshot 18.3 MiB | 29999 | 9,256 | 108.0 | 108.0 | 108.0 | 108 |
+
+Timing probe (engine path) — median µs of a displayed add at a new level in front of N hidden-only levels, per round:
+  hidden-only levels      0: 2.8, 2.8, 2.6, 3.0, 3.0
+  hidden-only levels   1000: 2.9, 5.0, 3.6, 3.1, 3.2
+  hidden-only levels  50000: 7.4, 7.3, 11.2, 7.8, 7.3
+
+Timing probe (gateway path) — median µs of a displayed add at a new level in front of N hidden-only levels, per round:
+  hidden-only levels      0: 225.0, 234.2, 227.7, 241.8, 296.9
+  hidden-only levels   1000: 230.9, 232.8, 229.3, 241.3, 210.6
+  hidden-only levels  50000: 261.2, 264.4, 263.2, 257.7, 271.0

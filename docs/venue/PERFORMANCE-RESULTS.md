@@ -194,3 +194,69 @@ session with nothing else running. Three rounds per side, `venue:perf` scale 0.5
   message (VR-29). It adds a per-event freeze on every command; no A/B run was made for it.
 - **A cheaper design is possible** if this matters later: freeze once without cloning, and give
   responses their own copies. It was not pursued, to keep the fix minimal and obviously correct.
+
+## 8. Milestone 11: comparison with Milestone 10 (A/B) and memory
+
+**What changed on the measured paths.**
+
+- Every store-backed submit also writes the commit anchor (D-6). The benchmarks now give their store-backed
+  venues an anchor, so they measure the same work plus the anchor.
+- `submit` makes two cheap checks: it refuses operator records and quarantined commands.
+- Routing updates the latest private sequence per account.
+- The gateway checks an unfilled-FOK budget. The benchmarks raise it to 10⁹ like the other limits, so it never
+  throttles them.
+- The book and matching path are unchanged.
+
+**Method.**
+
+- `npm run venue:perf -- 1 1`, alternating `9812049` (baseline worktree) and Milestone 11, four runs each, on
+  the same shared container.
+- Raw logs: `verification/m11/perf-ab-against-9812049.log`.
+- Throughput is reported as the median, with the range across runs in brackets.
+
+| Scenario | Baseline ops/s | Milestone 11 ops/s | Median Δ | Ranges separate? |
+|---|---|---|---|---|
+| F1 matching, no persistence | 136,378 (114,876–140,822) | 151,612 (99,020–156,022) | +11.2 % | no |
+| F2 matching + journal (memory store) | 14,724 (13,935–15,464) | 14,875 (12,722–15,383) | +1.0 % | no |
+| F3 publication (immediate) | 15,068 (14,102–15,572) | 14,573 (14,235–15,539) | -3.3 % | no |
+| F3 publication (batched) | 14,417 (14,116–15,657) | 14,672 (13,212–14,740) | +1.8 % | no |
+| F4 gateway mixed entry/cancel/execution | 13,158 (12,551–14,396) | 12,604 (12,376–13,084) | -4.2 % | no |
+| F5 bursty (queueing + service) | 14,302 (12,003–15,561) | 13,216 (12,254–14,083) | -7.6 % | no |
+| F6 large book | 14,734 (14,315–15,330) | 12,630 (11,064–13,978) | -14.3 % | yes |
+| F7 recovery (full replay) | 15,674 (13,034–17,316) | 15,504 (14,076–16,805) | -1.1 % | no |
+| F7 recovery (snapshot + suffix) | 10,188 (9,422–10,970) | 9,383 (8,298–10,198) | -7.9 % | no |
+
+**Reading.**
+
+- **Noise floor.** F1 exercises engine code that did not change, yet it moved +11 % (one Milestone 11 run
+  at 99 020 ops/s). Differences of a few percent are noise on this host.
+- **F6 (large book) is the only scenario whose ranges separate: −14 %.** To isolate it, an F6-style script
+  ran the same workload interleaved on both trees (`verification/m11/perf-f6-isolation.log`):
+  - the baseline median was 9 274 ops/s;
+  - Milestone 11 unanchored was 9 053 (−2 %), and anchored 8 832 (−5 %);
+  - the ranges overlap.
+- **The anchor itself** costs about **1.1 µs per command** (microbenchmark of building and writing the record),
+  about 2 % of the ~47 µs store-backed path. This is consistent with F2's +1 %.
+- **The in-suite F6 difference** is reproducible but not explained by the isolated measurements.
+  - For context, §7 recorded a similar −13 % F6 difference with separated ranges for the Milestone 10 review
+    fixes, which did not touch the book either.
+  - It is recorded as an **open observation**, not attributed and not treated as a capacity statement.
+- **Timing probe (VR-15).** It is unchanged in kind: the engine path still depends on hidden-only levels.
+  That is expected, because the book is unchanged (D8, Milestone 12).
+
+**Memory (VR-13).**
+
+- Measured with `npm run venue:memory -- 50000 <config>`, one configuration per process, under `--expose-gc`.
+- Raw log: `verification/m11/memory-probe.log`.
+- The workload is 100 000 accepted orders, every one terminal.
+
+| Configuration | Heap per accepted order |
+|---|---|
+| Defaults (audit caps disabled) | ≈ 2 825 B |
+| All audit caps at 1 000 | ≈ 2 363 B (−16 %) |
+
+- The in-memory copy of the journal is ≈ 314 B per entry, measured separately (≈ 13 %).
+- The rest grows with every accepted order by design for the prototype (decision D7):
+  - engine orders and the client-ID index;
+  - the in-heap store text;
+  - the idempotency ledger, up to its capacity.

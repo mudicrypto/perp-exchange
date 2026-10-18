@@ -4,7 +4,7 @@ import { priceToTicks, quantityToLots, type InstrumentSpec } from "./instrument.
 import { canonicalJson } from "./journal.ts";
 import { WindowLimiter } from "./rate-limit.ts";
 import { engineCommandSchema, STP_MODES, SIDES, TIME_IN_FORCE, VISIBILITIES, type EngineCommand, type OrderRef, type OrderView, type PrivateEvent } from "./types.ts";
-import { OutcomeUnknownError, VenueUnavailableError, type Venue } from "./venue.ts";
+import { OutcomeUnknownError, QuarantinedCommandError, VenueUnavailableError, type PrivateEventsPage, type Venue } from "./venue.ts";
 
 /**
  * Order-entry gateway: the only path from (synthetic) clients to the
@@ -59,8 +59,9 @@ export type ClientMessage = z.input<typeof clientMessageSchema>;
  * `unavailable`: nothing was recorded; retry later.
  * `outcome-unknown`: the command was, or may have been, journaled and takes effect on recovery if it was;
  * look the order up by its client order id once the venue is back before retrying.
+ * `quarantined`: this exact request was quarantined by the operator after it faulted (D-7); nothing was recorded.
  */
-export type GatewayErrorCode = "unauthenticated" | "rate-limited" | "invalid-request" | "idempotency-conflict" | "unavailable" | "outcome-unknown";
+export type GatewayErrorCode = "unauthenticated" | "rate-limited" | "invalid-request" | "idempotency-conflict" | "unavailable" | "outcome-unknown" | "quarantined";
 
 export type GatewayResponse =
   | { ok: true; replayed: boolean; events: PrivateEvent[] }
@@ -72,6 +73,11 @@ export interface GatewayOptions {
   readonly messages: { readonly limit: number; readonly windowMs: number };
   /** Post-only rejections per account per window before post-only orders are throttled. */
   readonly postOnlyRejects: { readonly limit: number; readonly windowMs: number };
+  /**
+   * Unfilled FOK orders per account per window before FOK orders are throttled (H-7, VR-08). Separate from the
+   * post-only budget; defaults to `DEFAULT_GATEWAY_LIMITS.fokUnfilled`.
+   */
+  readonly fokUnfilled?: { readonly limit: number; readonly windowMs: number };
   /** Individual refusal records kept for monitoring (oldest dropped; totals are always counted). */
   readonly refusalLogCapacity?: number;
 }
@@ -79,6 +85,7 @@ export interface GatewayOptions {
 export const DEFAULT_GATEWAY_LIMITS = {
   messages: { limit: 200, windowMs: 1_000 },
   postOnlyRejects: { limit: 20, windowMs: 60_000 },
+  fokUnfilled: { limit: 20, windowMs: 60_000 },
 } as const;
 
 const fail = (code: GatewayErrorCode, message: string, retryAfterMs?: number): GatewayResponse => ({
@@ -98,6 +105,7 @@ export class VenueGateway {
   private readonly sessions = new Map<string, string>();
   private readonly messageLimiter: WindowLimiter;
   private readonly postOnlyLimiter: WindowLimiter;
+  private readonly fokLimiter: WindowLimiter;
   /** Most recent gateway-level refusals (never journaled), bounded; codes only, never payloads. */
   readonly refusals: { ts: number; accountId: string | null; code: GatewayErrorCode }[] = [];
   /** Total refusals per code since start (not bounded by the log capacity). */
@@ -108,6 +116,8 @@ export class VenueGateway {
     this.options = options;
     this.messageLimiter = new WindowLimiter(options.messages.limit, options.messages.windowMs);
     this.postOnlyLimiter = new WindowLimiter(options.postOnlyRejects.limit, options.postOnlyRejects.windowMs);
+    const fok = options.fokUnfilled ?? DEFAULT_GATEWAY_LIMITS.fokUnfilled;
+    this.fokLimiter = new WindowLimiter(fok.limit, fok.windowMs);
   }
 
   /** Issues a 256-bit session token bound to one synthetic account. */
@@ -171,6 +181,9 @@ export class VenueGateway {
     if (error instanceof OutcomeUnknownError) {
       return this.refuse(now, accountId, fail("outcome-unknown", "The command may have been recorded. Look the order up by its client order id once the venue is available before retrying."));
     }
+    if (error instanceof QuarantinedCommandError) {
+      return this.refuse(now, accountId, fail("quarantined", "This exact request was quarantined by the venue operator and is not accepted again. Nothing was recorded."));
+    }
     // VenueUnavailableError, or anything raised before the command was journaled.
     return this.refuse(now, accountId, fail("unavailable", "The venue is not accepting commands. Nothing was recorded."));
   }
@@ -213,8 +226,15 @@ export class VenueGateway {
       const wait = this.postOnlyLimiter.blockedFor(accountId, now);
       if (wait > 0) return this.refuse(now, accountId, fail("rate-limited", "Too many rejected post-only orders.", wait));
     }
+    // An unfilled FOK answers "not enough at or better than P, hidden included" without executing (VR-08).
+    if (message.timeInForce === "fok") {
+      const wait = this.fokLimiter.blockedFor(accountId, now);
+      if (wait > 0) return this.refuse(now, accountId, fail("rate-limited", "Too many unfilled fill-or-kill orders.", wait));
+    }
     const response = this.forward(accountId, command);
     this.countPostOnlyRejection(response, now, accountId);
+    // Counted from the caller's own visible outcome only, so the throttle reveals nothing about hidden liquidity.
+    if (response.ok && response.events.some((e) => e.kind === "cancelled" && e.reason === "fok-unfilled")) this.fokLimiter.record(accountId, now);
     // Only an accepted order consumes the client order id (§11); the venue records it in the ledger.
     return response;
   }
@@ -281,5 +301,11 @@ export class VenueGateway {
   events(token: string, afterAccountSeq = 0): PrivateEvent[] | null {
     const accountId = this.sessions.get(token);
     return accountId ? this.venue.privateEvents(accountId, afterAccountSeq) : null;
+  }
+
+  /** Own private events with the retention gap marker (A-6). Readable while the venue is stopped, like `events`. */
+  eventsPage(token: string, afterAccountSeq = 0): PrivateEventsPage | null {
+    const accountId = this.sessions.get(token);
+    return accountId ? this.venue.privateEventsPage(accountId, afterAccountSeq) : null;
   }
 }

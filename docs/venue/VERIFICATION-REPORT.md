@@ -240,7 +240,7 @@ No test or isolation rule was weakened. The venue's ESLint isolation rules are u
 - **Regression tests:** `crash-recovery.test.ts`, "VR-07 …" and the boundary property.
 - **Remaining:** only the in-memory implementation exists.
 
-### VR-08: Failing FOK is a free absence probe — **Low, Open**
+### VR-08: Failing FOK is a free absence probe — **Low, Mitigated in Milestone 11**
 
 - **Rule:** H-7 (by analogy), M-8.
 - **Evidence:** a FOK that cannot fill is cancelled with no execution. That reveals "less than Q
@@ -299,7 +299,7 @@ No test or isolation rule was weakened. The venue's ESLint isolation rules are u
   In fact, the driver (demo or tests) submits `publish` commands, and no scheduler exists.
 - **Fix:** the text was corrected. A fixed-interval scheduler is listed as missing.
 
-### VR-13: Unbounded in-memory growth; outboxes drop silently — **Low, Open**
+### VR-13: Unbounded in-memory growth; outboxes drop silently — **Low, Partially mitigated in Milestone 11**
 
 - **Evidence:** these grow without limit:
   - `orders` and the client-ID index, which keep terminal orders
@@ -354,7 +354,7 @@ the venue and the full hidden book (PRIVACY-REVIEW C, tested).
 
 There is no encryption at rest (PRIVACY-REVIEW E, tested).
 
-### VR-18: Poison command — **Low, Partially mitigated**
+### VR-18: Poison command — **Low, Resolved in Milestone 11 (operator quarantine, §9)**
 
 - **Evidence:** a command that faults deterministically also faults on every replay, so recovery
   cannot complete.
@@ -514,7 +514,8 @@ These are the final results. Logs are in `docs/venue/verification/final/`.
 - **Medium:** none open. VR-02, VR-03, VR-04, VR-05, VR-07 and VR-19 are resolved.
 - **Resolved in the review follow-up:** VR-20, VR-21 and VR-22 (Low) and VR-23 (Info).
 - **Resolved in Milestone 10:** VR-09 and VR-10 (Low). VR-14 (Low) is resolved as a policy; key management stays open.
-- **Low, open:** VR-08, VR-13, VR-15 and VR-18 (partially mitigated).
+- **Milestone 11 (§9):** VR-18 resolved within the tested scope (journaled quarantine, runbook). VR-08 mitigated (unfilled-FOK budget). VR-13 partially mitigated (explicit gaps, optional caps; the client-ID index still grows). Detection of truncated or lost acknowledged entries added (commit anchor, D-6). VR-30 (Medium) found and fixed during implementation.
+- **Low, open:** VR-15 and VR-31 (timing; moved to Milestone 12), VR-13 (remaining growth), VR-08 (residual within budget and across accounts).
 - **Info:** VR-16 and VR-17 (design).
 
 These are not findings against the specification, but they remain the highest risks of the design
@@ -522,7 +523,7 @@ as a whole:
 
 - **No real authentication.** Sessions are local tokens.
 - **Durability is unverified.** Only the in-memory store has been tested. That includes the idempotency ledger, which is as durable as the journal it is rebuilt from.
-- **No trust anchor.** The hash chain has no independently protected anchor.
+- **No trust anchor.** The hash chain has no independently protected anchor. (Milestone 11 adds an in-memory commit anchor that detects store faults, §9; it is not independent of an insider.)
 - **The operator and the process can read all hidden orders**, which are also stored in plaintext.
 
 Any use beyond a synthetic local prototype needs the independent reviews listed in
@@ -637,3 +638,69 @@ reportable differences:
 - **Output immutability scope:** routed events and public messages are frozen (VR-29). Execution
   records and the venue's own arrays (`executions`, `publicTape`, outboxes) are reachable, mutable,
   through the in-process `Venue` object.
+
+## 9. Milestone 11: durability detection, poison-command quarantine, retention, FOK budget
+
+**Scope and design:** [DURABILITY-AND-RETENTION.md](DURABILITY-AND-RETENTION.md) (decisions D1–D8, rules
+D-6, D-7, A-6, H-7). Runbooks: [runbooks/POISON-COMMAND.md](runbooks/POISON-COMMAND.md),
+[runbooks/ANCHOR-BOOTSTRAP.md](runbooks/ANCHOR-BOOTSTRAP.md). Baseline `9812049`.
+
+**Verdict for this milestone:** verified with limitations, within the tested scope:
+
+- an acknowledged entry that a non-conforming store truncates or loses is detected (in-memory stores);
+- a final poison command can be quarantined with a journaled, deterministic decision;
+- private-event gaps are explicit, and client-ID deduplication and terminal lookup are never trimmed;
+- unfilled FOK orders are budgeted per account.
+
+### Evidence
+
+- **Tests written first** (`docs/venue/verification/m11/`):
+  - WP1: 32 of 32 failed against `9812049`.
+  - WP2: 10 of 11 failed.
+  - WP3: 6 of 7 failed.
+  - WP4: 5 of 6 failed.
+  - Each test that passed before its implementation pins an unchanged guarantee: the VR-18 stop, A-4 under
+    minimum retention, ledger replay.
+- **Results after the change:**
+  - Unit suite 641 passed, in two runs; venue 264.
+  - `npm run check` passed; E2E 52 passed.
+  - Both crash-boundary properties passed (the M9 one now anchored; a new one with anchor faults).
+  - Demo hashes identical to M9/M10 (`a11cdf37…`, `54733390…`).
+  - Cross-version journal checks as specified.
+- **Existing tests changed:** see DURABILITY-AND-RETENTION §6. No assertion was weakened. Two reader tests
+  run explicitly unanchored; one test was renamed.
+
+### New findings
+
+| ID | Severity | Status | Finding |
+|---|---|---|---|
+| VR-30 | **Medium** | Resolved | Found while implementing WP2, before anything was committed. `Venue.submit` accepted the new `admin.quarantine` command, so in-process code could journal a quarantine of the entry before it, an already processed and possibly acknowledged command; every later replay would then void it, changing an acknowledged outcome. Operator records are now written only by `Venue.recover`; `submit` refuses them before journaling. Regression test: `poison-quarantine` "D-7 a quarantine or bootstrap record submitted directly is refused…". |
+| VR-31 | Low | Open (observation, unverified; Milestone 12, D8) | `MatchingEngine.publicBook()` iterates every level, hidden-only ones included, until it has collected `depth` displayed levels, so its latency depends on hidden liquidity. Same class as VR-15. Not measured in this milestone. |
+
+### Benchmarks
+
+PERFORMANCE-RESULTS §8.
+
+- Most scenarios are within this host's noise. F1, whose code is unchanged, moved +11 %.
+- F6 (large book): −14 % with non-overlapping ranges inside the suite, but −2 % (unanchored) and −5 %
+  (anchored) in an isolated F6-style run against the baseline, with overlapping ranges.
+- The anchor itself costs about 1.1 µs per command.
+- **Memory:** about 2.8 KB of heap per accepted order by default, and about 2.4 KB with all audit caps on.
+
+### Open after Milestone 11
+
+- **Timing:** VR-15 and VR-31, moved to Milestone 12 (D8).
+- **VR-13 remainder:** the client-ID index and terminal orders grow with every accepted order (accepted for
+  the prototype, D7); the long-term design is a durable index and order archive. The in-memory journal store
+  itself grows (no compaction).
+- **Anchor independence:**
+  - Both stores are in memory, so physical durability is unverified.
+  - An insider who rewrites both stores is not detected.
+  - External anchoring (T-O2) is still open.
+- **Operator approval:** bootstrap and quarantine metadata are free text, not authenticated (D5, T-O3).
+- **Duplicates:** still fail-closed (D3). The anchor provides the evidence a future safe repair would need.
+- **FOK probing:** free within the budget; Sybil accounts multiply it.
+- **Unchanged from Milestone 10:**
+  - VR-16 and VR-17 (design);
+  - id-key management;
+  - the ledger and snapshot hashes, which are not tamper-proof without an independent anchor.

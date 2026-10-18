@@ -253,25 +253,46 @@ Specification and results: `docs/venue/RECOVERY-INTEGRITY.md`. Not deployable.
 - [x] VR-29: routed events and public messages deep-frozen in `Venue.route`; first response, private feed, journaled request reference, public tape and each listener isolated (tests)
 - [x] Terminal (filled, cancelled) order evicted from the ledger, then snapshot restore or full replay: retries refused as duplicates, no execution (tests)
 - [x] Crash-boundary property unchanged and passing; `engine.ts` unchanged
-- [ ] Independently persisted commit record or trust anchor (needed for any automatic repair of duplicate or torn journal tails, and to detect an acknowledged entry truncated or lost by a store that acknowledges before durability)
-- [ ] Keep a permanent client-ID index when addressing VR-13 (it alone prevents a second execution after ledger eviction)
+- [x] Independently persisted commit record (commit anchor) — Milestone 11, D-6 (in-memory; detection only, no automatic repair)
+- [x] Keep a permanent client-ID index when addressing VR-13 — Milestone 11, A-6
 - [ ] Id-key management (generation in deployment, storage, rotation)
 - [ ] Ledger durability beyond the in-memory store; the ledger hash is not tamper-proof without an anchor
-- [ ] Still open from M9: VR-08, VR-13, VR-15, VR-18
+- [x] Still open from M9: VR-08, VR-13, VR-15, VR-18 — addressed in Milestone 11 (VR-15 moved to Milestone 12)
 
-## Milestone 11 — Watch-only account UI
+## Milestone 11 — Durability detection, poison-command quarantine, retention, FOK budget (venue prototype)
+Scope: WP1–WP4 of the approved plan (decisions D1–D8). Specification and results: `docs/venue/DURABILITY-AND-RETENTION.md`; runbooks in `docs/venue/runbooks/`. Not deployable; in-memory stores only.
+- [x] Tests written first for each work package: 32/32, 10/11, 6/7 and 5/6 failed before their implementation (tests that passed pin unchanged guarantees); logs in `docs/venue/verification/m11/`
+- [x] WP1 (D-6): commit anchor written after every journal append and before processing; recovery refuses missing, truncated or mismatching anchored entries and missing/unreadable anchors; operator bootstrap only with a verified full replay and a journaled audit record; store without anchor only with explicit `allowUnanchored`
+- [x] WP2 (D-7, VR-18): quarantine of the final faulting entry only (hash, reproducible fault, evidence checked against observed sequences); journaled `admin.quarantine` replayed deterministically; identical command refused; optional account suspension; runbook
+- [x] VR-30: operator records (`admin.quarantine`, `admin.anchor-bootstrap`) writable only by recovery (could otherwise void an acknowledged entry)
+- [x] WP3 (A-6, VR-13): explicit private-event gap marker (`privateEventsPage`, `eventsPage`); optional audit-store caps, disabled by default; client-ID index and terminal lookup never trimmed (tested at minimum retention, across restarts); memory probe (`npm run venue:memory`)
+- [x] WP4 (H-7, VR-08): per-account unfilled-FOK budget (20 per 60 s), reconnect-proof, identical retries answered from the ledger
+- [x] Crash-boundary properties (M9 property now anchored; new property with anchor faults), replay/snapshot equivalence, demo hashes identical to M9/M10, journal cross-version checks
+- [x] Journal-schema compatibility documented: M10 readers refuse journals with the new operator records; M10 journals recover unchanged
+- [ ] Anchor on an independent medium; authenticated, four-eyes approval for bootstrap and quarantine
+- [ ] Durable client-ID index and order archive (long-term VR-13, D7); journal compaction
+- [ ] F6 large-book benchmark difference (−14 % in-suite, −5 % isolated): open observation
+
+## Milestone 12 — Constant-time book and timing channels (venue prototype, planned)
+- [ ] VR-15: price-level structure indexed by tick offset over the instrument's price range (reference prices move), differential-tested against the current book, identical replay hashes
+- [ ] VR-31: `publicBook()` must not walk hidden-only levels (displayed-level index); measure first
+- [ ] Residual: matching walk through hidden levels within the limit; acknowledgement batching needs a transport layer
+
+> Numbering note: the planned application milestones below were renumbered (previously 11–13) when venue Milestones 11 and 12 were inserted.
+
+## Milestone 13 — Watch-only account UI
 - [ ] `HyperliquidAccountDataSource` (public address → `clearinghouseState`, `openOrders`, fills) via server
 - [ ] Address input with validation; never request keys/seeds
 - [ ] Positions/orders/fills tables; portfolio risk panel wired to `DefaultRiskEngine.portfolio`
 - [ ] Fee schedule in pre-trade estimates
 
-## Milestone 12 — Order lifecycle & reconciliation against live venue streams
+## Milestone 14 — Order lifecycle & reconciliation against live venue streams
 - [ ] Order state machine over `ORDER_STATUSES` with venue-confirmed transitions only
 - [ ] Reconciliation of local intents against venue order/fill streams (idempotent, sequence-aware)
 - [ ] Persistence adapter (server-side DB) for order journal and audit log
 - [ ] Venue-specific validation (e.g. Hyperliquid 5-significant-figure prices)
 
-## Milestone 13 — Testnet execution (explicitly configured, separately confirmed, security-reviewed)
+## Milestone 15 — Testnet execution (explicitly configured, separately confirmed, security-reviewed)
 - [ ] Wallet connection (signing in the user's wallet; no key custody)
 - [ ] Testnet-only execution adapter behind config + per-session confirmation
 - [ ] Authorization (`orders:submit`) enforced server-side

@@ -65,7 +65,7 @@ real deployment should default to it and schedule publish ticks itself; no sched
 | Channel | Result | Evidence |
 |---|---|---|
 | Post-only rejection as a free probe | **Reduced.** Per-account budget (default 20 per minute), shared by new orders **and replaces**. Replaces bypassed it before VR-03. Reconnecting does not reset it. Several accounts multiply the budget, which needs surveillance. | `privacy-review` "VR-03 …"; `adversarial` "H-7 …" |
-| Failing FOK as a free absence probe | **Open (Low).** It reveals "less than Q at ≤ P" without executing. | `privacy-review` "VR-08 …" |
+| Failing FOK as a free absence probe | **Reduced (Milestone 11).** It still reveals "less than Q at ≤ P" without executing, but every unfilled FOK counts toward a per-account budget (20 per 60 s); beyond it FOK orders are refused. Counting uses only the caller's own outcome. Sybil accounts multiply the budget. | `privacy-review` "VR-08 within the budget …"; `fok-budget` (H-7) |
 | IOC probing inside the spread | **Open, inherent.** A positive answer costs an execution, which is visible to surveillance. Minimum hidden size (H-6) raises the stakes only for the hidden side. | `privacy-review` "VR-08 …" (positive answer executes) |
 | Error responses and rejection behaviour | **Closed.** Cancel, replace and order lookup for another account's (hidden) order are identical to those for a non-existent ID, by order ID and by client order ID, including malformed replace values. | `privacy-review` "A-1 / P-1 every private query …"; `adversarial` A-1 |
 | Order IDs and event numbering | **Closed while the ID key is secret.** Since Milestone 10, `Venue` enforces a key policy (A-5): at least 43 base64url characters, at least 16 distinct characters, and fixture keys only with an explicit test-only flag. Key management stays open. The trader's own IDs, `accountSeq`, timestamps and events are identical whether or not others placed hidden orders in between. With the key, IDs map back to global sequence numbers (VR-14). | `privacy-review` "H-8 …", "VR-14 …" |
@@ -123,7 +123,7 @@ They are not implemented and not tested. Users must be told that the operator ca
 | Residual | Why it remains | What reduces it further |
 |---|---|---|
 | Trades reveal that hidden liquidity existed, and a lower bound on its size | Prints must report executed price and quantity | Nothing short of not printing, which is unacceptable for a transparent market. Batched publication blurs timing only. |
-| Probing by IOC (with cost) and FOK (free when it fails) | Execution semantics answer the question | Surveillance; FOK-failure budget (proposed); minimum execution quantity on hidden orders (not designed) |
+| Probing by IOC (with cost) and FOK (free when it fails, within a budget) | Execution semantics answer the question | Surveillance; FOK-failure budget (implemented in M11); minimum execution quantity on hidden orders (not designed) |
 | Post-only probes within the budget | The budget is above zero, and several accounts multiply it | Lower budget; surveillance across accounts |
 | Timing of engine operations | Data-structure cost depends on all levels | Constant-time level index; fixed-latency or batched acknowledgements |
 | Operator, process and storage access | Access control is the only protection | Isolation, encryption at rest, encrypted order flow (separate design and review) |

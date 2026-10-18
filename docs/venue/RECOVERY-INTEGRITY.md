@@ -140,6 +140,12 @@ fails validation it is corrupt, and recovery refuses it exactly as it would anyw
 VR-28 such a line was dropped as a torn tail, which silently discarded a corrupted acknowledged
 entry.
 
+**Milestone 11 update:** the independent commit record described below now exists for store-backed venues as
+the commit anchor (rule D-6, [DURABILITY-AND-RETENTION.md](DURABILITY-AND-RETENTION.md) §1). With it, an
+anchored entry that was truncated or lost is refused instead of being dropped or missed. Duplicates remain
+fail-closed (founder decision D3). The text below describes the journal reader on its own, which is
+unchanged.
+
 **Assumption that remains:** an unparseable final line is still dropped as uncommitted. This relies
 on the store contract in `storage.ts`: `append` returns success only once the whole line is durable.
 The reader cannot verify that contract. In a store that acknowledges writes before they are durable:

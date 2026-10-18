@@ -1,3 +1,4 @@
+import { MemoryAnchorStore } from "./storage.ts";
 import type { NewOrderCommand } from "./types.ts";
 import { createLocalVenue, type LocalVenue } from "./synthetic.ts";
 import type { AccountLimits } from "./instrument.ts";
@@ -40,4 +41,12 @@ export function harness(options: { accounts?: string[]; limits?: AccountLimits; 
       return view.orderId;
     },
   };
+}
+
+const anchors = new WeakMap<object, MemoryAnchorStore>();
+/** One commit anchor per test journal store, stable across restarts of that store (D-6). */
+export function anchorFor(store: object): MemoryAnchorStore {
+  let a = anchors.get(store);
+  if (!a) anchors.set(store, (a = new MemoryAnchorStore()));
+  return a;
 }

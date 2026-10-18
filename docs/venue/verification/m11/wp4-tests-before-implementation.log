@@ -1,0 +1,9 @@
+# WP4 tests (fok-budget.test.ts) against 9812049 + WP1–WP3, before the WP4 implementation
+     × H-7 every unfilled FOK counts toward a per-account budget; beyond it FOK orders are refused before journaling 35ms
+     × H-7 the budget is per account, survives reconnects, and frees up when the window passes 6ms
+     × M-8 a FOK that fills does not count; unfilled market FOKs do 6ms
+     × H-7 counting depends only on the caller's own outcome: hidden liquidity or an empty book exhaust the budget identically 5ms
+     × H-7 the default budget is 20 unfilled FOK orders per account per 60 s 1ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+ Test Files  1 failed (1)
+      Tests  5 failed | 1 passed (6)

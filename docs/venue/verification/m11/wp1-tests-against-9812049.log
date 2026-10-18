@@ -1,0 +1,36 @@
+# WP1 tests (durability-anchor.test.ts) against 9812049, before implementation
+     × D-6 the anchor is written after the journal append and before the engine processes the command 19ms
+     × D-6 an anchor write that fails (before-write) stops the venue with outcome-unknown, before processing 1ms
+     × D-6 an anchor write that fails (torn-write) stops the venue with outcome-unknown, before processing 1ms
+     × D-6 an anchor write that fails (after-write) stops the venue with outcome-unknown, before processing 0ms
+     × D-6 after a failed anchor write (before-write) the complete journal entry is recovered (outcome-unknown contract) 1ms
+     × D-6 after a failed anchor write (after-write) the complete journal entry is recovered (outcome-unknown contract) 0ms
+     × D-6 a store-backed venue without an anchor store is refused unless explicitly unanchored (Milestone 10 mode) 1ms
+     × D-6 a fresh anchored venue refuses a store or anchor that already holds data (use Venue.recover) 0ms
+     × D-6 the whole final acknowledged entry is missing: refused, nothing changed 1ms
+     × D-6 several acknowledged entries lost from the end: refused 0ms
+     × D-6 an acknowledged entry truncated mid-line (cut 1) is not dropped as a torn write 0ms
+     × D-6 an acknowledged entry truncated mid-line (cut 10) is not dropped as a torn write 0ms
+     × D-6 an acknowledged entry truncated mid-line (cut 40) is not dropped as a torn write 0ms
+     × D-6 an acknowledged entry truncated mid-line (cut 0.5) is not dropped as a torn write 0ms
+     × D-6 the anchor's hash does not match the entry at its sequence: refused 0ms
+     × D-6 an anchor ahead of an empty or lost journal: refused 0ms
+     × D-6 a missing anchor with a non-empty journal is refused by default; an empty journal starts fresh 0ms
+     × D-6 an unreadable or invalid anchor record ("") is refused 0ms
+     × D-6 an unreadable or invalid anchor record ("{") is refused 0ms
+     × D-6 an unreadable or invalid anchor record ("not json") is refused 0ms
+     × D-6 an unreadable or invalid anchor record ("{\"seq\":3}") is refused 0ms
+     × D-6 an unreadable or invalid anchor record ("{\"seq\":-1,\"hash\":\"0000000000000000000000000000000000000000000000000000000000000000\"}") is refused 0ms
+     × D-6 an unreadable or invalid anchor record ("{\"seq\":1,\"hash\":\"xyz\"}") is refused 0ms
+     × D-6 an unreadable or invalid anchor record ("{\"extra\":1,\"hash\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"seq\":1}") is refused 0ms
+     × D-6 a torn anchor write leaves an unreadable anchor: recovery refuses until an operator bootstraps 0ms
+     × D-6 VR-24 store fault (acknowledged k+1 persisted as a copy of k) and a silently lost append are both refused 0ms
+     × D-6 a torn final line beyond the anchor is still dropped as uncommitted, and the store repaired 0ms
+     × D-6 snapshot plus suffix recovery checks the anchor too 0ms
+     × D-6 bootstrap verifies and replays the journal, writes the anchor and journals an audit record 4ms
+     × D-6 bootstrap is refused when a readable anchor exists, the journal is corrupt, or the request is incomplete 3ms
+     × D-6 bootstrap after a torn anchor write records the unreadable prior anchor 0ms
+     × D-6 / D-1 / D-2 recovery equals the last committed state at every boundary (torn anchors require a bootstrap) 5ms
+⎯⎯⎯⎯⎯⎯ Failed Tests 32 ⎯⎯⎯⎯⎯⎯⎯
+ Test Files  1 failed (1)
+      Tests  32 failed (32)

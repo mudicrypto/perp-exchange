@@ -8,7 +8,7 @@ import { canonicalJson, entryHash, type JournalEntry } from "./journal";
 import { SYNTHETIC_INSTRUMENTS } from "./instrument";
 import { MemoryJournalStore } from "./storage";
 import { createLocalVenue, SYNTHETIC_LIMITS } from "./synthetic";
-import { ALPHA } from "./test-helpers";
+import { ALPHA, anchorFor } from "./test-helpers";
 import type { EngineCommand } from "./types";
 import { Venue, type PersistenceBoundary, type VenueOptions } from "./venue";
 
@@ -27,7 +27,7 @@ const NOW = 1_700_000_000_000;
 const LIMITS = { messages: { limit: 1e9, windowMs: 1_000 }, postOnlyRejects: { limit: 1e9, windowMs: 1_000 } };
 
 const options = (store?: MemoryJournalStore, extra: Record<string, unknown> = {}): VenueOptions =>
-  ({ engine: { idKey: FIXTURE_KEY, publication: "immediate" }, clock: () => NOW, allowTestFixtureIdKey: true, ...(store ? { store } : {}), ...extra }) as VenueOptions;
+  ({ engine: { idKey: FIXTURE_KEY, publication: "immediate" }, clock: () => NOW, allowTestFixtureIdKey: true, ...(store ? { store, anchor: anchorFor(store) } : {}), ...extra }) as VenueOptions;
 
 function setup<V extends Venue>(venue: V): V {
   venue.submit({ type: "admin.add-instrument", spec: SYNTHETIC_INSTRUMENTS[0]! });

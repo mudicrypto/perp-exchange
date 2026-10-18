@@ -316,24 +316,30 @@ operator cannot rewrite, and must restrict and audit access to the journal (THRE
 The order of work is:
 
 1. refuse if the venue has stopped (nothing is journaled)
-2. validate
-3. append to the durable `JournalStore`; its return is the commit point
-4. process deterministically
-5. hash outputs
-6. record outputs in the idempotency ledger (accepted orders, A-4), the audit stores, the public
-   tape and the per-account outboxes
-7. notify public listeners, each in isolation
+2. validate; refuse operator records (only recovery writes them) and quarantined commands (D-6, D-7)
+3. append to the durable `JournalStore`
+4. write the commit anchor `{ seq, hash }` (D-6); the journal append and the anchor write together are the commit point
+5. process deterministically
+6. hash outputs
+7. record outputs in the idempotency ledger (accepted orders, A-4), the audit stores (optionally capped,
+   A-6), the public tape and the per-account outboxes (gaps reported explicitly, A-6)
+8. notify public listeners, each in isolation
 
 Routed events and public messages are deep-frozen before step 6, so every consumer (first response,
 outbox, tape, listeners) receives the same immutable objects (VR-29).
 
-Recovery is a verified read of the store, plus an optional snapshot (bound to its journal head and
-verified by `stateHash`), plus replay of the suffix.
+Recovery is a verified read of the store and of the commit anchor (D-6), plus an optional snapshot
+(bound to its journal head and verified by `stateHash`), plus replay of the suffix. Quarantined entries
+(D-7) are voided on replay. Operator-only recovery actions: anchor bootstrap and poison-command
+quarantine ([DURABILITY-AND-RETENTION.md](DURABILITY-AND-RETENTION.md), `runbooks/`).
 
 **Failure cases:**
 
 | Case | What happens |
 |---|---|
+| Anchor write fails (Milestone 11) | The outcome is unknown, before processing; the venue stops. A complete journal entry is applied on recovery; a torn anchor refuses recovery until an operator bootstrap (D-6). |
+| Store truncates or loses an acknowledged entry | Recovery refuses: the journal lacks the anchored entry (D-6). |
+| Deterministic fault (poison command) | Recovery stops at it. An operator may quarantine it if it is the final entry; the decision is journaled (D-7). |
 | Append fails, at any point | The outcome is unknown. The gateway answers `outcome-unknown` and the venue stops, so no later append can follow a torn line. Recovery truncates a torn tail (an unparseable final line); a complete final line that fails validation is refused (VR-28). |
 | Internal fault | The engine stops (fail-stop). The faulting command was journaled, so its outcome is unknown. Later commands are refused **before** journaling (`unavailable`). |
 | Faulty public listener | Cannot affect the committed result, the private outboxes or other listeners; it cannot modify the messages it receives (frozen) |
@@ -347,7 +353,8 @@ Regenerated outputs keep their sequence numbers, so consumers can de-duplicate.
 **Not in the prototype:**
 
 - a file-backed or replicated store (fsync, replication); only `MemoryJournalStore` exists
-- an independently protected anchor for journal heads
+- an independently protected anchor for journal heads (Milestone 11 adds an in-memory commit anchor that
+  detects store faults; it is not independent of an insider and proves no physical durability)
 - a hot standby replaying the same journal
 - sequencer failover
 - snapshot scheduling
@@ -437,6 +444,7 @@ possible without qualified legal advice and the relevant authorisations (see `do
 npm run venue:demo            # hidden-order walkthrough + 5 000 synthetic messages, reconcile, recover
 npm run venue:demo -- 42 20000
 npm run venue:bench           # indicative local micro-benchmarks (PERFORMANCE-PLAN.md)
+npm run venue:memory -- 50000 0  # Milestone 11 memory probe (config 0 defaults, 1 audit caps)
 npx vitest run src/venue      # rule, property, adversarial and recovery tests
 ```
 

@@ -1,0 +1,12 @@
+
+ RUN  v5.0.3 /home/user/perp-exchange
+
+
+ Test Files  16 passed (16)
+      Tests  264 passed (264)
+   Start at  13:35:26
+   Duration  6.33s (tests 83%, import 11%, transform 6%)
+
+    Isolate  16 workers spawned · ~126ms startup each (spawn + environment, per file)
+             at least ~545ms faster with isolate: false — reuses workers across files instead of one per file
+

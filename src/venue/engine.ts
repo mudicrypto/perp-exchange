@@ -207,6 +207,33 @@ export class MatchingEngine {
     };
   }
 
+  /**
+   * Applies a quarantined (voided) journal entry (MATCHING-RULES D-7): the command takes no effect, the
+   * sequence and clock advance, and the submitter gets a definitive answer. Deterministic, and touches
+   * nothing the faulting code path touches, so it cannot fault the way the command did.
+   * - new order: `rejected` with reason `quarantined` (the client order id is not consumed)
+   * - cancel / replace: `request-rejected` with reason `quarantined`
+   * - any other command: no private event; `adminError` "quarantined"
+   */
+  voidEntry(entry: SequencedCommand): CommandResult {
+    if (this.stopped) throw new EngineIntegrityError(`engine stopped: ${this.stopped}`);
+    if (entry.seq !== this.lastSeq + 1) throw new EngineIntegrityError(`sequence ${entry.seq} after ${this.lastSeq}`);
+    if (!Number.isSafeInteger(entry.ts) || entry.ts < this.lastTs) throw new EngineIntegrityError(`timestamp went backwards at ${entry.seq}`);
+    const ctx: Ctx = { seq: entry.seq, ts: entry.ts, private: [], executions: [], transitions: [] };
+    const c = entry.command;
+    if (c.type === "new-order") {
+      ctx.transitions.push({ orderId: null, from: "received", to: "rejected", cause: "reject" });
+      this.emit(ctx, c.accountId, { kind: "rejected", clientOrderId: c.clientOrderId, reason: "quarantined" });
+    } else if (c.type === "cancel" || c.type === "replace") {
+      this.emit(ctx, c.accountId, { kind: "request-rejected", request: c.type, ref: c.ref, reason: "quarantined" });
+    } else {
+      ctx.adminError = "quarantined";
+    }
+    this.lastSeq = entry.seq;
+    this.lastTs = entry.ts;
+    return { seq: entry.seq, ts: entry.ts, private: ctx.private, public: [], executions: [], transitions: ctx.transitions, ...(ctx.adminError ? { adminError: ctx.adminError } : {}) };
+  }
+
   private dispatch(command: EngineCommand, ctx: Ctx) {
     switch (command.type) {
       case "new-order":
@@ -218,6 +245,7 @@ export class MatchingEngine {
       case "mass-cancel":
         return this.massCancel(command.accountId, command.instrumentId, ctx);
       case "publish":
+      case "admin.anchor-bootstrap": // audit record only (D-6)
         return;
       case "admin.add-instrument":
         if (this.instruments.has(command.spec.id)) ctx.adminError = "instrument exists";
@@ -236,19 +264,27 @@ export class MatchingEngine {
         }
         return;
       }
-      case "admin.suspend-account": {
-        const account = this.accounts.get(command.accountId);
-        if (!account) ctx.adminError = "unknown account";
-        else {
-          for (const id of [...account.live]) this.cancelResting(ctx, this.orders.get(id)!, "account-suspended");
-          account.suspended = true;
+      case "admin.suspend-account":
+        return this.suspend(command.accountId, ctx);
+      case "admin.quarantine": // the voided command itself is handled by voidEntry (D-7)
+        if (command.suspendAccount) {
+          if (command.accountId === undefined) ctx.adminError = "quarantine: no account to suspend";
+          else this.suspend(command.accountId, ctx);
         }
         return;
-      }
     }
   }
 
   // ── admin ────────────────────────────────────────────────────────────────
+
+  private suspend(accountId: string, ctx: Ctx) {
+    const account = this.accounts.get(accountId);
+    if (!account) ctx.adminError = "unknown account";
+    else {
+      for (const id of [...account.live]) this.cancelResting(ctx, this.orders.get(id)!, "account-suspended");
+      account.suspended = true;
+    }
+  }
 
   private addInstrument(spec: InstrumentSpec) {
     const dirty = new Set<string>();

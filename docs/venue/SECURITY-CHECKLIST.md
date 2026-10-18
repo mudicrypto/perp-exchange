@@ -121,16 +121,24 @@ A ticked box means "true of this prototype". It does **not** mean "ready for liv
   acknowledged append persisted with the wrong bytes. M10, VR-10 and VR-24, rule D-5.
 - [x] Idempotency records are immutable: deep-frozen ledger copies and a fresh copy per replay (VR-25).
   The snapshot records its ledger capacity; a restore under another capacity is refused (VR-26).
-- [ ] Independently persisted commit record or trust anchor. Required for any automatic repair of
-  duplicate or torn journal tails, and for detecting an acknowledged entry that a store which
-  acknowledges before durability later truncates or loses.
-- [ ] Keep a permanent, recoverable client-ID index when addressing VR-13. After ledger eviction it is
-  the only protection against a second execution.
+- [x] Separately written commit record (anchor): journal append → anchor write → process; recovery refuses a
+  journal that lacks the anchored entry (truncated or lost acknowledged entries detected), refuses missing or
+  unreadable anchors unless an operator bootstraps with a verified full replay and a journaled audit record.
+  M11, rule D-6. **In-memory only:** detection of store faults, not proof of physical durability.
+- [ ] Anchor on an independent medium (separate failure domain, write-once storage or external timestamping),
+  so it also resists an insider and survives media failure. Automatic repair of duplicate tails stays
+  disabled until then (founder decision D3).
+- [x] Keep a permanent, recoverable client-ID index when addressing VR-13: no retention option trims it or
+  the terminal-order lookup (tested with every retention at its minimum, live and after restarts). M11, A-6.
+- [ ] Durable client-ID index and order archive (the long-term VR-13 design, decision D7).
 - [x] Order-ID key policy enforced at the `Venue` boundary; fixture keys only with an explicit
   test-only flag; fixture literals confined to `id-key.ts` and tests. M10, VR-14, rule A-5.
 - [ ] Id-key management: generation in deployment, secret storage, rotation. Verification of key
   randomness is not possible.
-- [ ] Poison-command runbook (VR-18).
+- [x] Poison-command quarantine and runbook (VR-18): final entry only, matching hash, reproducible fault,
+  evidence of no acknowledged output; journaled decision replayed deterministically; identical command refused
+  afterwards; operator records writable only by recovery (VR-30). M11, rule D-7, `runbooks/POISON-COMMAND.md`.
+- [ ] Authenticated, four-eyes approval for bootstrap and quarantine (metadata is free text today).
 - [x] Consumers de-duplicate regenerated outputs by sequence (D-4).
 - [ ] External anchoring of journal heads. A full-chain rewrite is undetectable without it (tested).
 - [ ] Durable storage, replication, failover, backup and restore drills. **n/a (prototype)**
@@ -144,8 +152,11 @@ A ticked box means "true of this prototype". It does **not** mean "ready for liv
 - [x] Resting-order, notional and worst-case position limits (R-1).
 - [x] Account suspension and instrument halt; cancels still accepted during a halt (R-2, R-3).
 - [ ] Connection, IP and global limits; order-to-trade ratio limits; cancel-on-disconnect.
-- [ ] Retention and bounds for orders, tape, executions and transitions; explicit outbox gap marker
-  (VR-13).
+- [x] Explicit private-event gap marker (`eventsPage`); optional caps on executions, transitions, tape and
+  admin errors (disabled by default), with eviction counters and journal-replay reconciliation. M11, A-6.
+- [ ] Bounds for the order index and client-ID index (needs the durable index and archive, D7).
+- [x] Unfilled-FOK budget per account (20 per 60 s by default), counted from the caller's own outcome,
+  reconnect-proof, idempotent retries unaffected. M11, VR-08, H-7.
 - [ ] Surveillance: probing, layering, spoofing, wash trading across accounts.
 
 ### A8. Dependencies and supply chain

@@ -1,0 +1,10 @@
+# WP3 tests (retention.test.ts) against 9812049 + WP1/WP2, before the WP3 implementation
+     × A-6 an outbox that dropped events reports a gap; within the retained window it reports none 18ms
+     × A-6 after a snapshot restore only replayed events are retained, and the page reports the gap; a full replay has none 6ms
+     × A-6 the gateway's eventsPage carries the gap marker for the caller's own account only 2ms
+     × A-6 caps are disabled by default: every audit record is kept and history is complete 11ms
+     × A-6 enabled caps keep the most recent records, count evictions and mark history incomplete; a journal replay restores full reconciliation 32ms
+     × A-6 invalid caps are refused 2ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+ Test Files  1 failed (1)
+      Tests  6 failed | 1 passed (7)

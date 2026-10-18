@@ -58,7 +58,9 @@ describe("B — authenticated trader", () => {
     expect(gateway.handle(gateway.openSession("syn-probe"), msg({ clientOrderId: "p3", price: "1990.00", postOnly: true }))).toMatchObject({ ok: false, error: { code: "rate-limited" } });
   });
 
-  it("VR-08 open: a failing FOK reveals 'not enough liquidity at or better than P' without any execution", () => {
+  // Since Milestone 11 every unfilled FOK counts toward a per-account budget (fok-budget.test.ts); within the
+  // budget the first probe below is still free, which is what this test pins.
+  it("VR-08 within the budget: a failing FOK reveals 'not enough liquidity at or better than P' without any execution", () => {
     const { gateway, tokens, venue } = createLocalVenue({ accounts: ACCOUNTS });
     gateway.handle(tokens.get("syn-maker")!, hiddenAsk);
     const probe = (quantity: string) => {

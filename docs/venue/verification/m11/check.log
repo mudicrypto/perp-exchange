@@ -1,0 +1,5 @@
+ Test Files  52 passed (52)
+      Tests  641 passed (641)
+✓ Compiled successfully in 8.4s
+Client bundle clean: 20 files scanned, 9 forbidden patterns.
+npm run check exit 0
