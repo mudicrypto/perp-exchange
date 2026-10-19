@@ -17,7 +17,9 @@ verification and hardening of that prototype — verified with limitations, not 
 for that prototype: idempotency across restarts, duplicate journal records, order-ID key policy
 (`docs/venue/RECOVERY-INTEGRITY.md`). **Milestone 11:** durability detection (commit anchor),
 poison-command quarantine, explicit private-event retention gaps and an unfilled-FOK budget for that
-prototype, in memory only (`docs/venue/DURABILITY-AND-RETENTION.md`). No real orders, custody,
+prototype, in memory only (`docs/venue/DURABILITY-AND-RETENTION.md`). **Milestone 12:** an indexed order
+book with a displayed-level index, which reduces (does not remove) the hidden-liquidity timing channels
+with identical matching outcomes (`docs/venue/PRIVACY-REVIEW.md`, "Milestone 12"). No real orders, custody,
 deposits or withdrawals.
 
 - Architecture: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
@@ -77,6 +79,7 @@ No secrets are needed. Nova never asks for seed phrases or private keys.
 | `npm run venue:demo` | Local venue prototype walkthrough on synthetic orders (no network, no funds) |
 | `npm run venue:bench` | Indicative local micro-benchmarks of the venue prototype |
 | `npm run venue:perf` | Milestone 9 reproducible synthetic benchmarks (p50/p95/p99) and timing probe |
+| `npm run venue:timing` | Milestone 12 timing harness: hidden-liquidity timing probes on the engine path (`-- [rounds] [samples] [indexed\|reference] [probe-prefix,…]`) |
 | `npm run venue:memory` | Milestone 11 memory probe: retained heap per accepted order (one configuration per run: `-- 50000 0` or `-- 50000 1`) |
 | `npm run check` | typecheck + lint + unit tests + build + client-bundle secret scan |
 

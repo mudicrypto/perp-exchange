@@ -225,15 +225,19 @@ export function runPerf({ scale, runs }: PerfOptions): PerfResult[] {
  * Timing side-channel probe (PRIVACY-REVIEW T-H7): latency of the same
  * displayed add/cancel pair against books that differ only in the number of
  * hidden-only price levels. Reports medians of several alternating rounds.
+ *
+ * Until Milestone 12 every hidden order came from one account, so `maxOpenOrders` (10 000) capped the
+ * "50 000" configuration at 10 000 resting levels (VR-32). Orders are now spread over accounts and the
+ * resting count is asserted before measuring.
  */
-export function timingProbe(rounds = 5, perRound = 4_000, via: "engine" | "gateway" = "engine"): { hiddenLevels: number; medianUs: number[] }[] {
-  const configs = [0, 1_000, 50_000];
+export function timingProbe(rounds = 5, perRound = 4_000, via: "engine" | "gateway" = "engine", configs: readonly number[] = [0, 1_000, 50_000]): { hiddenLevels: number; medianUs: number[] }[] {
   const out = configs.map((hiddenLevels) => ({ hiddenLevels, medianUs: [] as number[] }));
   for (let r = 0; r < rounds; r++) {
     for (const cfg of out) {
       const { venue, gateway, tokens } = createLocalVenue({
         gateway: { messages: { limit: 1e9, windowMs: 1_000 }, postOnlyRejects: { limit: 1e9, windowMs: 1_000 }, fokUnfilled: { limit: 1e9, windowMs: 1_000 } },
-        accounts: ["syn-h", "syn-t"],
+        // Hidden orders are spread over accounts so every requested level rests within `maxOpenOrders` (VR-32).
+        accounts: [...Array.from({ length: Math.max(1, Math.ceil(cfg.hiddenLevels / LIMITS.maxOpenOrders)) }, (_, a) => `syn-h${a}`), "syn-t"],
         limits: LIMITS,
         instruments: [{ id: "SYN-T", priceDecimals: 0, tickUnits: 1, sizeDecimals: 0, lotUnits: 1, minPriceTicks: 1, maxPriceTicks: 1_000_000, minQtyLots: 1, maxQtyLots: 1_000_000, priceBandBps: 5_000, minHiddenQtyLots: 1, referencePriceTicks: 200_000 }],
       });
@@ -242,7 +246,9 @@ export function timingProbe(rounds = 5, perRound = 4_000, via: "engine" | "gatew
       const ts = venue.journal.lastTs;
       // Engine path: bypass journal and gateway. Gateway path: everything goes through the sequencer.
       const send = (command: EngineCommand) => (via === "engine" ? engine.process({ seq: ++seq, ts, command }) : venue.submit(command));
-      for (let i = 0; i < cfg.hiddenLevels; i++) send({ type: "new-order", accountId: "syn-h", clientOrderId: `h${i}`, instrumentId: "SYN-T", side: "sell", orderType: "limit", priceTicks: 200_100 + i, qtyLots: 1, tif: "gtc", visibility: "hidden", postOnly: false, stp: "cancel-taker" });
+      for (let i = 0; i < cfg.hiddenLevels; i++) send({ type: "new-order", accountId: `syn-h${Math.floor(i / LIMITS.maxOpenOrders)}`, clientOrderId: `h${i}`, instrumentId: "SYN-T", side: "sell", orderType: "limit", priceTicks: 200_100 + i, qtyLots: 1, tif: "gtc", visibility: "hidden", postOnly: false, stp: "cancel-taker" });
+      const resting = engine.inspectBook("SYN-T").length;
+      if (resting !== cfg.hiddenLevels) throw new Error(`timing probe: expected ${cfg.hiddenLevels} hidden-only levels, got ${resting}`);
       const samples = new Float64Array(perRound);
       for (let i = 0; i < perRound; i++) {
         // A new displayed level in front of every hidden level: the sorted price array must shift all of them.

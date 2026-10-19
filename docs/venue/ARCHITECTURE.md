@@ -123,14 +123,17 @@ Rules: MATCHING-RULES §1–2 and §8.
 
 | Structure | Implementation (prototype) | Cost | Production direction |
 |---|---|---|---|
-| Book side | Sorted array of prices (best first) + `Map<price, PriceLevel>` | best O(1); new level O(L) insert; lookup O(1) | Array indexed by tick offset within the band, or a B-tree / skip list; bitmap of non-empty levels |
+| Book side (Milestone 12) | `Map<price, PriceLevel>` + two `PriceIndex` sets over `price − minPriceTicks`: every non-empty level, and the levels with displayed quantity. A `PriceIndex` is a sparse 32-ary tree of 32-bit occupancy words (one `Map` per tree level, ≤ 8 levels for the 10^11-tick ceiling) | best, insert, remove, next level: O(log32 range) steps, independent of the number of levels in step count (hidden-only included); lookup O(1). `publicBook` walks the displayed set only. **Measured** cost still grows slightly with the number of levels (map size, cache: about 1.7–2× at 50 000 hidden-only levels, PERFORMANCE-RESULTS §9), so this is not constant time | Same idea with preallocated arrays or a hardware-friendly bitmap hierarchy; constant-latency acknowledgements need a transport layer |
+| Book side (Milestones 1–11, kept as `reference-book.ts` for differential tests and A/B only) | Sorted array of prices (best first) + `Map<price, PriceLevel>` | best O(1); new level O(L) `splice`; remove O(L) `indexOf` + `splice` (VR-15) | — |
 | Price level | Two `Map<orderId, Order>` queues (displayed, hidden); insertion order = time priority; cached displayed and hidden totals | append, remove, lookup O(1) | Intrusive doubly-linked lists in preallocated pools |
 | Order index | `Map<orderId, Order>` (all orders, including terminal ones) | O(1) | Live orders in memory; terminal orders archived to the store |
 | Client-ID index | `Map<account + clientOrderId, orderId>` | O(1) | Bounded by a retention policy |
 | Account state | Resting-order set, per-instrument holdings (position, open buy and sell lots, cash) | O(1) per update | Same, plus margin state |
 
 Matching walks levels best-first. At each level it consumes the displayed queue, then the hidden
-queue (M-3…M-5). It is computed as a **plan** that changes nothing, so FOK and STP can be atomic
+queue (M-3…M-5). The walk visits every level its limit crosses, hidden-only levels included — that is matching,
+not a side channel the index can remove: an unfilled FOK whose limit reaches through many hidden levels still
+takes longer (PRIVACY-REVIEW, "Milestone 12"). It is computed as a **plan** that changes nothing, so FOK and STP can be atomic
 (M-8, S-3). The plan is then applied.
 
 ## 5. Price-time priority and matching

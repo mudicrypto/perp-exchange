@@ -330,7 +330,7 @@ No test or isolation rule was weakened. The venue's ESLint isolation rules are u
     The engine itself does not enforce the policy.
   - [RECOVERY-INTEGRITY.md](RECOVERY-INTEGRITY.md) §3, §6.
 
-### VR-15: Timing side channel from hidden-only price levels — **Low, Open**
+### VR-15: Timing side channel from hidden-only price levels — **Low, Open (reduced in Milestone 12, §10)**
 
 - **Rule:** THREAT-MODEL T-H7.
 - **Evidence:** inserting a new displayed price level shifts a sorted array that includes
@@ -344,6 +344,10 @@ No test or isolation rule was weakened. The venue's ESLint isolation rules are u
   - an array indexed by tick offset (constant-time insert)
   - batched or fixed-latency acknowledgements
 - **Test:** measurement only. Timing assertions would be flaky in CI.
+- **Correction (Milestone 12, VR-32):** the "50 000" configuration above rested only 10 000 levels.
+- **Milestone 12:** reduced, not removed (§10).
+  - The engine-path dependence is now about 1.7–2× at 50 000 real hidden-only levels.
+  - Matching walks through hidden levels are inherent.
 
 ### VR-16: No isolation inside the process — **Info, Open (design)**
 
@@ -515,7 +519,7 @@ These are the final results. Logs are in `docs/venue/verification/final/`.
 - **Resolved in the review follow-up:** VR-20, VR-21 and VR-22 (Low) and VR-23 (Info).
 - **Resolved in Milestone 10:** VR-09 and VR-10 (Low). VR-14 (Low) is resolved as a policy; key management stays open.
 - **Milestone 11 (§9):** VR-18 resolved within the tested scope (journaled quarantine, runbook). VR-08 mitigated (unfilled-FOK budget). VR-13 partially mitigated (explicit gaps, optional caps; the client-ID index still grows). Detection of truncated or lost acknowledged entries added (commit anchor, D-6). VR-30 (Medium) found and fixed during implementation.
-- **Low, open:** VR-15 and VR-31 (timing; moved to Milestone 12), VR-13 (remaining growth), VR-08 (residual within budget and across accounts).
+- **Low, open:** VR-15 (timing; reduced in Milestone 12, §10), VR-13 (remaining growth), VR-08 (residual within budget and across accounts). VR-31 is resolved within the tested scope (§10).
 - **Info:** VR-16 and VR-17 (design).
 
 These are not findings against the specification, but they remain the highest risks of the design
@@ -675,7 +679,7 @@ D-6, D-7, A-6, H-7). Runbooks: [runbooks/POISON-COMMAND.md](runbooks/POISON-COMM
 | ID | Severity | Status | Finding |
 |---|---|---|---|
 | VR-30 | **Medium** | Resolved | Found while implementing WP2, before anything was committed. `Venue.submit` accepted the new `admin.quarantine` command, so in-process code could journal a quarantine of the entry before it, an already processed and possibly acknowledged command; every later replay would then void it, changing an acknowledged outcome. Operator records are now written only by `Venue.recover`; `submit` refuses them before journaling. Regression test: `poison-quarantine` "D-7 a quarantine or bootstrap record submitted directly is refused…". |
-| VR-31 | Low | Open (observation, unverified; Milestone 12, D8) | `MatchingEngine.publicBook()` iterates every level, hidden-only ones included, until it has collected `depth` displayed levels, so its latency depends on hidden liquidity. Same class as VR-15. Not measured in this milestone. |
+| VR-31 | Low | Open (observation, unverified; Milestone 12, D8) → **resolved within the tested scope in §10** | `MatchingEngine.publicBook()` iterates every level, hidden-only ones included, until it has collected `depth` displayed levels, so its latency depends on hidden liquidity. Same class as VR-15. Not measured in this milestone. |
 
 ### Benchmarks
 
@@ -704,3 +708,115 @@ PERFORMANCE-RESULTS §8.
   - VR-16 and VR-17 (design);
   - id-key management;
   - the ledger and snapshot hashes, which are not tamper-proof without an independent anchor.
+
+## 10. Milestone 12: matching-engine performance and hidden-order privacy
+
+**Scope.** VR-15 and VR-31, measured separately. Baseline `9fcee80`. Design: ARCHITECTURE §4. Rules are
+unchanged; see the note after H-9 in MATCHING-RULES. Measurements: PERFORMANCE-RESULTS §9 and PRIVACY-REVIEW
+"Milestone 12". Raw logs: `verification/m12/`.
+
+**Verdict, within the tested scope:**
+
+- Matching outcomes are **identical** to Milestone 11.
+- `publicBook()` no longer depends on hidden-only levels (**VR-31 resolved**).
+- The order-entry dependence on hidden-only levels is **reduced, not removed** (**VR-15 open**).
+
+### What changed
+
+- `BookSide` keeps `Map<price, PriceLevel>` plus two `PriceIndex` sets over the instrument's full price
+  range: all non-empty levels, and displayed levels.
+  - A `PriceIndex` is a sparse 32-ary occupancy tree.
+  - Insert, remove, best and next-level are O(log32 range) and never shift or scan other levels.
+  - The range is the instrument's `[minPriceTicks, maxPriceTicks]`, so moving reference prices need no
+    rebuild.
+- `publicBook()` walks the displayed index and stops after `depth` levels.
+- The Milestone 11 sorted array is kept as `reference-book.ts` for tests and A/B only.
+- `MatchingEngine` gained one protected seam (`createBookSide`), so a test subclass can use it. `restore`
+  builds the subclass.
+- The timing harness is `npm run venue:timing`. The historical `timingProbe` is corrected (VR-32).
+
+### Evidence: matching outcomes unchanged
+
+- **Golden hashes generated by `9fcee80`'s own code** (`book-golden`, 3 tests). Nine flows (immediate and
+  batched, 3 000 gateway messages each, plus a 6 000-order large book with two thirds hidden) give identical
+  state hashes, output-chain heads, journal heads, command, execution and public-message counts.
+- **Differential tests against the Milestone 11 book** (`book-differential`, 16 tests):
+  - `PriceIndex` against a model, at capacities 40, 64, 2^32+100 and 10^11.
+  - `BookSide` against the reference over random add/reduce/remove sequences (150 runs): levels, queues,
+    totals, callbacks and iteration orders.
+  - **The engine on both books, per command:**
+    - compared: `CommandResult`, `stateHash`, `publicBook` at depths 20, 3, 1 and 0, and the full operator
+      book;
+    - six scenarios: mixed, heavy-cancel, hidden-only levels, shifting reference prices, extreme price
+      range, dense ladder;
+    - immediate and batched;
+    - 6 seeds of 400 + 300 commands per scenario, and a 60-run random property.
+  - Snapshots taken on one book and restored into the other continue identically. A journal of one replays
+    identically on the other.
+- **The demo** (`npm run venue:demo`): its full output is byte-identical to `9fcee80`, including state hash
+  `a11cdf37…` and output chain `54733390…`.
+- **Mutation checks of the new tests:**
+  - reversing the bid walk direction: 10 differential and 3 of 3 golden failures;
+  - dropping the displayed-index update: 9 failures;
+  - restoring the single-account timing setup: the VR-32 assertion fails (10 000 of 10 001 rested).
+- **Existing tests.** No assertion was changed. The crash-boundary property (D-1/D-2/D-4, 150 runs) received
+  an explicit 60 s timeout. It takes about 5.5 s on this host for both `9fcee80` and Milestone 12, above
+  vitest's 5 s default.
+
+### Checks
+
+- `npm run check` passed: typecheck, lint, 662 unit tests in 55 files, build, bundle check. The venue suite
+  has 285 tests in 19 files: 264 from Milestone 11 plus 21 new.
+- `npm run test:e2e`: 52 passed.
+- Crash-boundary properties, replay/snapshot equivalence, the anchor, quarantine, retention, FOK-budget and
+  idempotency suites all pass. The demo hashes are unchanged.
+
+### New findings
+
+| ID | Severity | Status | Finding |
+|---|---|---|---|
+| VR-32 | Low (measurement) | Resolved | The Milestone 9–11 timing probe placed every hidden order from one account with `maxOpenOrders` 10 000. The "50 000 hidden-only levels" configuration therefore rested 10 000 (the rest were rejected `max-open-orders`), and the published VR-15 figures understate the dependence at that label. The probe now spreads orders over accounts and asserts the resting count. The new harness does the same. Tests: `timing` "VR-32 …". |
+| VR-33 | Low | Resolved before commit | Found while measuring, before anything was committed. The first Milestone 12 `publicBook` loop checked `depth` before pulling the next level, so it requested one level more than it returned. With the reference book behind it, that extra pull scanned every hidden-only level behind the 20th displayed level (about 15 ms against 2 µs). The output was unaffected. The loop now stops right after the `depth`-th level. Visible in `public-book-m12-reference-book.log` (after the fix) and covered by the depth 0/1/3/20 differential comparisons. |
+
+### VR-15 and VR-31 after this milestone
+
+- **VR-31: resolved within the tested scope.**
+  - p50 of `publicBook(20)` with every hidden-only level better than the displayed levels:
+    - `9fcee80`: 2.0 µs → 10 345 µs from 0 to 50 000 levels;
+    - Milestone 12: 3.9 → 4.2 µs, with overlapping round medians.
+  - Structural: the displayed index never contains a hidden-only level.
+- **VR-15: reduced, open.**
+  - Engine-path insert-front p50: 6.7 → 15.0 µs (2.2×) before; 6.6 → 10.9 µs (1.7×) after.
+  - The corrected historical probe shows about 2× after.
+  - Cancel: 4.8× before, 1.3× after.
+  - The residual follows the number of hidden-only levels, not orders (`insert-control.log`).
+  - A walk that reaches hidden levels (deep FOK or taker) is inherent: about 30 ms at 50 000 levels in both
+    trees.
+  - Through the gateway, the corrected probe's round medians overlap.
+  - **No timing-privacy claim is made.**
+
+### Performance
+
+PERFORMANCE-RESULTS §9.
+
+- **Suite A/B against `9fcee80`, 4 runs each:** no scenario's ranges separate. Median deltas:
+  - F1 −12.3 %, F2 −8.6 %, F6 −8.3 %;
+  - F3/F4/F5 −3 % to +6 %;
+  - recovery +7 % / +14 %.
+- **F1 in one process, alternating books:** −5 % at the median, with heavily overlapping ranges.
+- **Reading:** a small constant cost of the index on small books is plausible. A regression beyond this host's
+  noise is not established.
+- **F6:** isolated runs of M10, M11 and M12 do not separate (±15 % within each tree), and prior work in the
+  process changes F6. The F6 differences remain unexplained measurement variability (§9.3 there).
+
+### Open after Milestone 12
+
+- **VR-15 residual:** about 2× at 50 000 hidden-only levels on the engine path. It is an open privacy risk.
+  The remedy is fixed-latency or batched acknowledgements (transport layer), or a preallocated fixed-size
+  structure.
+- **Inherent walks:** matching visits every level within the limit. FOK probing is budgeted (H-7); IOC probing
+  costs an execution.
+- **Performance:** the engine-heavy median deltas (F1, F2, F6) are unresolved observations within noise. F6
+  variability is unexplained.
+- **Unchanged from Milestone 11:** everything in §9 "Open after Milestone 11" apart from the timing item.
+

@@ -1,0 +1,24 @@
+// F1 workload (perf.ts: setup + engineFlow(seed, 60 000) straight into the engine), alternating the Milestone 11
+// reference book and the Milestone 12 indexed book in one process. Isolates the book implementation.
+const root = process.argv[2]!;
+const { MatchingEngine } = await import(`${root}/src/venue/engine.ts`);
+const { ReferenceBookEngine } = await import(`${root}/src/venue/timing-reference.ts`);
+const { engineFlow } = await import(`${root}/src/venue/perf.ts`);
+const { createLocalVenue } = await import(`${root}/src/venue/synthetic.ts`);
+const { PERF_FIXTURE_ID_KEY } = await import(`${root}/src/venue/id-key.ts`);
+const ACCOUNTS = Array.from({ length: 16 }, (_, i) => `syn-q${i}`);
+const setup = createLocalVenue({ accounts: ACCOUNTS, limits: { maxOpenOrders: 10_000, maxOrderNotional: 1e12, maxPositionLots: 1e12 } }).venue.journal.entries.map((e: { command: unknown }) => e.command);
+const res: Record<string, number[]> = { reference: [], indexed: [] };
+for (let r = 0; r < 10; r++) {
+  for (const kind of r % 2 ? ["indexed", "reference"] : ["reference", "indexed"]) {
+    const E = kind === "indexed" ? MatchingEngine : ReferenceBookEngine;
+    const e = new E({ idKey: PERF_FIXTURE_ID_KEY, publication: "immediate" });
+    const all = [...setup, ...engineFlow(1001 + (r >> 1), 60_000)].map((command, i) => ({ seq: i + 1, ts: 1_700_000_000_000 + i, command }));
+    for (const c of all.slice(0, setup.length)) e.process(c);
+    const t0 = process.hrtime.bigint();
+    for (const c of all.slice(setup.length)) e.process(c);
+    res[kind]!.push(Math.round(60_000 / (Number(process.hrtime.bigint() - t0) / 1e9)));
+  }
+}
+const med = (a: number[]) => [...a].sort((x, y) => x - y)[a.length >> 1]!;
+for (const [k, v] of Object.entries(res)) console.log(`${k}: median ${med(v)} ops/s, range ${Math.min(...v)}–${Math.max(...v)}; runs ${v.join(", ")}`);

@@ -70,7 +70,7 @@ real deployment should default to it and schedule publish ticks itself; no sched
 | Error responses and rejection behaviour | **Closed.** Cancel, replace and order lookup for another account's (hidden) order are identical to those for a non-existent ID, by order ID and by client order ID, including malformed replace values. | `privacy-review` "A-1 / P-1 every private query …"; `adversarial` A-1 |
 | Order IDs and event numbering | **Closed while the ID key is secret.** Since Milestone 10, `Venue` enforces a key policy (A-5): at least 43 base64url characters, at least 16 distinct characters, and fixture keys only with an explicit test-only flag. Key management stays open. The trader's own IDs, `accountSeq`, timestamps and events are identical whether or not others placed hidden orders in between. With the key, IDs map back to global sequence numbers (VR-14). | `privacy-review` "H-8 …", "VR-14 …" |
 | Fill details | **Closed.** The taker's private events are identical whether the maker was hidden or displayed. | `adversarial` "H-5 the taker's private view …" |
-| Timing | **Reduced / plausible.** Engine-level latency depends on the number of hidden-only price levels (about 3 µs against 11 µs at 50 000 levels). At the gateway level, one run separated (every 50 000-level round slower than every 0-level round) and one did not. Treat the channel as plausibly observable. | PERFORMANCE-RESULTS §4 (VR-15) |
+| Timing | **Reduced, still open (Milestone 12).** `publicBook()` latency no longer depends on hidden-only levels in the tested range (VR-31). Order-entry latency still depends on them: insert-front p50 is 6.6 → 10.9 µs from 0 to 50 000 hidden-only levels at engine level, about 1.7–2×, down from 2.2× (VR-15). A walk that reaches hidden levels is inherent. Gateway-level round medians overlapped in Milestone 12. Treat the channel as plausibly observable; **no timing-privacy claim is made**. | "Milestone 12" below; PERFORMANCE-RESULTS §9 |
 | Subscription behaviour | **Closed.** Private events are only reachable through the owner's session. Closed or forged sessions read nothing. Gateway responses contain only the caller's events. | `privacy-review` "subscription …"; `properties` A-2 |
 | Cross-account access | **Closed.** The account comes from the session. A body `accountId` is refused. | `adversarial` A-1; `verification` "A-1 malformed …" |
 | Logs | **Closed.** Gateway refusal records hold `ts`, `accountId` and `code` only; no payload. The log is bounded (VR-04). | `privacy-review` "logs …"; `verification` VR-04 |
@@ -125,5 +125,54 @@ They are not implemented and not tested. Users must be told that the operator ca
 | Trades reveal that hidden liquidity existed, and a lower bound on its size | Prints must report executed price and quantity | Nothing short of not printing, which is unacceptable for a transparent market. Batched publication blurs timing only. |
 | Probing by IOC (with cost) and FOK (free when it fails, within a budget) | Execution semantics answer the question | Surveillance; FOK-failure budget (implemented in M11); minimum execution quantity on hidden orders (not designed) |
 | Post-only probes within the budget | The budget is above zero, and several accounts multiply it | Lower budget; surveillance across accounts |
-| Timing of engine operations | Data-structure cost depends on all levels | Constant-time level index; fixed-latency or batched acknowledgements |
+| Timing of engine operations | Since Milestone 12, the cost depends weakly on the number of hidden-only levels (map size, cache) and fully on the levels a match walks | Fixed-latency or batched acknowledgements (transport layer); dummy work cannot hide a walk without bounding it |
 | Operator, process and storage access | Access control is the only protection | Isolation, encryption at rest, encrypted order flow (separate design and review) |
+
+## Milestone 12 — Hidden-liquidity timing (VR-15, VR-31)
+
+Measurements: PERFORMANCE-RESULTS §9. Raw logs: `verification/m12/`.
+
+**Method.**
+
+- Books with **identical displayed liquidity** differ only in their hidden-only levels: 0, 1 000, 10 000 or
+  50 000, asserted before measuring.
+- The configurations alternate within each round.
+- VR-31 (`publicBook`) and VR-15 (order entry) are measured by separate probes.
+- The Milestone 11 book is measured in the same engine as the new one.
+
+| Channel | Before (`9fcee80`) | After (Milestone 12) | Status |
+|---|---|---|---|
+| `publicBook(20)` with hidden-only levels better than the displayed ones (VR-31) | p50 2 µs → 10 345 µs at 50 000 | 3.9 → 4.2 µs; rerun 4.2 → 4.4 µs; round medians overlap | **Resolved within the tested scope** (1 to 50 000 levels, one host). Not walking hidden-only levels is structural: the displayed-level index never contains them. |
+| Displayed insert at a new level (VR-15) | 6.7 → 15.0 µs (2.2×) | 6.6 → 10.9 µs (1.7×); corrected historical probe about 2× | **Reduced, open** |
+| Cancel that order (removes the level) | 1.7 → 8.3 µs (4.8×) | 2.1 → 2.8 µs (1.3×) | Reduced, open |
+| IOC taking a displayed level in front | 16.7 → 23.4 µs | 10.7 → 18.8 µs (noisy) | Reduced, open |
+| Post-only accept | 5.4 → 6.3 µs | 6.3 → 8.8 µs | Small dependence, open |
+| FOK or taker whose limit reaches hidden levels | 8 µs → 34 ms | 7 µs → 30 ms | **Inherent**: matching must visit each level it could fill against |
+| Gateway path (historical probe) | Separated in one Milestone 9 run | Overlapping round medians (corrected probe, 50 000 real levels) | Plausibly observable; not established either way |
+
+**What remains.** The remaining dependence is about **2×** at 50 000 hidden-only levels on the engine path. It
+is an **open privacy risk**, not noise:
+
+- **Residual structure cost.** It follows the number of hidden-only **levels**, not hidden orders: 50 000
+  orders on one level cost the same as none (`insert-control.log`). Larger level maps and index nodes and
+  cache misses are the likely source. Removing it would need a fixed-size preallocated structure, or
+  constant-time padding of every operation.
+- **Inherent walks.** A FOK or IOC whose limit reaches hidden levels pays for visiting them. That is matching
+  itself, and the FOK budget (H-7) bounds how often a FOK probe is free.
+- **End to end.**
+  - Through the in-process gateway, per-call cost (about 300–580 µs on this host) dwarfs the residual. The
+    corrected probe's ranges overlap.
+  - A co-located attacker with many samples may still separate it.
+  - Fixed-latency or batched acknowledgements need a transport layer, which the prototype does not have.
+- **Scope.** One host and one runtime (node 22). Results on other hardware, under load, or with other book
+  shapes may differ.
+
+**Claim.** Milestone 12 reduces the hidden-liquidity timing channels and removes the `publicBook` dependence
+in the tested range. It does **not** provide timing privacy for hidden orders, and no document may say it does.
+
+**No hidden data was added to any output.**
+
+- `publicBook` returns the same displayed levels as before. The differential tests compare it at depths 20,
+  3, 1 and 0 after every command.
+- The new index is internal; no API exposes it.
+

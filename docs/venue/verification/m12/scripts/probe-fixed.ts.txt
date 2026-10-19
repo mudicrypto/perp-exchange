@@ -1,0 +1,6 @@
+const { timingProbe, environment } = await import(`${process.argv[2]}/src/venue/perf.ts`);
+console.log(`Environment: ${environment()}`);
+for (const via of ["engine", "gateway"] as const) {
+  console.log(`Corrected timingProbe (${via} path), 5 rounds × 4000 — median µs per round:`);
+  for (const row of timingProbe(5, 4_000, via)) console.log(`  hidden-only levels ${String(row.hiddenLevels).padStart(6)}: ${row.medianUs.map((v: number) => v.toFixed(1)).join(", ")}`);
+}

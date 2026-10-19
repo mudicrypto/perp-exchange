@@ -1,0 +1,9 @@
+Environment: node v22.22.0, linux 6.18.44-fc-v139 x64, 4 × Intel(R) Xeon(R) Processor @ 2.80GHz, 16 GiB RAM
+Corrected timingProbe (engine path), 5 rounds × 4000 — median µs per round:
+  hidden-only levels      0: 13.3, 7.7, 7.8, 4.4, 5.1
+  hidden-only levels   1000: 11.5, 7.3, 7.9, 4.8, 6.8
+  hidden-only levels  50000: 14.1, 12.7, 11.9, 11.2, 14.2
+Corrected timingProbe (gateway path), 5 rounds × 4000 — median µs per round:
+  hidden-only levels      0: 302.5, 434.9, 373.7, 417.3, 354.0
+  hidden-only levels   1000: 589.2, 443.0, 416.1, 479.9, 446.1
+  hidden-only levels  50000: 580.9, 389.7, 450.4, 353.6, 368.5

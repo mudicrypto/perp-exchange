@@ -1,0 +1,294 @@
+
+ RUN  v5.0.3 <repo>
+
+ ✓ src/venue/book-differential.test.ts > M-3 / M-6 PriceIndex (indexed book ordering) > M-3 add, delete, min, max, successor and predecessor equal a sorted model (small range) 53ms
+ ✓ src/venue/book-differential.test.ts > M-3 / M-6 PriceIndex (indexed book ordering) > M-3 add, delete, min, max, successor and predecessor equal a sorted model (one word boundary) 47ms
+ ✓ src/venue/book-differential.test.ts > M-3 / M-6 PriceIndex (indexed book ordering) > M-3 add, delete, min, max, successor and predecessor equal a sorted model (2^32 + slack (offsets beyond 32-bit)) 33ms
+ ✓ src/venue/book-differential.test.ts > M-3 / M-6 PriceIndex (indexed book ordering) > M-3 add, delete, min, max, successor and predecessor equal a sorted model (the 10^11-tick instrument ceiling) 20ms
+ ✓ src/venue/book-differential.test.ts > M-3 / M-6 PriceIndex (indexed book ordering) > M-3 every bit position of a word, and adjacent words, are ordered correctly 1ms
+ ✓ src/venue/book-differential.test.ts > M-3 / M-6 PriceIndex (indexed book ordering) > M-3 an index refuses an invalid capacity, and the book refuses a price outside its instrument range 3ms
+ ✓ src/venue/book-differential.test.ts > M-4 / M-5 indexed BookSide equals the reference book operation by operation > M-5 random add / reduce / remove sequences: identical levels, queues, totals, callbacks and iteration 82ms
+ ✓ src/venue/properties.test.ts > invariants under random command sequences > M-6 / reconciliation holds after every command (uncrossed book, conservation, zero-sum, open lots, limits, queue order) 1591ms
+ ✓ src/venue/properties.test.ts > invariants under random command sequences > state machine: every order follows allowed transitions and terminal states are absorbing 940ms
+ ✓ src/venue/properties.test.ts > invariants under random command sequences > M-2 … M-5 / H-3 executions follow price, then displayed-before-hidden, then time priority; never beyond the taker's limit 690ms
+ ✓ src/venue/properties.test.ts > determinism and recovery > D-1 replaying the journal (from scratch or from any snapshot) reproduces state and every output 1573ms
+ ✓ src/venue/crash-recovery.test.ts > crash at persistence boundaries > D-1 / D-2 / D-4 recovery equals the last committed state at every boundary, and the journal stays appendable 5627ms
+ ✓ src/venue/crash-recovery.test.ts > crash at persistence boundaries > VR-07 a failed append stops the venue: no later command can follow a torn line in the store 4ms
+ ✓ src/venue/crash-recovery.test.ts > crash at persistence boundaries > D-2 a complete final entry without its newline is committed, and recovery restores the newline before appending 4ms
+ ✓ src/venue/crash-recovery.test.ts > crash at persistence boundaries > VR-10 / D-5 a duplicated final line refuses recovery without touching the store; an interior duplicate does too 4ms
+ ✓ src/venue/crash-recovery.test.ts > crash at persistence boundaries > VR-18 a command that faults deterministically stops replay and names its sequence number (poison command) 5ms
+ ✓ src/venue/crash-recovery.test.ts > crash at persistence boundaries > VR-05 a snapshot whose content was altered is refused even when it is internally consistent 5ms
+ ✓ src/venue/crash-recovery.test.ts > crash at persistence boundaries > externally visible results never get ahead of the durable journal 126ms
+ ✓ src/venue/crash-recovery.test.ts > recovery-contract review notes (Milestone 9 review) > VR-20 a failure while routing outputs after the commit is reported as outcome-unknown, not 'nothing recorded' 5ms
+ ✓ src/venue/crash-recovery.test.ts > recovery-contract review notes (Milestone 9 review) > VR-20 through the gateway the same failure answers outcome-unknown 5ms
+ ✓ src/venue/crash-recovery.test.ts > recovery-contract review notes (Milestone 9 review) > VR-21 recovery refuses journal text and a store together 2ms
+ ✓ src/venue/crash-recovery.test.ts > recovery-contract review notes (Milestone 9 review) > VR-22 a recovery that fails leaves the store byte-for-byte untouched (bad snapshot, poison command) 17ms
+ ✓ src/venue/crash-recovery.test.ts > recovery-contract review notes (Milestone 9 review) > VR-23 crash injection is not configurable through VenueOptions; only a test subclass can simulate a crash 2ms
+ ✓ src/venue/properties.test.ts > hidden-order confidentiality towards the public and other participants > H-1 / H-8 non-interference: hidden orders that never trade change no public message, public sequence, timestamp, or other account's events 1541ms
+ ✓ src/venue/properties.test.ts > hidden-order confidentiality towards the public and other participants > A-2 / H-5 public messages are strict and carry no account, order, client-order or visibility data; private events reach only their owner 844ms
+ ✓ src/venue/properties.test.ts > gateway properties > I-1 decimal conversion is exact and round-trips; arbitrary strings never crash and never round 18ms
+ ✓ src/venue/properties.test.ts > gateway properties > A-4 an identical retry is answered from the idempotency record without a second order 49ms
+ ✓ src/venue/book-differential.test.ts > D-1 / M-3…M-6 the engine produces identical outputs on the indexed and the reference book > M-4 mixed streams: every command result, state hash, public and full book are identical (immediate and batched) 7612ms
+ ✓ src/venue/durability-anchor.test.ts > D-6 commit anchor: ordering and fail-stop > D-6 the anchor is written after the journal append and before the engine processes the command 45ms
+ ✓ src/venue/durability-anchor.test.ts > D-6 commit anchor: ordering and fail-stop > D-6 an anchor write that fails (before-write) stops the venue with outcome-unknown, before processing 6ms
+ ✓ src/venue/durability-anchor.test.ts > D-6 commit anchor: ordering and fail-stop > D-6 an anchor write that fails (torn-write) stops the venue with outcome-unknown, before processing 3ms
+ ✓ src/venue/durability-anchor.test.ts > D-6 commit anchor: ordering and fail-stop > D-6 an anchor write that fails (after-write) stops the venue with outcome-unknown, before processing 4ms
+ ✓ src/venue/durability-anchor.test.ts > D-6 commit anchor: ordering and fail-stop > D-6 after a failed anchor write (before-write) the complete journal entry is recovered (outcome-unknown contract) 5ms
+ ✓ src/venue/durability-anchor.test.ts > D-6 commit anchor: ordering and fail-stop > D-6 after a failed anchor write (after-write) the complete journal entry is recovered (outcome-unknown contract) 4ms
+ ✓ src/venue/durability-anchor.test.ts > D-6 commit anchor: ordering and fail-stop > D-6 a store-backed venue without an anchor store is refused unless explicitly unanchored (Milestone 10 mode) 3ms
+ ✓ src/venue/durability-anchor.test.ts > D-6 commit anchor: ordering and fail-stop > D-6 a fresh anchored venue refuses a store or anchor that already holds data (use Venue.recover) 2ms
+ ✓ src/venue/durability-anchor.test.ts > D-6 recovery detects missing or truncated anchored entries > D-6 the whole final acknowledged entry is missing: refused, nothing changed 7ms
+ ✓ src/venue/durability-anchor.test.ts > D-6 recovery detects missing or truncated anchored entries > D-6 several acknowledged entries lost from the end: refused 4ms
+ ✓ src/venue/durability-anchor.test.ts > D-6 recovery detects missing or truncated anchored entries > D-6 an acknowledged entry truncated mid-line (cut 1) is not dropped as a torn write 5ms
+ ✓ src/venue/durability-anchor.test.ts > D-6 recovery detects missing or truncated anchored entries > D-6 an acknowledged entry truncated mid-line (cut 10) is not dropped as a torn write 5ms
+ ✓ src/venue/durability-anchor.test.ts > D-6 recovery detects missing or truncated anchored entries > D-6 an acknowledged entry truncated mid-line (cut 40) is not dropped as a torn write 5ms
+ ✓ src/venue/durability-anchor.test.ts > D-6 recovery detects missing or truncated anchored entries > D-6 an acknowledged entry truncated mid-line (cut 0.5) is not dropped as a torn write 6ms
+ ✓ src/venue/durability-anchor.test.ts > D-6 recovery detects missing or truncated anchored entries > D-6 the anchor's hash does not match the entry at its sequence: refused 4ms
+ ✓ src/venue/durability-anchor.test.ts > D-6 recovery detects missing or truncated anchored entries > D-6 an anchor ahead of an empty or lost journal: refused 3ms
+ ✓ src/venue/durability-anchor.test.ts > D-6 recovery detects missing or truncated anchored entries > D-6 a missing anchor with a non-empty journal is refused by default; an empty journal starts fresh 4ms
+ ✓ src/venue/durability-anchor.test.ts > D-6 recovery detects missing or truncated anchored entries > D-6 an unreadable or invalid anchor record ("") is refused 5ms
+ ✓ src/venue/durability-anchor.test.ts > D-6 recovery detects missing or truncated anchored entries > D-6 an unreadable or invalid anchor record ("{") is refused 4ms
+ ✓ src/venue/durability-anchor.test.ts > D-6 recovery detects missing or truncated anchored entries > D-6 an unreadable or invalid anchor record ("not json") is refused 4ms
+ ✓ src/venue/durability-anchor.test.ts > D-6 recovery detects missing or truncated anchored entries > D-6 an unreadable or invalid anchor record ("{\"seq\":3}") is refused 10ms
+ ✓ src/venue/durability-anchor.test.ts > D-6 recovery detects missing or truncated anchored entries > D-6 an unreadable or invalid anchor record ("{\"seq\":-1,\"hash\":\"0000000000000000000000000000000000000000000000000000000000000000\"}") is refused 4ms
+ ✓ src/venue/durability-anchor.test.ts > D-6 recovery detects missing or truncated anchored entries > D-6 an unreadable or invalid anchor record ("{\"seq\":1,\"hash\":\"xyz\"}") is refused 3ms
+ ✓ src/venue/durability-anchor.test.ts > D-6 recovery detects missing or truncated anchored entries > D-6 an unreadable or invalid anchor record ("{\"extra\":1,\"hash\":\"0000000000000000000000000000000000000000000000000000000000000000\",\"seq\":1}") is refused 4ms
+ ✓ src/venue/durability-anchor.test.ts > D-6 recovery detects missing or truncated anchored entries > D-6 a torn anchor write leaves an unreadable anchor: recovery refuses until an operator bootstraps 2ms
+ ✓ src/venue/durability-anchor.test.ts > D-6 recovery detects missing or truncated anchored entries > D-6 VR-24 store fault (acknowledged k+1 persisted as a copy of k) and a silently lost append are both refused 5ms
+ ✓ src/venue/durability-anchor.test.ts > D-6 recovery detects missing or truncated anchored entries > D-6 a torn final line beyond the anchor is still dropped as uncommitted, and the store repaired 19ms
+ ✓ src/venue/durability-anchor.test.ts > D-6 recovery detects missing or truncated anchored entries > D-6 snapshot plus suffix recovery checks the anchor too 8ms
+ ✓ src/venue/durability-anchor.test.ts > D-6 operator bootstrap of an existing (unanchored) journal > D-6 bootstrap verifies and replays the journal, writes the anchor and journals an audit record 8ms
+ ✓ src/venue/durability-anchor.test.ts > D-6 operator bootstrap of an existing (unanchored) journal > D-6 bootstrap is refused when a readable anchor exists, the journal is corrupt, or the request is incomplete 16ms
+ ✓ src/venue/book-golden.test.ts > D-1 golden hashes from the Milestone 11 book (9fcee80) > D-1 seeded gateway flows (immediate) reproduce the Milestone 11 hashes exactly 2508ms
+ ✓ src/venue/book-golden.test.ts > D-1 golden hashes from the Milestone 11 book (9fcee80) > D-1 seeded gateway flows (batched) reproduce the Milestone 11 hashes exactly 1758ms
+ ✓ src/venue/book-golden.test.ts > D-1 golden hashes from the Milestone 11 book (9fcee80) > D-1 a large book with mostly hidden levels, then crossing flow, reproduces the Milestone 11 hashes exactly 1883ms
+ ✓ src/venue/durability-anchor.test.ts > D-6 operator bootstrap of an existing (unanchored) journal > D-6 bootstrap after a torn anchor write records the unreadable prior anchor 5ms
+ ✓ src/venue/durability-anchor.test.ts > D-6 crash at every persistence boundary, anchored > D-6 / D-1 / D-2 recovery equals the last committed state at every boundary (torn anchors require a bootstrap) 4542ms
+ ✓ src/venue/book-differential.test.ts > D-1 / M-3…M-6 the engine produces identical outputs on the indexed and the reference book > M-4 heavy-cancel streams: every command result, state hash, public and full book are identical (immediate and batched) 6339ms
+ ✓ src/venue/timing.test.ts > timing probes (VR-32) > VR-32 timingProbe rests every requested hidden-only level beyond one account's maxOpenOrders, on both paths 1621ms
+ ✓ src/venue/demo.test.ts > local prototype demo > D-1 is deterministic, reconciles, and recovers to identical state and outputs 1739ms
+ ✓ src/venue/timing.test.ts > timing probes (VR-32) > VR-32 timingHarness rests every requested hidden-only level for the indexed and the reference book 1230ms
+ ✓ src/venue/demo.test.ts > local prototype demo > H-1 the walkthrough shows that a hidden order publishes nothing 74ms
+ ✓ src/venue/demo.test.ts > local prototype demo > benchmark harness runs end to end at a small scale 1130ms
+ ✓ src/venue/recovery-integrity.test.ts > A-4 / VR-09 idempotency across restarts > A-4 an identical retry after a restart (full replay) returns the original events and is not journaled again 33ms
+ ✓ src/venue/recovery-integrity.test.ts > A-4 / VR-09 idempotency across restarts > A-4 the same holds after recovery from a snapshot taken after the order was accepted 13ms
+ ✓ src/venue/recovery-integrity.test.ts > A-4 / VR-09 idempotency across restarts > A-4 a conflicting retry after a restart is refused without being journaled 7ms
+ ✓ src/venue/recovery-integrity.test.ts > A-4 / VR-09 idempotency across restarts > A-4 an outcome-unknown request is resolved by an identical retry once the venue is recovered 21ms
+ ✓ src/venue/recovery-integrity.test.ts > A-4 / VR-09 idempotency across restarts > A-4 messages that normalise to the same engine command are the same request ("1999.0" vs "1999.00") 5ms
+ ✓ src/venue/recovery-integrity.test.ts > A-4 / VR-09 idempotency across restarts > A-4 while the venue is stopped, an identical retry is answered from committed outputs; anything new is unavailable 3ms
+ ✓ src/venue/recovery-integrity.test.ts > A-4 / VR-09 idempotency across restarts > A-4 a rejected request is evaluated again after a restart (it never consumed the client order id) 5ms
+ ✓ src/venue/recovery-integrity.test.ts > A-4 / VR-09 idempotency across restarts > A-4 the ledger rebuilt by full replay and the ledger restored from a snapshot equal the live ledger 46ms
+ ✓ src/venue/verification.test.ts > Phase B — matching edge cases > M-5 orders with identical timestamps are prioritised by sequence number 18ms
+ ✓ src/venue/verification.test.ts > Phase B — matching edge cases > M-7 / M-9 empty book: IOC, FOK and market orders are cancelled without executions 6ms
+ ✓ src/venue/verification.test.ts > Phase B — matching edge cases > M-9 market order with insufficient liquidity fills what exists within the band and cancels the rest 5ms
+ ✓ src/venue/verification.test.ts > Phase B — matching edge cases > F-1 a sweep across several levels leaves exact remaining quantities on every touched order 7ms
+ ✓ src/venue/verification.test.ts > Phase B — matching edge cases > S-1 cancel-taker after earlier fills keeps those fills; the own order behind other makers is untouched 3ms
+ ✓ src/venue/verification.test.ts > Phase B — matching edge cases > P-1 / P-2 repeated and late commands: second cancel, cancel after fill, replace after fill, repeated replace 7ms
+ ✓ src/venue/verification.test.ts > Phase B — matching edge cases > M-10 a refused post-only replace leaves the order exactly as it was 3ms
+ ✓ src/venue/verification.test.ts > Phase B — matching edge cases > R-1 replace is risk-checked: raising size past the position or notional limit is refused and the order is unchanged 13ms
+ ✓ src/venue/verification.test.ts > Phase B — matching edge cases > M-9 the market-order protection price is clamped to the instrument's price range 6ms
+ ✓ src/venue/verification.test.ts > Phase B — matching edge cases > A-4 / §11 duplicate client order ids: per account across instruments; other accounts unaffected 2ms
+ ✓ src/venue/verification.test.ts > Phase B — matching edge cases > I-1 integer boundaries: unsafe instrument bounds are refused; out-of-range integers never reach the journal 10ms
+ ✓ src/venue/verification.test.ts > Phase B — matching edge cases > VR-11 rejected commands never change the book, orders, positions, public data or other accounts 470ms
+ ✓ src/venue/recovery-integrity.test.ts > A-4 / VR-09 idempotency across restarts > A-4 an altered idempotency ledger in a snapshot is refused 6ms
+ ✓ src/venue/recovery-integrity.test.ts > A-4 / VR-09 idempotency across restarts > A-4 residual: after a ledger entry is evicted, a retry is refused by the engine as a duplicate — never executed twice 4ms
+ ✓ src/venue/recovery-integrity.test.ts > A-4 / VR-09 idempotency across restarts > A-4 property: across random restarts, storage faults and retries, accepted orders are never journaled or executed twice 1572ms
+ ✓ src/venue/recovery-integrity.test.ts > D-5 / VR-10 duplicate and conflicting journal records > D-5 1 byte-identical copies of the final line refuse recovery and leave the store untouched 8ms
+ ✓ src/venue/recovery-integrity.test.ts > D-5 / VR-10 duplicate and conflicting journal records > D-5 3 byte-identical copies of the final line refuse recovery and leave the store untouched 11ms
+ ✓ src/venue/recovery-integrity.test.ts > D-5 / VR-10 duplicate and conflicting journal records > D-5 a duplicated final line without its newline is refused the same way (not treated as a torn write) 5ms
+ ✓ src/venue/recovery-integrity.test.ts > D-5 / VR-10 duplicate and conflicting journal records > D-5 an interior duplicate (a copy followed by further entries) is refused 4ms
+ ✓ src/venue/recovery-integrity.test.ts > D-5 / VR-10 duplicate and conflicting journal records > D-5 a trailing duplicate followed by a torn write is refused (ambiguous) 5ms
+ ✓ src/venue/recovery-integrity.test.ts > D-5 / VR-10 duplicate and conflicting journal records > D-5 a re-serialised copy of the final entry (valid hash, different bytes) is refused as reuse with different content 6ms
+ ✓ src/venue/recovery-integrity.test.ts > D-5 / VR-10 duplicate and conflicting journal records > D-5 a different command under an already-used sequence number is refused, at the end and in the interior 7ms
+ ✓ src/venue/recovery-integrity.test.ts > D-5 / VR-10 duplicate and conflicting journal records > D-5 a sequence gap is refused as a gap 6ms
+ ✓ src/venue/recovery-integrity.test.ts > A-5 / VR-14 order-ID key policy > A-5 refuses a missing key without echoing it 1ms
+ ✓ src/venue/recovery-integrity.test.ts > A-5 / VR-14 order-ID key policy > A-5 refuses a empty key without echoing it 0ms
+ ✓ src/venue/recovery-integrity.test.ts > A-5 / VR-14 order-ID key policy > A-5 refuses a short key without echoing it 0ms
+ ✓ src/venue/recovery-integrity.test.ts > A-5 / VR-14 order-ID key policy > A-5 refuses a 42 characters key without echoing it 0ms
+ ✓ src/venue/recovery-integrity.test.ts > A-5 / VR-14 order-ID key policy > A-5 refuses a outside base64url key without echoing it 0ms
+ ✓ src/venue/recovery-integrity.test.ts > A-5 / VR-14 order-ID key policy > A-5 refuses a low diversity key without echoing it 0ms
+ ✓ src/venue/recovery-integrity.test.ts > A-5 / VR-14 order-ID key policy > A-5 a test-fixture key is refused unless explicitly allowed, and the flag never relaxes the policy for other keys 1ms
+ ✓ src/venue/recovery-integrity.test.ts > A-5 / VR-14 order-ID key policy > A-5 a strong key is accepted and yields ids unrelated to the fixture key 3ms
+ ✓ src/venue/recovery-integrity.test.ts > A-5 / VR-14 order-ID key policy > A-5 recovery enforces the same policy 1ms
+ ✓ src/venue/recovery-integrity.test.ts > A-5 / VR-14 order-ID key policy > A-5 the synthetic factory uses the fixture key explicitly; a weak custom key is refused 1ms
+ ✓ src/venue/recovery-integrity.test.ts > A-5 / VR-14 order-ID key policy > A-5 fixture key literals appear only in the key-policy module and tests 3ms
+ ✓ src/venue/verification.test.ts > Phase B — matching edge cases > A-2 private fills and public prints agree with committed executions for every command 799ms
+ ✓ src/venue/verification.test.ts > Phase E — gateway and sequencing > A-3 opening new sessions does not reset message or post-only limits (keyed by account) 3ms
+ ✓ src/venue/verification.test.ts > Phase E — gateway and sequencing > VR-04 the refusal log is bounded while totals keep counting (unauthenticated flood) 16ms
+ ✓ src/venue/verification.test.ts > Phase E — gateway and sequencing > A-1 malformed or oversized payload (null) is refused without reaching the journal or echoing input 3ms
+ ✓ src/venue/verification.test.ts > Phase E — gateway and sequencing > A-1 malformed or oversized payload (array) is refused without reaching the journal or echoing input 1ms
+ ✓ src/venue/verification.test.ts > Phase E — gateway and sequencing > A-1 malformed or oversized payload (number) is refused without reaching the journal or echoing input 1ms
+ ✓ src/venue/verification.test.ts > Phase E — gateway and sequencing > A-1 malformed or oversized payload (string) is refused without reaching the journal or echoing input 1ms
+ ✓ src/venue/verification.test.ts > Phase E — gateway and sequencing > A-1 malformed or oversized payload (prototype key) is refused without reaching the journal or echoing input 1ms
+ ✓ src/venue/verification.test.ts > Phase E — gateway and sequencing > A-1 malformed or oversized payload (constructor key) is refused without reaching the journal or echoing input 1ms
+ ✓ src/venue/verification.test.ts > Phase E — gateway and sequencing > A-1 malformed or oversized payload (1 MB client id) is refused without reaching the journal or echoing input 3ms
+ ✓ src/venue/verification.test.ts > Phase E — gateway and sequencing > A-1 malformed or oversized payload (1 MB price) is refused without reaching the journal or echoing input 2ms
+ ✓ src/venue/verification.test.ts > Phase E — gateway and sequencing > A-1 malformed or oversized payload (10 000 extra keys) is refused without reaching the journal or echoing input 12ms
+ ✓ src/venue/verification.test.ts > Phase E — gateway and sequencing > A-1 malformed or oversized payload (deeply nested ref) is refused without reaching the journal or echoing input 3ms
+ ✓ src/venue/verification.test.ts > Phase E — gateway and sequencing > A-1 malformed or oversized payload (account override) is refused without reaching the journal or echoing input 1ms
+ ✓ src/venue/verification.test.ts > Phase E — gateway and sequencing > A-1 malformed or oversized payload (unknown op) is refused without reaching the journal or echoing input 1ms
+ ✓ src/venue/verification.test.ts > Phase E — gateway and sequencing > A-4 concurrent identical submissions (including from two sessions of one account) create exactly one order 4ms
+ ✓ src/venue/verification.test.ts > Phase E — gateway and sequencing > VR-06 a rejected order does not consume its client order id at the gateway (retry after the halt lifts) 3ms
+ ✓ src/venue/verification.test.ts > Phase E — gateway and sequencing > stale client view: a replace computed from an outdated order view cannot raise exposure (P-3) 2ms
+ ✓ src/venue/verification.test.ts > Phase E — gateway and sequencing > cancellation race: a cancel that arrives after the fill is refused and the fill stands 1ms
+ ✓ src/venue/verification.test.ts > Phase E — gateway and sequencing > VR-01 after a fault nothing more is journaled; the faulting command is reported as outcome-unknown and survives recovery 5ms
+ ✓ src/venue/verification.test.ts > Phase E — gateway and sequencing > VR-19 after a fault mid-command, order queries refuse instead of serving half-applied state 3ms
+ ✓ src/venue/verification.test.ts > Phase E — gateway and sequencing > VR-02 a throwing public listener cannot turn a committed order into an error or drop private events 2ms
+ ✓ src/venue/recovery.test.ts > journal integrity > D-2 detects an edited entry, a reordering and an injected command 137ms
+ ✓ src/venue/retention.test.ts > A-6 private-event retention is explicit > A-6 an outbox that dropped events reports a gap; within the retained window it reports none 45ms
+ ✓ src/venue/retention.test.ts > A-6 private-event retention is explicit > A-6 after a snapshot restore only replayed events are retained, and the page reports the gap; a full replay has none 27ms
+ ✓ src/venue/retention.test.ts > A-6 private-event retention is explicit > A-6 the gateway's eventsPage carries the gap marker for the caller's own account only 7ms
+ ✓ src/venue/retention.test.ts > A-6 optional audit-store caps > A-6 caps are disabled by default: every audit record is kept and history is complete 14ms
+ ✓ src/venue/retention.test.ts > A-6 optional audit-store caps > A-6 enabled caps keep the most recent records, count evictions and mark history incomplete; a journal replay restores full reconciliation 120ms
+ ✓ src/venue/recovery.test.ts > journal integrity > D-2 a full rewrite of the chain verifies internally; only an externally anchored head exposes it 42ms
+ ✓ src/venue/recovery.test.ts > journal integrity > D-2 a torn final write is dropped and recovery resumes from the last complete entry 164ms
+ ✓ src/venue/retention.test.ts > A-6 optional audit-store caps > A-6 invalid caps are refused 6ms
+ ✓ src/venue/retention.test.ts > A-4 / A-6 retention never trims client-ID deduplication or terminal-order lookup > A-4 with every retention at its minimum, evicted terminal orders still refuse identical and conflicting retries and are found by client order id, also after restarts 34ms
+ ✓ src/venue/engine.test.ts > instrument rules > I-2 refuses prices outside the configured range or the band around the reference price 25ms
+ ✓ src/venue/engine.test.ts > instrument rules > I-2 the reference price follows the last trade 6ms
+ ✓ src/venue/engine.test.ts > instrument rules > I-3 refuses quantities outside [min, max] 3ms
+ ✓ src/venue/engine.test.ts > matching > M-1 / M-2 an incoming order matches on arrival at the resting order's price 4ms
+ ✓ src/venue/engine.test.ts > matching > M-3 better prices fill first, whatever the arrival order 5ms
+ ✓ src/venue/engine.test.ts > matching > M-4 / H-3 at one price, displayed orders fill before hidden orders that arrived earlier 7ms
+ ✓ src/venue/engine.test.ts > matching > M-3 / H-3 a hidden order at a better price fills before displayed orders at a worse price 3ms
+ ✓ src/venue/engine.test.ts > matching > M-5 within a class, earlier orders fill first 6ms
+ ✓ src/venue/engine.test.ts > matching > M-7 GTC remainders rest; IOC remainders are cancelled 7ms
+ ✓ src/venue/engine.test.ts > matching > M-8 FOK executes completely or not at all 6ms
+ ✓ src/venue/engine.test.ts > matching > M-9 market orders trade up to the band-edge protection price and never rest, hide or post 7ms
+ ✓ src/venue/engine.test.ts > matching > M-10 post-only orders that would trade are rejected, against displayed and hidden liquidity alike 2ms
+ ✓ src/venue/engine.test.ts > fills > F-1 a partially filled maker keeps its queue position 2ms
+ ✓ src/venue/engine.test.ts > fills > F-2 both sides get a fill report about their own order only, with distinct opaque fill ids 2ms
+ ✓ src/venue/engine.test.ts > cancel and replace > P-1 only the owner can cancel; another account's order looks like a non-existent one 4ms
+ ✓ src/venue/engine.test.ts > cancel and replace > P-2 a size reduction at the same price keeps priority; a price change or size increase loses it 11ms
+ ✓ src/venue/engine.test.ts > cancel and replace > P-3 replace sets the new total quantity; it must exceed the filled quantity 2ms
+ ✓ src/venue/engine.test.ts > cancel and replace > P-4 a replace that crosses trades immediately as taker 2ms
+ ✓ src/venue/engine.test.ts > cancel and replace > P-5 mass cancel cancels only the caller's resting orders 3ms
+ ✓ src/venue/engine.test.ts > self-trade prevention > S-1 cancel-taker 1ms
+ ✓ src/venue/engine.test.ts > self-trade prevention > S-1 cancel-maker 8ms
+ ✓ src/venue/engine.test.ts > self-trade prevention > S-1 cancel-both 2ms
+ ✓ src/venue/engine.test.ts > self-trade prevention > S-2 STP applies to the account's hidden orders too 2ms
+ ✓ src/venue/engine.test.ts > self-trade prevention > S-3 a FOK that fails leaves resting orders untouched even if STP would have cancelled them 2ms
+ ✓ src/venue/engine.test.ts > risk and trading status > R-1 enforces open-order, order-notional and worst-case position limits 4ms
+ ✓ src/venue/engine.test.ts > risk and trading status > R-2 a halted instrument refuses new orders and replaces, accepts cancels, and is announced publicly 3ms
+ ✓ src/venue/engine.test.ts > risk and trading status > R-3 suspending an account cancels its orders and refuses new ones 2ms
+ ✓ src/venue/engine.test.ts > hidden orders: engine view > H-2 the engine (and so the operator) sees hidden orders in full; the public book does not 1ms
+ ✓ src/venue/engine.test.ts > hidden orders: engine view > H-4 hidden liquidity trades with displayed liquidity in both directions 3ms
+ ✓ src/venue/engine.test.ts > hidden orders: engine view > H-6 hidden orders must be GTC limit orders of at least the minimum size 2ms
+ ✓ src/venue/recovery.test.ts > journal integrity > D-2 refuses a snapshot that belongs to a different journal 24ms
+ ✓ src/venue/recovery.test.ts > recovery and determinism > D-1 recovery from a snapshot plus the journal suffix reproduces state, outputs and reconciliation 568ms
+ ✓ src/venue/recovery.test.ts > recovery and determinism > D-1 the engine refuses sequence gaps, duplicates and timestamps that go backwards 1ms
+ ✓ src/venue/recovery.test.ts > recovery and determinism > D-3 fail-stop: an internal fault stops the engine; the gateway then refuses all commands 34ms
+ ✓ src/venue/recovery.test.ts > recovery and determinism > D-3 a snapshot whose holdings disagree with its orders is refused on restore 94ms
+ ✓ src/venue/recovery.test.ts > recovery and determinism > D-4 consumers de-duplicate outputs regenerated after a crash by sequence number 273ms
+ ✓ src/venue/recovery.test.ts > recovery and determinism > D-4 a gap in the public feed marks the mirror stale 2ms
+ ✓ src/venue/poison-quarantine.test.ts > D-7 quarantine of a poison command (VR-18) > D-7 without a quarantine, recovery still stops at the poison command and names its sequence number 38ms
+ ✓ src/venue/poison-quarantine.test.ts > D-7 quarantine of a poison command (VR-18) > D-7 the operator quarantines the final faulting entry: recovery completes, the client gets a definitive rejection, the decision is journaled and anchored 12ms
+ ✓ src/venue/poison-quarantine.test.ts > D-7 quarantine of a poison command (VR-18) > D-7 later plain recoveries (full replay, snapshot + suffix) reproduce the same state and outputs without operator input, fault still present 15ms
+ ✓ src/venue/poison-quarantine.test.ts > D-7 quarantine of a poison command (VR-18) > D-7 an identical resubmission of the quarantined command is refused before journaling; the gateway answers quarantined 11ms
+ ✓ src/venue/poison-quarantine.test.ts > D-7 quarantine of a poison command (VR-18) > D-7 suspendAccount suspends the account in the same journaled decision 11ms
+ ✓ src/venue/poison-quarantine.test.ts > D-7 quarantine of a poison command (VR-18) > D-7 refused: wrong sequence, wrong hash, a snapshot at the entry, incomplete or contradicting evidence 22ms
+ ✓ src/venue/poison-quarantine.test.ts > D-7 quarantine of a poison command (VR-18) > D-7 refused: an entry that does not fault (it may have produced acknowledged outputs) and an entry in the middle of the journal 30ms
+ ✓ src/venue/poison-quarantine.test.ts > D-7 quarantine of a poison command (VR-18) > D-7 refused: suspendAccount for a command without an account, a quarantine of a quarantine record, and a snapshot at or after the entry 11ms
+ ✓ src/venue/poison-quarantine.test.ts > D-7 quarantine of a poison command (VR-18) > D-7 a crash while journaling the quarantine record is safe: repeat the quarantine (torn) or recover plainly (written) 18ms
+ ✓ src/venue/poison-quarantine.test.ts > D-7 quarantine of a poison command (VR-18) > D-7 a journaled quarantine record that does not reference the immediately preceding entry is refused 6ms
+ ✓ src/venue/poison-quarantine.test.ts > D-7 quarantine of a poison command (VR-18) > D-7 quarantined cancel and replace requests resolve with request-rejected: quarantined 7ms
+ ✓ src/venue/poison-quarantine.test.ts > D-7 / D-6 operator records are written only by recovery > D-7 a quarantine or bootstrap record submitted directly is refused before journaling (it could void an acknowledged entry) 7ms
+ ✓ src/venue/privacy-review.test.ts > A — unauthenticated public observer > H-1 add, replace and cancel of a hidden order produce no public message in either publication mode 45ms
+ ✓ src/venue/privacy-review.test.ts > A — unauthenticated public observer > H-5 residual: a print at a price with no displayed level reveals that hidden liquidity existed there (documented, not eliminated) 15ms
+ ✓ src/venue/privacy-review.test.ts > B — authenticated trader > VR-03 replacing a post-only order into the spread counts toward the probe throttle and is then refused 19ms
+ ✓ src/venue/privacy-review.test.ts > B — authenticated trader > VR-08 within the budget: a failing FOK reveals 'not enough liquidity at or better than P' without any execution 7ms
+ ✓ src/venue/privacy-review.test.ts > B — authenticated trader > A-1 / P-1 every private query and error is identical for a foreign hidden order and a non-existent one 7ms
+ ✓ src/venue/privacy-review.test.ts > B — authenticated trader > H-8 the trader's own ids, sequences and timestamps are identical whether or not others placed hidden orders in between 22ms
+ ✓ src/venue/privacy-review.test.ts > B — authenticated trader > VR-14 the opacity of ids rests on the id key: whoever knows it can recover global sequence numbers 3ms
+ ✓ src/venue/privacy-review.test.ts > B — authenticated trader > subscription: private events are only reachable through the owner's session; a closed session reads nothing 3ms
+ ✓ src/venue/privacy-review.test.ts > B — authenticated trader > diagnostics: the session-facing gateway API offers no operator or cross-account view 2ms
+ ✓ src/venue/privacy-review.test.ts > B — authenticated trader > logs: gateway refusal records carry no payload fields 4ms
+ ✓ src/venue/privacy-review.test.ts > C — compromised application service (same process) > open: TypeScript `private` is not isolation; code holding the gateway can reach every hidden order 3ms
+ ✓ src/venue/privacy-review.test.ts > D — privileged operator > open by design: the operator view and audit records show hidden orders, owners and maker visibility 3ms
+ ✓ src/venue/privacy-review.test.ts > E — access to logs or persistent storage > open: the journal and snapshots hold hidden orders in plaintext (no encryption at rest) 4ms
+ ✓ src/venue/recovery-final.test.ts > VR-28 / D-2 a complete but invalid final entry is corruption, not a torn write > D-2 an acknowledged final entry with a corrupted hash and no trailing newline refuses recovery; the journal is unchanged 38ms
+ ✓ src/venue/recovery-final.test.ts > VR-28 / D-2 a complete but invalid final entry is corruption, not a torn write > D-2 a complete final entry without a newline with wrong prev hash is refused, not dropped 6ms
+ ✓ src/venue/recovery-final.test.ts > VR-28 / D-2 a complete but invalid final entry is corruption, not a torn write > D-2 a complete final entry without a newline with schema violation in the command is refused, not dropped 17ms
+ ✓ src/venue/recovery-final.test.ts > VR-28 / D-2 a complete but invalid final entry is corruption, not a torn write > D-2 a complete final entry without a newline with unexpected field is refused, not dropped 5ms
+ ✓ src/venue/recovery-final.test.ts > VR-28 / D-2 a complete but invalid final entry is corruption, not a torn write > D-2 a complete final entry without a newline with sequence number ahead (gap) is refused, not dropped 3ms
+ ✓ src/venue/recovery-final.test.ts > VR-28 / D-2 a complete but invalid final entry is corruption, not a torn write > D-2 a complete final entry without a newline with sequence number not an integer is refused, not dropped 3ms
+ ✓ src/venue/recovery-final.test.ts > VR-28 / D-2 a complete but invalid final entry is corruption, not a torn write > D-2 a complete final entry without a newline with invalid timestamp is refused, not dropped 3ms
+ ✓ src/venue/recovery-final.test.ts > VR-28 / D-2 a complete but invalid final entry is corruption, not a torn write > D-2 a final line that parses as JSON but is not an entry (null) is refused, not dropped 3ms
+ ✓ src/venue/recovery-final.test.ts > VR-28 / D-2 a complete but invalid final entry is corruption, not a torn write > D-2 a final line that parses as JSON but is not an entry (42) is refused, not dropped 3ms
+ ✓ src/venue/recovery-final.test.ts > VR-28 / D-2 a complete but invalid final entry is corruption, not a torn write > D-2 a final line that parses as JSON but is not an entry ("text") is refused, not dropped 2ms
+ ✓ src/venue/recovery-final.test.ts > VR-28 / D-2 a complete but invalid final entry is corruption, not a torn write > D-2 a final line that parses as JSON but is not an entry ([]) is refused, not dropped 3ms
+ ✓ src/venue/recovery-final.test.ts > VR-28 / D-2 a complete but invalid final entry is corruption, not a torn write > D-2 a genuinely truncated final line (unparseable, no newline) is still dropped as an uncommitted torn write 8ms
+ ✓ src/venue/recovery-final.test.ts > VR-28 / D-2 a complete but invalid final entry is corruption, not a torn write > D-2 malformed lines followed by a newline, or in the middle, are refused as before 3ms
+ ✓ src/venue/recovery-final.test.ts > VR-29 / A-2 event objects are isolated between consumers > A-2 mutating the first private response changes neither the private feed, the replay, the ledger, the tape nor engine state 6ms
+ ✓ src/venue/recovery-final.test.ts > VR-29 / A-2 event objects are isolated between consumers > A-2 mutating events read from the private feed changes neither later reads, the first response nor engine state 3ms
+ ✓ src/venue/recovery-final.test.ts > VR-29 / A-2 event objects are isolated between consumers > A-2 a response that echoes the request reference cannot alter the journaled command 4ms
+ ✓ src/venue/recovery-final.test.ts > VR-29 / A-2 event objects are isolated between consumers > A-2 a public listener cannot change what later listeners receive, the stored tape or engine state 5ms
+ ✓ src/venue/recovery-final.test.ts > A-4 terminal orders evicted from the ledger and restored from a snapshot > A-4 a filled order evicted from the ledger cannot execute again after a snapshot restore or a full replay 13ms
+ ✓ src/venue/recovery-final.test.ts > A-4 terminal orders evicted from the ledger and restored from a snapshot > A-4 a cancelled order evicted from the ledger cannot execute again after a snapshot restore or a full replay 9ms
+ ✓ src/venue/recovery-review.test.ts > VR-24 / D-5 duplicate records fail closed > D-5 a store that acknowledges an append but writes the previous entry again: the acknowledged order is not silently lost 59ms
+ ✓ src/venue/recovery-review.test.ts > VR-24 / D-5 duplicate records fail closed > D-5 1 byte-identical copies of the final entry at the end of the journal are refused, not dropped 10ms
+ ✓ src/venue/recovery-review.test.ts > VR-24 / D-5 duplicate records fail closed > D-5 3 byte-identical copies of the final entry at the end of the journal are refused, not dropped 5ms
+ ✓ src/venue/recovery-review.test.ts > VR-24 / D-5 duplicate records fail closed > D-5 a copy of the final entry without a trailing newline is refused, not treated as a torn write 5ms
+ ✓ src/venue/recovery-review.test.ts > VR-24 / D-5 duplicate records fail closed > D-5 a copy of the final entry followed by a blank line is refused as a duplicate (accurate message) 5ms
+ ✓ src/venue/recovery-review.test.ts > VR-24 / D-5 duplicate records fail closed > D-5 an interior copy of the final-so-far entry is refused as a duplicate 4ms
+ ✓ src/venue/recovery-review.test.ts > VR-24 / D-5 duplicate records fail closed > D-5 malformed and partial final writes: a torn partial line is dropped as uncommitted; a complete unparseable line is refused 8ms
+ ✓ src/venue/recovery-review.test.ts > VR-27 / D-5 accurate refusal messages > D-5 a stale copy of an earlier entry at the very end is named as a copy of that entry 5ms
+ ✓ src/venue/recovery-review.test.ts > VR-27 / D-5 accurate refusal messages > D-5 a blank line, at the end or in the middle, is refused as an empty line 5ms
+ ✓ src/venue/recovery-review.test.ts > VR-27 / D-5 accurate refusal messages > D-5 the reader's own classification is reported without the store being repaired 4ms
+ ✓ src/venue/recovery-review.test.ts > VR-25 / A-4 idempotency records are isolated from returned objects > A-4 mutating a returned response changes neither the ledger, later replays, snapshots, nor earlier responses 8ms
+ ✓ src/venue/recovery-review.test.ts > VR-25 / A-4 idempotency records are isolated from returned objects > A-4 ledger records cannot be mutated through acceptedOrder() or through a snapshot after restore 9ms
+ ✓ src/venue/recovery-review.test.ts > A-4 retries after ledger eviction > A-4 identical and conflicting retries after eviction both get duplicate-client-order-id; never a second execution; lookup by client order id still works 8ms
+ ✓ src/venue/recovery-review.test.ts > A-4 retries after ledger eviction > A-4 the same holds after a full replay and after a snapshot restore with the same capacity 13ms
+ ✓ src/venue/recovery-review.test.ts > VR-26 / A-4 ledger capacity across restarts > A-4 a snapshot records its ledger capacity; restoring it under a different capacity is refused without touching the store 8ms
+ ✓ src/venue/recovery-review.test.ts > VR-26 / A-4 ledger capacity across restarts > A-4 a full replay rebuilds the ledger for the configured capacity: same capacity gives the same ledger; another capacity changes only which retries replay, never execution 16ms
+ ✓ src/venue/docs.test.ts > documentation traceability > declares a sensible set of rules 3ms
+ ✓ src/venue/docs.test.ts > documentation traceability > every rule in MATCHING-RULES.md is named by at least one test 8ms
+ ✓ src/venue/docs.test.ts > documentation traceability > tests cite only rules that exist 1ms
+ ✓ src/venue/docs.test.ts > documentation traceability > the documented order state machine equals the implementation 1ms
+ ✓ src/venue/docs.test.ts > documentation traceability > the venue documents never claim cryptographic confidentiality for hidden orders 10ms
+ ✓ src/venue/docs.test.ts > prototype isolation > venue source uses no network, subprocess or file-system APIs 3ms
+ ✓ src/venue/docs.test.ts > prototype isolation > nothing outside src/venue imports the prototype 18ms
+ ✓ src/venue/adversarial.test.ts > authentication and authorization at the gateway > A-1 refuses unknown or closed sessions and takes the account only from the session 21ms
+ ✓ src/venue/adversarial.test.ts > authentication and authorization at the gateway > A-1 / P-1 another account's order cannot be read, cancelled or replaced, and the refusal equals the one for a non-existent order 15ms
+ ✓ src/venue/adversarial.test.ts > input validation > I-1 refuses a exponent price without echoing it 5ms
+ ✓ src/venue/adversarial.test.ts > input validation > I-1 refuses a hex price without echoing it 3ms
+ ✓ src/venue/adversarial.test.ts > input validation > I-1 refuses a NaN price without echoing it 16ms
+ ✓ src/venue/adversarial.test.ts > input validation > I-1 refuses a Infinity price without echoing it 2ms
+ ✓ src/venue/adversarial.test.ts > input validation > I-1 refuses a negative price without echoing it 1ms
+ ✓ src/venue/adversarial.test.ts > input validation > I-1 refuses a explicit plus price without echoing it 1ms
+ ✓ src/venue/adversarial.test.ts > input validation > I-1 refuses a whitespace price without echoing it 2ms
+ ✓ src/venue/adversarial.test.ts > input validation > I-1 refuses a thousands separator price without echoing it 1ms
+ ✓ src/venue/adversarial.test.ts > input validation > I-1 refuses a full-width digits price without echoing it 1ms
+ ✓ src/venue/adversarial.test.ts > input validation > I-1 refuses a leading zeros price without echoing it 1ms
+ ✓ src/venue/adversarial.test.ts > input validation > I-1 refuses a too many digits price without echoing it 1ms
+ ✓ src/venue/adversarial.test.ts > input validation > I-1 refuses a empty price without echoing it 1ms
+ ✓ src/venue/adversarial.test.ts > input validation > I-1 distinguishes off-tick and off-lot values and refuses zero 2ms
+ ✓ src/venue/adversarial.test.ts > abuse controls > A-3 throttles message floods per account without affecting other accounts 4ms
+ ✓ src/venue/adversarial.test.ts > abuse controls > A-4 a reused client order id with a different payload is refused, not silently re-executed 2ms
+ ✓ src/venue/adversarial.test.ts > hidden-liquidity probing and leakage channels > H-7 post-only probing reveals hidden liquidity inside the spread (documented leak) and is throttled per account 4ms
+ ✓ src/venue/adversarial.test.ts > hidden-liquidity probing and leakage channels > H-5 the taker's private view is identical whether the liquidity it hit was hidden or displayed 4ms
+ ✓ src/venue/adversarial.test.ts > hidden-liquidity probing and leakage channels > H-5 one public print per aggressing order and price: maker count and visibility mix are not disclosed 3ms
+ ✓ src/venue/adversarial.test.ts > hidden-liquidity probing and leakage channels > H-5 residual inference: a print larger than the displayed quantity removed reveals that hidden liquidity traded (documented) 2ms
+ ✓ src/venue/adversarial.test.ts > hidden-liquidity probing and leakage channels > H-8 identifiers are opaque and the per-account sequence ignores other accounts' activity 16ms
+ ✓ src/venue/adversarial.test.ts > hidden-liquidity probing and leakage channels > H-8 a different id key yields different identifiers for the same flow 3ms
+ ✓ src/venue/adversarial.test.ts > hidden-liquidity probing and leakage channels > H-1 the public sequence is gap-free while hidden orders come and go 10ms
+ ✓ src/venue/adversarial.test.ts > hidden-liquidity probing and leakage channels > H-9 batched publication conflates: an add and cancel inside one interval publishes nothing; timestamps are publication times 3ms
+ ✓ src/venue/fok-budget.test.ts > H-7 / VR-08 unfilled FOK budget > H-7 every unfilled FOK counts toward a per-account budget; beyond it FOK orders are refused before journaling 30ms
+ ✓ src/venue/fok-budget.test.ts > H-7 / VR-08 unfilled FOK budget > H-7 the budget is per account, survives reconnects, and frees up when the window passes 5ms
+ ✓ src/venue/fok-budget.test.ts > H-7 / VR-08 unfilled FOK budget > M-8 a FOK that fills does not count; unfilled market FOKs do 5ms
+ ✓ src/venue/fok-budget.test.ts > H-7 / VR-08 unfilled FOK budget > A-4 an identical retry of an accepted FOK is answered from the ledger even when the budget is exhausted; a conflicting one is still refused as a conflict 4ms
+ ✓ src/venue/fok-budget.test.ts > H-7 / VR-08 unfilled FOK budget > H-7 counting depends only on the caller's own outcome: hidden liquidity or an empty book exhaust the budget identically 12ms
+ ✓ src/venue/fok-budget.test.ts > H-7 / VR-08 unfilled FOK budget > H-7 the default budget is 20 unfilled FOK orders per account per 60 s 10ms
+ ✓ src/venue/book-differential.test.ts > D-1 / M-3…M-6 the engine produces identical outputs on the indexed and the reference book > M-4 hidden-only streams: every command result, state hash, public and full book are identical (immediate and batched) 7757ms
+ ✓ src/venue/book-differential.test.ts > D-1 / M-3…M-6 the engine produces identical outputs on the indexed and the reference book > M-4 shifting-reference streams: every command result, state hash, public and full book are identical (immediate and batched) 6695ms
+ ✓ src/venue/book-differential.test.ts > D-1 / M-3…M-6 the engine produces identical outputs on the indexed and the reference book > M-4 extreme-range streams: every command result, state hash, public and full book are identical (immediate and batched) 7143ms
+ ✓ src/venue/book-differential.test.ts > D-1 / M-3…M-6 the engine produces identical outputs on the indexed and the reference book > M-4 dense-ladder streams: every command result, state hash, public and full book are identical (immediate and batched) 6912ms
+ ✓ src/venue/book-differential.test.ts > D-1 / M-3…M-6 the engine produces identical outputs on the indexed and the reference book > D-1 snapshots taken on one book and restored into the other continue identically 2872ms
+ ✓ src/venue/book-differential.test.ts > D-1 / M-3…M-6 the engine produces identical outputs on the indexed and the reference book > D-1 property: random seeds and scenarios never produce a difference 7521ms
+ ✓ src/venue/book-differential.test.ts > D-1 / M-3…M-6 the engine produces identical outputs on the indexed and the reference book > D-1 a journal of one implementation replays to the same state and outputs on the other 29ms
+
+ Test Files  19 passed (19)
+      Tests  285 passed (285)
+   Start at  14:47:50
+   Duration  54.05s (tests 94%, import 3%, transform 3%)
+

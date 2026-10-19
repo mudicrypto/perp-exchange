@@ -1,0 +1,24 @@
+Environment: node v22.22.0, linux 6.18.44-fc-v139 x64, 4 × Intel(R) Xeon(R) Processor @ 2.80GHz, 16 GiB RAM
+Parameters: scale 1, runs 1, seeds 1001.. (engine flow) / 2001.. (gateway flow)
+
+| Scenario | Run | Parameters | Ops | Ops/s | p50 µs | p95 µs | p99 µs | max µs |
+|---|---|---|---|---|---|---|---|---|
+| F1 matching, no persistence | 1 | 60000 mixed commands, 16 accounts | 60000 | 77,836 | 5.6 | 35.5 | 79.6 | 10079 |
+| F2 matching + journal (memory store) | 1 | 60000 mixed commands; store 20.6 MiB | 60000 | 7,135 | 91.4 | 333.3 | 538.8 | 35213 |
+| F3 publication (immediate) | 1 | 60000 commands; 39893 public msgs; mirror validates each | 60000 | 6,883 | 91.1 | 355.8 | 564.7 | 29887 |
+| F3 publication (batched) | 1 | 60000 commands; 28249 public msgs; mirror validates each; publish every 50 | 60000 | 7,571 | 83.5 | 318.2 | 547.1 | 66976 |
+| F4 gateway mixed entry/cancel/execution | 1 | 60000 synthetic messages (seeded) | 60000 | 6,616 | 101.8 | 344.7 | 534.2 | 64941 |
+| F5 bursty (queueing + service) | 1 | bursts of 2000 every 200 ms, open loop | 60000 | 6,089 | 1653280.1 | 3568917.5 | 3807778.2 | 3968326 |
+| F6 large book | 1 | 100000 resting orders (25 % hidden) + 60000 mixed commands | 60000 | 6,240 | 102.0 | 377.0 | 592.1 | 24859 |
+| F7 recovery (full replay) | 1 | 60018 entries replayed; snapshot 18.3 MiB | 60018 | 8,599 | 116.3 | 116.3 | 116.3 | 116 |
+| F7 recovery (snapshot + suffix) | 1 | 29999 entries replayed; snapshot 18.3 MiB | 29999 | 4,909 | 203.7 | 203.7 | 203.7 | 204 |
+
+Timing probe (engine path) — median µs of a displayed add at a new level in front of N hidden-only levels, per round:
+  hidden-only levels      0: 8.7, 8.6, 7.0, 6.9, 5.4
+  hidden-only levels   1000: 8.9, 8.7, 7.4, 7.5, 4.9
+  hidden-only levels  50000: 11.4, 9.4, 9.4, 7.9, 9.9
+
+Timing probe (gateway path) — median µs of a displayed add at a new level in front of N hidden-only levels, per round:
+  hidden-only levels      0: 448.0, 385.3, 458.2, 562.9, 426.3
+  hidden-only levels   1000: 384.2, 515.2, 478.8, 405.1, 478.0
+  hidden-only levels  50000: 471.1, 464.1, 426.6, 399.9, 418.9

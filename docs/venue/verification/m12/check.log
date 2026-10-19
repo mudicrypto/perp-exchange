@@ -1,0 +1,81 @@
+
+> nova-exchange@0.1.0 check
+> npm run typecheck && npm run lint && npm run test && npm run build && npm run verify:bundle
+
+
+> nova-exchange@0.1.0 typecheck
+> tsc --noEmit
+
+
+> nova-exchange@0.1.0 lint
+> eslint
+
+
+> nova-exchange@0.1.0 test
+> vitest run
+
+
+ RUN  v5.0.3 <repo>
+
+
+ Test Files  55 passed (55)
+      Tests  662 passed (662)
+   Start at  14:53:32
+   Duration  54.89s (tests 86%, import 8%, transform 5%, environment 1%)
+
+    Isolate  55 workers spawned · ~229ms startup each (spawn + environment, per file)
+             at least ~3.96s faster with isolate: false — reuses workers across files instead of one per file
+
+
+> nova-exchange@0.1.0 build
+> next build
+
+▲ Next.js 16.4.0 (Turbopack)
+✓ Running next.config.ts took 42ms
+- Cache Components enabled
+- Partial Prefetching enabled
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 1112ms
+  Running TypeScript ...
+  Finished TypeScript in 4.6s ...
+  Collecting page data using 3 workers ...
+  Generating static pages using 3 workers (0/18) ...
+  Generating static pages using 3 workers (4/18) 
+  Generating static pages using 3 workers (8/18) 
+  Generating static pages using 3 workers (13/18) 
+✓ Generating static pages using 3 workers (18/18) in 663ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ◐ /
+├ ○ /_not-found
+├ ◐ /analyst
+├ ƒ /api/analyst/ask
+├ ƒ /api/analyst/session
+├ ƒ /api/analyst/users
+├ ƒ /api/candles
+├ ƒ /api/health
+├ ƒ /api/markets
+├ ƒ /api/rfq
+├ ƒ /api/rfq/[id]
+├ ƒ /api/rfq/[id]/accept
+├ ƒ /api/rfq/[id]/cancel
+├ ƒ /api/rfq/[id]/quotes
+├ ƒ /api/rfq/counterparties
+├ ƒ /api/rfq/inbox
+├ ƒ /api/session
+├ ƒ /api/venue/account
+├ ◐ /portfolio
+└ ◐ /private-execution
+
+
+○  (Static)             prerendered as static content
+◐  (Partial Prerender)  prerendered as static HTML with dynamic server-streamed content
+ƒ  (Dynamic)            server-rendered on demand
+
+
+> nova-exchange@0.1.0 verify:bundle
+> node scripts/verify-client-bundle.mjs
+
+Client bundle clean: 20 files scanned, 9 forbidden patterns.

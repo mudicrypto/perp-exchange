@@ -66,9 +66,12 @@ A ticked box means "true of this prototype". It does **not** mean "ready for liv
 - [x] Adversary-by-adversary review (public observer, trader, compromised service, operator,
   storage): [PRIVACY-REVIEW.md](PRIVACY-REVIEW.md). No protection is claimed against the last three.
 - [x] No claim of cryptographic confidentiality anywhere in the design documents.
-- [ ] Constant-time or batched acknowledgements against latency side channels (T-H7). M9 measured an
-  engine-level dependence on the number of hidden-only levels; through the gateway it was visible
-  in one of two runs (VR-15).
+- [x] Book index that does not shift or scan hidden-only levels, and a `publicBook` that never visits
+  them (Milestone 12; VR-31 resolved in the tested range, VR-15 reduced).
+- [ ] Constant-time or batched acknowledgements against latency side channels (T-H7). After Milestone 12,
+  order entry still depends on the number of hidden-only levels, about 2× at 50 000 levels at engine
+  level (VR-15, open). Through the gateway the corrected probe's ranges overlapped. Matching walks
+  through hidden levels are inherent.
 - [ ] Minimum execution quantity, or another defence against IOC probing (T-H4).
 - [ ] Cross-account (Sybil) probe surveillance.
 - [ ] Log, metric, crash-dump and support-tool review for hidden-order data. **n/a (prototype has no

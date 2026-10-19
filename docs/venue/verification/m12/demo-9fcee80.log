@@ -1,0 +1,64 @@
+
+> nova-exchange@0.1.0 venue:demo
+> node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON src/venue/cli/demo.ts
+
+PART 1 — hidden orders (synthetic SYN-ALPHA, tick 0.50, lot 0.001; local prototype, no funds)
+
+▸ syn-maker-a: displayed ask 0.500 @ 2001.00
+    private[syn-maker-a] accepted sell 0.500 @ 2001.00 (displayed)
+    public #3 level sell 2001.00 = 0.500
+▸ syn-maker-a: displayed bid 0.500 @ 1999.00
+    private[syn-maker-a] accepted buy 0.500 @ 1999.00 (displayed)
+    public #4 level buy 1999.00 = 0.500
+▸ syn-maker-b: HIDDEN ask 2.000 @ 2000.50 (inside the spread)
+    private[syn-maker-b] accepted sell 2.000 @ 2000.50 (hidden)
+    public: (nothing published)
+    public book: bids [0.500@1999.00] asks [0.500@2001.00]
+    → the hidden order produced no public message and no public sequence gap.
+
+▸ syn-taker-c: IOC buy 1.000 @ 2001.00
+    private[syn-taker-c] accepted buy 1.000 @ 2001.00 (displayed)
+    private[syn-taker-c] fill taker buy 1.000 @ 2000.50 → filled, leaves 0.000
+    public #5 trade 1.000 @ 2000.50 (aggressor buy)
+    → price priority: the better-priced hidden ask fills first; the print shows price and size only.
+
+▸ syn-maker-a: displayed ask 0.300 @ 2000.50 (same price as the hidden remainder, later in time)
+    private[syn-maker-a] accepted sell 0.300 @ 2000.50 (displayed)
+    public #6 level sell 2000.50 = 0.300
+▸ syn-taker-c: IOC buy 0.500 @ 2000.50
+    private[syn-taker-c] accepted buy 0.500 @ 2000.50 (displayed)
+    private[syn-taker-c] fill taker buy 0.300 @ 2000.50 → partially-filled, leaves 0.200
+    private[syn-taker-c] fill taker buy 0.200 @ 2000.50 → filled, leaves 0.000
+    public #7 trade 0.500 @ 2000.50 (aggressor buy)
+    public #8 level sell 2000.50 = 0.000
+    → displayed priority: at one price the displayed order fills before the earlier hidden one;
+      the two maker fills are published as one aggregated print.
+    → residual inference: the print (0.500) exceeds the displayed quantity removed (0.300), so an
+      observer can infer that ≥ 0.200 traded against non-displayed liquidity at 2000.50.
+
+▸ syn-maker-b: IOC buy against its own hidden ask (STP cancel-taker)
+    private[syn-maker-b] accepted buy 0.100 @ 2000.50 (displayed)
+    private[syn-maker-b] cancelled b2: self-trade-prevention (filled 0.000)
+    public: (nothing published)
+▸ syn-taker-c: post-only bid 0.100 @ 2000.00 (does not cross)
+    private[syn-taker-c] accepted buy 0.100 @ 2000.00 (displayed, post-only)
+    public #9 level buy 2000.00 = 0.100
+▸ syn-taker-c: post-only bid @ 2000.50 (would take hidden liquidity)
+    private[syn-taker-c] rejected c4: post-only-would-take
+    public: (nothing published)
+    → known leakage channel: a post-only rejection inside the spread reveals hidden liquidity;
+      such rejections are throttled per account (docs/venue/MATCHING-RULES.md, rule H-7).
+
+▸ syn-taker-c: tries to cancel maker-b's order by its client id
+    private[syn-taker-c] cancel refused: unknown-order
+    public: (nothing published)
+    → another account's order is indistinguishable from a non-existent one.
+
+PART 2 — 5000 seeded synthetic messages (seed 7), batched publication
+    commands journaled: 5194; executions: 1462 (323 against hidden orders); public prints: 1160
+    gateway refusals: rate-limited 15
+    reconciliation: OK — 2929 orders, 38 resting, 6 accounts
+    recovery: snapshot @ seq 2609 + 2585 journal entries replayed
+    state hash   live a11cdf37fdc5a0a7…  recovered a11cdf37fdc5a0a7…  MATCH
+    output chain live 5473339092b86e63…  recovered 5473339092b86e63…  MATCH
+    journal head e3fc0c2d777cae64…

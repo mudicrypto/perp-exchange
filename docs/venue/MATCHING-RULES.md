@@ -265,6 +265,19 @@ interval:
   This reduces leaks from timing and per-event aggregates. Prints still reveal executed volume and
   price.
 
+**Book structure and timing (Milestone 12; no rule change).**
+
+- Since Milestone 12 each book side is indexed by tick offset over the instrument's price range, with a
+  second index of displayed levels (ARCHITECTURE §4). The structure changes no rule: M-3 to M-6 and every
+  outcome are identical to the Milestone 11 sorted array. This is pinned by differential tests against
+  that array (`book-differential`) and by golden hashes recorded with `9fcee80` (`book-golden`).
+- **Leak (reduced, not removed):**
+  - Adding or removing a level no longer shifts every hidden-only level.
+  - `publicBook()` no longer visits hidden-only levels.
+  - The residual cost still grows slowly with the number of hidden-only levels (map size, cache).
+  - A taker or FOK whose limit reaches hidden levels still visits them; that is matching itself.
+  - Measurements and residuals: PRIVACY-REVIEW, "Milestone 12".
+
 ## 8. Risk and trading status
 
 - **R-1** **Pre-trade risk.** Checked per account before acceptance and on every replace:

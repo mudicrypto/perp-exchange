@@ -151,7 +151,7 @@ describe("crash at persistence boundaries", () => {
       }),
       { numRuns: 150 },
     );
-  });
+  }, 60_000); // 150 runs take ~5.5 s on this host for both 9fcee80 and Milestone 12, over vitest's 5 s default
 
   it("VR-07 a failed append stops the venue: no later command can follow a torn line in the store", () => {
     const store = new MemoryJournalStore();

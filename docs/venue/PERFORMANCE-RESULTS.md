@@ -77,6 +77,11 @@ The probe measures the median latency of adding a displayed order at a new price
 front of* N hidden-only levels. It runs 4 000 adds per round, over 5 rounds, with a fresh venue for
 each configuration. Two runs are reported.
 
+> **Correction (Milestone 12, VR-32).** Every hidden order in this probe came from one account with
+> `maxOpenOrders` 10 000. The "50 000" rows below therefore measured **10 000** resting hidden-only levels;
+> the remaining 40 000 orders were rejected (`max-open-orders`). The probe now spreads the orders over
+> accounts and asserts the resting count. §9 gives the corrected measurements.
+
 | Hidden-only levels | Engine path, evidence run (µs) | Gateway path, evidence run (µs) | Gateway path, earlier run (µs) |
 |---|---|---|---|
 | 0 | 4.9, 2.9, 3.0, 3.0, 2.9 | 204.8, 174.3, 189.7, 158.5, 162.4 | 171.0, 154.4, 144.2, 150.2, 180.0 |
@@ -260,3 +265,126 @@ session with nothing else running. Three rounds per side, `venue:perf` scale 0.5
   - engine orders and the client-ID index;
   - the in-heap store text;
   - the idempotency ledger, up to its capacity.
+
+## 9. Milestone 12: indexed book, timing harness, A/B and F6
+
+All raw logs, scripts and the hardware line: `verification/m12/` (its README lists every file). The host
+was slower during this milestone than during Milestone 11: F2 ran at about 7 700 ops/s against 14 700 then.
+Compare numbers only within this section.
+
+**What changed on the measured paths.**
+
+- Book sides use an index by tick offset plus a displayed-level index (ARCHITECTURE §4).
+- `publicBook()` walks displayed levels only.
+- The timing probe is corrected (VR-32).
+- Nothing else changed.
+
+### 9.1 Timing harness (engine path, VR-15 and VR-31)
+
+- **Command:** `npm run venue:timing -- 5 2000 <book>`.
+- **Design:**
+  - Each probe compares books with identical displayed liquidity and 0, 1 000, 10 000 or 50 000 hidden-only
+    levels.
+  - Configurations alternate within each round. The resting count is asserted.
+  - The two heavy probes (public-book with hidden in front, and FOK walk) take 100 samples per round instead
+    of 2 000.
+- **Columns:** p50 in µs over all samples of 5 rounds, as 0 → 50 000 hidden-only levels.
+- **Baseline:** `9fcee80`. The M11 reference book inside the M12 engine gives the same picture
+  (`timing-m12-reference-book.log`).
+
+| Probe | `9fcee80` p50 µs | M12 p50 µs | M12 p95 µs (0 → 50 000) | Reading |
+|---|---|---|---|---|
+| insert-front | 6.67 → 14.95 (2.2×) | 6.56 → 10.88 (1.7×) | 18.9 → 21.4 | **Reduced, not removed** |
+| cancel-front | 1.73 → 8.34 (4.8×) | 2.09 → 2.77 (1.3×) | 3.3 → 5.0 | Reduced |
+| match-front (IOC takes a 1-lot level) | 16.7 → 23.4 | 10.7 → 18.8 | 49.4 → 35.1 | Noisy; still grows |
+| post-only-accept | 5.4 → 6.3 | 6.3 → 8.8 | 13.0 → 20.7 | Small dependence in M12 |
+| public-book, hidden in front (VR-31) | 2.0 → 10 345 (≈ 5 000×) | 3.9 → 4.2 (rerun 4.2 → 4.4) | 13.1 → 8.3 | **No dependence measured** |
+| public-book, hidden behind | 1.9 → 2.2 | 1.6 → 1.8 | — | Flat in both |
+| FOK walk through every level (inherent) | 8 → 34 337 | 7 → 30 332 | — | Unchanged: matching visits each level |
+
+**Order count versus level count** (`insert-control.log`). Round medians of insert-front:
+
+| Configuration | `9fcee80` | M12 |
+|---|---|---|
+| No hidden orders | 4.2–10.9 µs | 4.1–14.9 µs |
+| 50 000 hidden orders on 50 000 levels | 31.6–67.3 µs | 10.8–14.7 µs |
+| 50 000 hidden orders on one level | 5.1–9.1 µs | 5.5–9.4 µs |
+
+- The residual grows with the number of hidden-only **levels**, not with the number of hidden **orders**.
+- It is consistent with level-map size, index-node count and cache effects. It is not attributed further.
+- In the corrected historical probe (`timingprobe-corrected-m12.log`, 50 000 real levels), M12 shows:
+  - engine path: round medians 11.2–14.1 µs, against 4.4–7.8 µs with no hidden levels (one 13.3 µs warm-up
+    round), so **about 2×**;
+  - gateway path: 0 levels 302–435 µs, 50 000 levels 354–581 µs; the ranges overlap.
+
+### 9.2 Full-suite A/B against `9fcee80`
+
+- **Command:** `npm run venue:perf -- 1 1`, alternating the trees, four runs each.
+- **Format:** throughput is the median, with the range across runs in brackets. Latency figures are medians of
+  the per-run p50/p95/p99.
+
+| Scenario | `9fcee80` ops/s | M12 ops/s | Median Δ | Ranges separate? | `9fcee80` p50/p95/p99 µs | M12 p50/p95/p99 µs |
+|---|---|---|---|---|---|---|
+| F1 matching, no persistence | 82,497 (56,835–96,670) | 72,352 (63,788–87,085) | −12.3 % | no | 5.3 / 33.0 / 71.4 | 6.2 / 39.2 / 81.7 |
+| F2 matching + journal | 7,684 (6,724–8,217) | 7,021 (6,212–7,787) | −8.6 % | no | 86.3 / 305.2 / 517.2 | 91.6 / 337.5 / 566.0 |
+| F3 publication (immediate) | 7,170 (6,337–7,657) | 6,954 (6,649–7,183) | −3.0 % | no | 89.7 / 338.5 / 539.0 | 90.6 / 350.3 / 558.2 |
+| F3 publication (batched) | 7,080 (6,461–7,436) | 7,508 (6,085–7,967) | +6.0 % | no | 87.2 / 335.4 / 560.9 | 83.8 / 319.4 / 544.5 |
+| F4 gateway mixed | 6,570 (5,249–7,220) | 6,669 (6,228–7,114) | +1.5 % | no | 100.0 / 337.2 / 533.0 | 98.9 / 335.6 / 532.2 |
+| F5 bursty (sojourn) | 7,056 (6,796–8,256) | 7,271 (6,089–7,769) | +3.0 % | no | queueing-dominated | queueing-dominated |
+| F6 large book | 7,307 (6,261–7,944) | 6,698 (6,240–7,211) | −8.3 % | no | 91.5 / 321.0 / 518.6 | 96.8 / 349.6 / 548.5 |
+| F7 recovery (full replay) | 8,002 (7,620–8,530) | 8,590 (8,360–9,252) | +7.3 % | no | — | — |
+| F7 recovery (snapshot + suffix) | 4,768 (4,557–5,278) | 5,417 (4,909–6,153) | +13.6 % | no | — | — |
+
+**Reading.**
+
+- **No scenario's ranges separate.**
+- The engine-heavy scenarios F1, F2 and F6 lean negative by 8–12 % at the median. Recovery leans positive.
+- **F1 isolated** (`f1-book-ab.log`). The same F1 workload ran in one process, alternating the M11 reference
+  book and the indexed book, 10 runs each:
+  - reference: median 76 312 ops/s (44 731–81 196);
+  - indexed: 72 256 (54 844–94 502);
+  - −5 % at the median, with the ranges overlapping heavily.
+- A small constant cost of the index on small books (Map lookups per level change, against a short array
+  splice) is plausible. A regression larger than the noise is **not established**.
+- It is recorded as an open, unresolved observation rather than ruled out.
+
+### 9.3 F6 (large book) investigation
+
+**The question.** Milestone 11 recorded F6 at −14 % in the suite and −2 % / −5 % isolated. Milestone 10 had a
+similar −13 %. The cause was not assumed.
+
+**Method.**
+
+- The F6 workload ran in isolation, exactly as `perf.ts` F6 at scale 1 (`f6-investigation.log`).
+- Trees: `9812049` (M10), `9fcee80` (M11) and M12.
+- Each ran fresh, and after the F2 workload in the same process, over 3 rounds.
+
+**Results** (ops/s):
+
+| Tree | Fresh | After F2 |
+|---|---|---|
+| M10 | 5 341, 6 611, 5 796 | 6 879, 7 017, 7 289 |
+| M11 | 6 951, 7 346, 6 264 | 6 323, 5 477, 7 241 |
+| M12 | 5 999, 6 186, 6 991 | 6 924, 7 489, 7 208 |
+
+**Reading.**
+
+- **No version separates from the others.** The spread within each tree (about ±15 %) is larger than any
+  difference between trees.
+- Earlier work in the same process tends to speed F6 up: the median over all trees is 6 264 ops/s fresh
+  against 7 017 after F2. The in-suite median in §9.2 is 7 307 / 6 698.
+- F6 therefore depends on process history. JIT state, heap shape and GC are plausible factors, but this was
+  not shown. It is consistent with the earlier in-suite swings not reproducing in isolation.
+- In this milestone's suite A/B, F6 is −8.3 % with overlapping ranges.
+- **Conclusion:**
+  - The F6 differences remain **unexplained measurement variability**.
+  - No regression is attributed to Milestone 11 or 12, and none is ruled out below roughly ±15 %.
+  - A `--trace-gc` comparison was not run (no correctness or material-regression question required it).
+
+### 9.4 Memory
+
+- Each non-empty price level adds index entries in two indexes per side (all levels, displayed levels).
+- Each index holds one 32-bit word per touched node, in at most 8 Maps.
+- This is in addition to the level map the M11 book also had.
+- Not measured separately in this milestone; `npm run venue:memory` is unchanged.
+

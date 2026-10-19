@@ -271,12 +271,18 @@ Scope: WP1–WP4 of the approved plan (decisions D1–D8). Specification and res
 - [x] Journal-schema compatibility documented: M10 readers refuse journals with the new operator records; M10 journals recover unchanged
 - [ ] Anchor on an independent medium; authenticated, four-eyes approval for bootstrap and quarantine
 - [ ] Durable client-ID index and order archive (long-term VR-13, D7); journal compaction
-- [ ] F6 large-book benchmark difference (−14 % in-suite, −5 % isolated): open observation
+- [x] F6 large-book benchmark difference (−14 % in-suite, −5 % isolated): investigated in Milestone 12 (PERFORMANCE-RESULTS §9)
 
-## Milestone 12 — Constant-time book and timing channels (venue prototype, planned)
-- [ ] VR-15: price-level structure indexed by tick offset over the instrument's price range (reference prices move), differential-tested against the current book, identical replay hashes
-- [ ] VR-31: `publicBook()` must not walk hidden-only levels (displayed-level index); measure first
-- [ ] Residual: matching walk through hidden levels within the limit; acknowledgement batching needs a transport layer
+## Milestone 12 — Matching engine performance and hidden-order privacy (venue prototype)
+Scope: VR-15 and VR-31. Results: `docs/venue/VERIFICATION-REPORT.md` §10, `docs/venue/PRIVACY-REVIEW.md` "Milestone 12", `docs/venue/PERFORMANCE-RESULTS.md` §9; raw logs in `docs/venue/verification/m12/`. Not deployable; simulated only.
+- [x] Baseline first: timing harness (`npm run venue:timing`) reproduced VR-15 and VR-31 on `9fcee80` with identical displayed liquidity and varying hidden-only levels; golden hashes recorded with `9fcee80`
+- [x] VR-32: the Milestone 9–11 timing probe asked for 50 000 hidden-only levels but rested 10 000 (`maxOpenOrders`); the harness spreads them over accounts and asserts the count, and `timingProbe` is fixed the same way
+- [x] VR-15 (reduced): book side indexed by tick offset over the instrument's full price range (sparse 32-ary bitset tree), no array shifts
+- [x] VR-31 (resolved in the tested range): displayed-level index; `publicBook()` never visits hidden-only levels
+- [x] Differential verification against the Milestone 11 book (kept as `reference-book.ts`): per-command results, state hashes, public books, operator views, snapshots and journal replay over random and adversarial streams; golden hashes identical; mutation-checked
+- [x] Full verification: unit, E2E, typecheck, lint, build, crash properties, replay/snapshot equivalence, demo hashes
+- [x] F6 large-book observation investigated (isolated, M10/M11/M12, with and without prior work in the process)
+- [ ] Residual (open): insert/cancel/match cost still grows slightly with hidden-only levels (map size, cache); a walk that reaches hidden levels (deep taker or FOK) is inherent; fixed-latency or batched acknowledgements need a transport layer
 
 > Numbering note: the planned application milestones below were renumbered (previously 11–13) when venue Milestones 11 and 12 were inserted.
 

@@ -1,0 +1,31 @@
+// Control for the residual insert-front dependence: 50 000 hidden orders on 50 000 levels vs on ONE level vs none.
+const root = process.argv[2]!;
+const { MatchingEngine } = await import(`${root}/src/venue/engine.ts`);
+const SPEC = { id: "SYN-T", priceDecimals: 0, tickUnits: 1, sizeDecimals: 0, lotUnits: 1, minPriceTicks: 1, maxPriceTicks: 1_000_000, minQtyLots: 1, maxQtyLots: 1_000_000, priceBandBps: 5_000, minHiddenQtyLots: 1, referencePriceTicks: 200_000 };
+const LIMITS = { maxOpenOrders: 10_000, maxOrderNotional: 1e15, maxPositionLots: 1e12 };
+function world(kind: "none" | "levels" | "one-level") {
+  const e = new MatchingEngine({ idKey: "perf-key", publication: "immediate" });
+  let seq = 0;
+  const send = (command: unknown) => e.process({ seq: ++seq, ts: 0, command });
+  send({ type: "admin.add-instrument", spec: SPEC });
+  for (let a = 0; a < 5; a++) send({ type: "admin.add-account", accountId: `syn-h${a}`, limits: LIMITS });
+  send({ type: "admin.add-account", accountId: "syn-t", limits: LIMITS });
+  if (kind !== "none") for (let i = 0; i < 50_000; i++) send({ type: "new-order", accountId: `syn-h${Math.floor(i / 10_000)}`, clientOrderId: `h${i}`, instrumentId: "SYN-T", side: "sell", orderType: "limit", priceTicks: kind === "levels" ? 210_000 + i : 210_000, qtyLots: 1, tif: "gtc", visibility: "hidden", postOnly: false, stp: "cancel-taker" });
+  return send;
+}
+const median = (xs: number[]) => xs.sort((a, b) => a - b)[Math.floor(xs.length / 2)]!;
+const out: Record<string, number[]> = { none: [], levels: [], "one-level": [] };
+for (let r = 0; r < 5; r++) {
+  for (const kind of ["none", "levels", "one-level"] as const) {
+    const send = world(kind);
+    const xs: number[] = [];
+    for (let i = -200; i < 2_000; i++) {
+      const t0 = process.hrtime.bigint();
+      send({ type: "new-order", accountId: "syn-t", clientOrderId: `i${i + 1000}`, instrumentId: "SYN-T", side: "sell", orderType: "limit", priceTicks: 200_001 + ((i + 1000) % 40), qtyLots: 1, tif: "gtc", visibility: "displayed", postOnly: false, stp: "cancel-taker" });
+      if (i >= 0) xs.push(Number(process.hrtime.bigint() - t0) / 1000);
+      send({ type: "cancel", accountId: "syn-t", ref: { clientOrderId: `i${i + 1000}` } });
+    }
+    out[kind]!.push(median(xs));
+  }
+}
+for (const [k, v] of Object.entries(out)) console.log(`insert-front, 50 000 hidden orders on ${k.padEnd(9)}: round medians µs ${v.map((x) => x.toFixed(2)).join(", ")}`);

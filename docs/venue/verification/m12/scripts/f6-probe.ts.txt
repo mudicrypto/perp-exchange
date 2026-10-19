@@ -1,0 +1,40 @@
+// Usage: node f6-probe.ts <repo-root> <fresh|after-f2> — the perf.ts F6 workload at scale 1 (run 1 flow), one process.
+// Mirrors src/venue/perf.ts F6 exactly (setup, 100 000 resting orders over 300 levels/side, 25 % hidden, then
+// engineFlow(1001, 60 000) with per-op hrtime). "after-f2" first runs the F2 workload in the same process, as the
+// suite does before F6, to test whether earlier work in the process changes F6. Prints ops/s, p50, p99 (µs).
+const [root, mode] = [process.argv[2]!, process.argv[3] ?? "fresh"];
+const storage = await import(`${root}/src/venue/storage.ts`);
+const { Venue } = await import(`${root}/src/venue/venue.ts`);
+const { createLocalVenue } = await import(`${root}/src/venue/synthetic.ts`);
+const { engineFlow } = await import(`${root}/src/venue/perf.ts`);
+const { PERF_FIXTURE_ID_KEY } = await import(`${root}/src/venue/id-key.ts`);
+const LIMITS = { maxOpenOrders: 10_000, maxOrderNotional: 1e12, maxPositionLots: 1e12 };
+const ACCOUNTS = Array.from({ length: 16 }, (_, i) => `syn-q${i}`);
+const ENGINE = { idKey: PERF_FIXTURE_ID_KEY, publication: "immediate" };
+const anchor = () => (storage.MemoryAnchorStore ? { anchor: new storage.MemoryAnchorStore() } : {});
+const setup = createLocalVenue({ accounts: ACCOUNTS, limits: LIMITS }).venue.journal.entries.map((e: { command: unknown }) => e.command);
+const make = () => {
+  const v = new Venue({ engine: ENGINE, allowTestFixtureIdKey: true, clock: () => 1_700_000_000_000, store: new storage.MemoryJournalStore(), ...anchor() });
+  for (const c of setup) v.submit(c);
+  return v;
+};
+const flow = engineFlow(1001, 60_000);
+if (mode === "after-f2") {
+  const v = make();
+  for (const c of flow) v.submit(c);
+}
+const v = make();
+for (let i = 0; i < 100_000; i++) {
+  const sell = i % 2 === 1;
+  v.submit({ type: "new-order", accountId: ACCOUNTS[i % 16]!, clientOrderId: `d${i}`, instrumentId: "SYN-ALPHA", side: sell ? "sell" : "buy", orderType: "limit", priceTicks: sell ? 4_021 + (i % 300) : 3_979 - (i % 300), qtyLots: 5, tif: "gtc", visibility: i % 4 === 0 ? "hidden" : "displayed", postOnly: false, stp: "cancel-maker" });
+}
+const s = new Float64Array(flow.length);
+const start = process.hrtime.bigint();
+for (let i = 0; i < flow.length; i++) {
+  const t0 = process.hrtime.bigint();
+  v.submit(flow[i]);
+  s[i] = Number(process.hrtime.bigint() - t0) / 1_000;
+}
+const secs = Number(process.hrtime.bigint() - start) / 1e9;
+s.sort();
+console.log(`${mode} ops/s=${Math.round(flow.length / secs)} p50=${s[Math.floor(0.5 * s.length)]!.toFixed(2)} p99=${s[Math.floor(0.99 * s.length)]!.toFixed(2)}`);

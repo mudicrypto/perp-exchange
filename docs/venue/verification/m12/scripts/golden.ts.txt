@@ -1,0 +1,29 @@
+// Usage: node golden.ts <repo-root>  — prints golden hashes computed by that tree's venue code.
+const root = process.argv[2]!;
+const { createLocalVenue, syntheticFlow } = await import(`${root}/src/venue/synthetic.ts`);
+const out: Record<string, unknown> = {};
+const ACCOUNTS = ["syn-a", "syn-b", "syn-c", "syn-d"];
+for (const publication of ["immediate", "batched"] as const) {
+  for (const seed of [11, 12, 13, 14]) {
+    const lv = createLocalVenue({ accounts: ACCOUNTS, publication });
+    let i = 0;
+    for (const m of syntheticFlow(seed, 3_000, ACCOUNTS)) {
+      lv.clock.advance(1);
+      lv.gateway.handle(lv.tokens.get(m.accountId)!, m.message);
+      if (publication === "batched" && ++i % 40 === 0) lv.venue.submit({ type: "publish" });
+    }
+    out[`${publication}-${seed}`] = { stateHash: lv.venue.engine.stateHash(), outputHead: lv.venue.outputHead, journalHead: lv.venue.journal.head, commands: lv.venue.journal.lastSeq, executions: lv.venue.executions.length, publicMessages: lv.venue.publicTape.length };
+  }
+}
+// Large book with many hidden-only levels on both sides, then crossing flow (direct venue commands).
+{
+  const lv = createLocalVenue({ accounts: ACCOUNTS, limits: { maxOpenOrders: 10_000, maxOrderNotional: 1e12, maxPositionLots: 1e12 } });
+  let n = 0;
+  for (let i = 0; i < 6_000; i++) {
+    const sell = i % 2 === 1;
+    lv.venue.submit({ type: "new-order", accountId: ACCOUNTS[i % 4]!, clientOrderId: `L${i}`, instrumentId: "SYN-ALPHA", side: sell ? "sell" : "buy", orderType: "limit", priceTicks: sell ? 4_003 + (i % 390) : 3_997 - (i % 390), qtyLots: 100 + (i % 7), tif: "gtc", visibility: i % 3 === 0 ? "displayed" : "hidden", postOnly: false, stp: "cancel-maker" });
+  }
+  for (const m of syntheticFlow(99, 4_000, ACCOUNTS)) { lv.clock.advance(1); lv.gateway.handle(lv.tokens.get(m.accountId)!, m.message); n++; }
+  out["large-book-hidden"] = { stateHash: lv.venue.engine.stateHash(), outputHead: lv.venue.outputHead, journalHead: lv.venue.journal.head, commands: lv.venue.journal.lastSeq, executions: lv.venue.executions.length, publicMessages: lv.venue.publicTape.length };
+}
+console.log(JSON.stringify(out, null, 2));

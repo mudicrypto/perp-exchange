@@ -1,0 +1,24 @@
+Environment: node v22.22.0, linux 6.18.44-fc-v139 x64, 4 × Intel(R) Xeon(R) Processor @ 2.80GHz, 16 GiB RAM
+Parameters: scale 1, runs 1, seeds 1001.. (engine flow) / 2001.. (gateway flow)
+
+| Scenario | Run | Parameters | Ops | Ops/s | p50 µs | p95 µs | p99 µs | max µs |
+|---|---|---|---|---|---|---|---|---|
+| F1 matching, no persistence | 1 | 60000 mixed commands, 16 accounts | 60000 | 56,835 | 8.1 | 52.2 | 106.7 | 11275 |
+| F2 matching + journal (memory store) | 1 | 60000 mixed commands; store 20.6 MiB | 60000 | 6,724 | 95.6 | 345.6 | 568.2 | 184053 |
+| F3 publication (immediate) | 1 | 60000 commands; 39893 public msgs; mirror validates each | 60000 | 6,337 | 101.9 | 382.9 | 592.2 | 12306 |
+| F3 publication (batched) | 1 | 60000 commands; 28249 public msgs; mirror validates each; publish every 50 | 60000 | 6,461 | 101.1 | 362.2 | 601.6 | 22659 |
+| F4 gateway mixed entry/cancel/execution | 1 | 60000 synthetic messages (seeded) | 60000 | 5,249 | 138.1 | 416.2 | 593.2 | 123978 |
+| F5 bursty (queueing + service) | 1 | bursts of 2000 every 200 ms, open loop | 60000 | 6,993 | 1331224.2 | 2551501.2 | 2644945.5 | 2707108 |
+| F6 large book | 1 | 100000 resting orders (25 % hidden) + 60000 mixed commands | 60000 | 6,261 | 100.5 | 375.5 | 586.4 | 19394 |
+| F7 recovery (full replay) | 1 | 60018 entries replayed; snapshot 18.3 MiB | 60018 | 8,008 | 124.9 | 124.9 | 124.9 | 125 |
+| F7 recovery (snapshot + suffix) | 1 | 29999 entries replayed; snapshot 18.3 MiB | 29999 | 4,790 | 208.8 | 208.8 | 208.8 | 209 |
+
+Timing probe (engine path) — median µs of a displayed add at a new level in front of N hidden-only levels, per round:
+  hidden-only levels      0: 5.2, 5.3, 5.0, 4.5, 6.8
+  hidden-only levels   1000: 5.6, 8.3, 5.2, 4.9, 6.0
+  hidden-only levels  50000: 12.0, 12.6, 10.9, 18.6, 14.6
+
+Timing probe (gateway path) — median µs of a displayed add at a new level in front of N hidden-only levels, per round:
+  hidden-only levels      0: 459.7, 416.7, 422.7, 372.0, 494.2
+  hidden-only levels   1000: 485.4, 506.5, 454.0, 425.7, 413.0
+  hidden-only levels  50000: 478.2, 424.7, 460.7, 458.6, 448.1

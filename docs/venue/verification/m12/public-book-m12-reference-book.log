@@ -1,0 +1,14 @@
+Environment: node v22.22.0, linux 6.18.44-fc-v139 x64, 4 × Intel(R) Xeon(R) Processor @ 2.80GHz, 16 GiB RAM
+Rounds 5, samples per round 2000; configurations alternate within each round.
+
+Book: reference
+| Probe | Hidden-only levels | Round medians (µs) | p50 µs | p95 µs | p99 µs |
+|---|---|---|---|---|---|
+| public-book (hidden in front) | 0 | 19.84, 2.43, 2.47, 2.44, 2.30 | 2.56 | 23.65 | 42.30 |
+| public-book (hidden in front) | 1000 | 158.51, 66.88, 69.70, 65.52, 111.53 | 76.87 | 194.26 | 594.36 |
+| public-book (hidden in front) | 10000 | 781.72, 686.44, 1215.29, 693.04, 1410.60 | 814.53 | 1531.42 | 2508.25 |
+| public-book (hidden in front) | 50000 | 7777.80, 9933.63, 9682.69, 12659.62, 12824.88 | 9933.63 | 16015.00 | 17906.52 |
+| public-book (hidden behind) | 0 | 2.37, 4.98, 2.09, 2.21, 2.79 | 2.40 | 7.16 | 15.24 |
+| public-book (hidden behind) | 1000 | 3.47, 2.31, 2.26, 2.25, 3.70 | 2.52 | 4.48 | 8.43 |
+| public-book (hidden behind) | 10000 | 3.84, 2.28, 2.36, 3.86, 2.27 | 2.69 | 4.65 | 9.06 |
+| public-book (hidden behind) | 50000 | 4.64, 2.39, 2.44, 3.16, 2.40 | 2.62 | 5.64 | 14.91 |

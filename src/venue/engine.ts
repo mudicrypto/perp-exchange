@@ -1,4 +1,4 @@
-import { BookSide, leaves, type Order } from "./book.ts";
+import { BookSide, leaves, type BookSideApi, type Order, type PriceRange } from "./book.ts";
 import type { AccountLimits, InstrumentSpec } from "./instrument.ts";
 import { canonicalJson, sha256 } from "./journal.ts";
 import { isAllowedTransition, isLive } from "./state-machine.ts";
@@ -70,8 +70,8 @@ interface InstrumentState {
   readonly spec: InstrumentSpec;
   status: TradingStatus;
   referencePriceTicks: number;
-  readonly bids: BookSide;
-  readonly asks: BookSide;
+  readonly bids: BookSideApi;
+  readonly asks: BookSideApi;
   /** Displayed lots per "side:price" as last published. */
   readonly published: Map<string, number>;
   /** Levels whose displayed quantity changed since the last publication. */
@@ -286,6 +286,14 @@ export class MatchingEngine {
     }
   }
 
+  /**
+   * Book-side factory (Milestone 12): the indexed `BookSide`. Differential tests and the timing A/B override it
+   * in a subclass to run the same engine on the Milestone 11 reference book; production code never does.
+   */
+  protected createBookSide(side: Side, onDisplayedChange: (side: Side, priceTicks: number) => void, range: PriceRange): BookSideApi {
+    return new BookSide(side, onDisplayedChange, range);
+  }
+
   private addInstrument(spec: InstrumentSpec) {
     const dirty = new Set<string>();
     const mark = (side: Side, price: number) => dirty.add(levelKey(side, price));
@@ -293,8 +301,8 @@ export class MatchingEngine {
       spec,
       status: "continuous",
       referencePriceTicks: spec.referencePriceTicks,
-      bids: new BookSide("buy", mark),
-      asks: new BookSide("sell", mark),
+      bids: this.createBookSide("buy", mark, spec),
+      asks: this.createBookSide("sell", mark, spec),
       published: new Map(),
       dirty,
     });
@@ -688,11 +696,13 @@ export class MatchingEngine {
   publicBook(instrumentId: string, depth = 20): PublicBook | null {
     const inst = this.instruments.get(instrumentId);
     if (!inst) return null;
-    const levels = (side: BookSide) => {
+    // Walks displayed levels only, and stops at the depth-th one: hidden-only levels are never visited (VR-31).
+    const levels = (side: BookSideApi) => {
       const out: { priceTicks: number; displayedLots: number }[] = [];
-      for (const l of side.bestFirst()) {
+      if (depth <= 0) return out;
+      for (const l of side.displayedBestFirst()) {
+        out.push({ priceTicks: l.priceTicks, displayedLots: l.displayedLots });
         if (out.length >= depth) break;
-        if (l.displayedLots > 0) out.push({ priceTicks: l.priceTicks, displayedLots: l.displayedLots });
       }
       return out;
     };
@@ -782,9 +792,9 @@ export class MatchingEngine {
     return sha256(canonicalJson(this.snapshot()));
   }
 
-  static restore(config: EngineConfig, snap: EngineSnapshot): MatchingEngine {
+  static restore<T extends MatchingEngine>(this: new (config: EngineConfig) => T, config: EngineConfig, snap: EngineSnapshot): T {
     if (snap.version !== 1) throw new EngineIntegrityError("unsupported snapshot version");
-    const engine = new MatchingEngine(config);
+    const engine = new this(config);
     engine.lastSeq = snap.lastSeq;
     engine.lastTs = snap.lastTs;
     engine.execCount = snap.execCount;
