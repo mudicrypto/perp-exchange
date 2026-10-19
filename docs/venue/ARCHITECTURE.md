@@ -317,7 +317,9 @@ The order of work is:
 
 1. refuse if the venue has stopped (nothing is journaled)
 2. validate
-3. append to the durable `JournalStore`; its return is the commit point
+3. append to the durable `JournalStore`; without a commit-record store, its return is the commit point
+3b. with a commit-record store (Milestone 11, Venue): write the commit record. Only then is the
+   command committed (D-6; [DURABILITY-PROTOCOL.md](DURABILITY-PROTOCOL.md))
 4. process deterministically
 5. hash outputs
 6. record outputs in the idempotency ledger (accepted orders, A-4), the audit stores, the public
@@ -327,15 +329,29 @@ The order of work is:
 Routed events and public messages are deep-frozen before step 6, so every consumer (first response,
 outbox, tape, listeners) receives the same immutable objects (VR-29).
 
-Recovery is a verified read of the store, plus an optional snapshot (bound to its journal head and
-verified by `stateHash`), plus replay of the suffix.
+Recovery is a verified read of the store and the commit record, plus an optional snapshot (bound to
+its journal head and verified by `stateHash` and its rules version), plus replay of the suffix.
+Since Milestone 11 (Venue) it has two phases:
+
+- **Verify:** read-only; every refusal happens here.
+- **Repair:** ordered steps, each read back. It is not atomic across the two stores, so an
+  interrupted repair is completed by the next recovery (DURABILITY-PROTOCOL §4).
+
+**Retention (A-6):** authoritative data (journal, commit records, snapshots, engine orders and the
+permanent client-ID index, the ledger) is never discarded. Audit stores are unbounded unless
+`auditRetention` is set. The outbox is a ring buffer whose gaps `eventsPage` reports exactly.
+
+**Clients after `outcome-unknown`:** only an accepted new order is request-idempotent. Before sending
+further commands, clients freeze, catch up with `eventsPage`, look orders up, and only then resume
+(DURABILITY-PROTOCOL §5.3).
 
 **Failure cases:**
 
 | Case | What happens |
 |---|---|
 | Append fails, at any point | The outcome is unknown. The gateway answers `outcome-unknown` and the venue stops, so no later append can follow a torn line. Recovery truncates a torn tail (an unparseable final line); a complete final line that fails validation is refused (VR-28). |
-| Internal fault | The engine stops (fail-stop). The faulting command was journaled, so its outcome is unknown. Later commands are refused **before** journaling (`unavailable`). |
+| Commit-record write fails | The entry is journaled but may be uncommitted. The venue stops with `outcome-unknown`; recovery rolls the entry forward (D-6). |
+| Internal fault | The engine stops (fail-stop). The faulting command was journaled, so its outcome is unknown. Later commands are refused **before** journaling (`unavailable`). If it faults again on replay, recovery reports a `ReplayFaultError` without payload (D-3; [RUNBOOK-POISON-COMMAND.md](RUNBOOK-POISON-COMMAND.md)). |
 | Faulty public listener | Cannot affect the committed result, the private outboxes or other listeners; it cannot modify the messages it receives (frozen) |
 | Any other failure while routing outputs | The command is committed, so the venue stops and reports `outcome-unknown` (VR-20) |
 

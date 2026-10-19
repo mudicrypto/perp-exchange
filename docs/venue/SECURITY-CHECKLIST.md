@@ -121,16 +121,22 @@ A ticked box means "true of this prototype". It does **not** mean "ready for liv
   acknowledged append persisted with the wrong bytes. M10, VR-10 and VR-24, rule D-5.
 - [x] Idempotency records are immutable: deep-frozen ledger copies and a fresh copy per replay (VR-25).
   The snapshot records its ledger capacity; a restore under another capacity is refused (VR-26).
-- [ ] Independently persisted commit record or trust anchor. Required for any automatic repair of
-  duplicate or torn journal tails, and for detecting an acknowledged entry that a store which
-  acknowledges before durability later truncates or loses.
-- [ ] Keep a permanent, recoverable client-ID index when addressing VR-13. After ledger eviction it is
-  the only protection against a second execution.
+- [x] Commit record in a separate store (M11 Venue, D-6). A committed entry that is missing or
+  truncated in the journal is refused. A journaled-uncommitted entry is rolled forward. Repair is
+  ordered, read back and convergent. Tested by a crash matrix, two properties and every
+  interrupted-repair boundary. **In-memory only: real independence and durability of the two stores
+  are unverified.** Correlated loss is not detected. D-5 stays fail-closed: no automatic duplicate
+  repair.
+- [x] Permanent, recoverable client-ID index kept by the M11 (Venue) retention work (A-6). Tested: no
+  second acceptance after ledger eviction, outbox and audit wrap, head-only journal, snapshot restore
+  and full replay.
 - [x] Order-ID key policy enforced at the `Venue` boundary; fixture keys only with an explicit
   test-only flag; fixture literals confined to `id-key.ts` and tests. M10, VR-14, rule A-5.
 - [ ] Id-key management: generation in deployment, secret storage, rotation. Verification of key
   randomness is not possible.
-- [ ] Poison-command runbook (VR-18).
+- [x] Poison-command diagnostics without payload, rules-version checks for snapshots, and an operator
+  runbook (M11 Venue, D-3, D-7). No skipping or journal rewriting exists. The runbook is not
+  rehearsed with real tooling.
 - [x] Consumers de-duplicate regenerated outputs by sequence (D-4).
 - [ ] External anchoring of journal heads. A full-chain rewrite is undetectable without it (tested).
 - [ ] Durable storage, replication, failover, backup and restore drills. **n/a (prototype)**
@@ -144,8 +150,10 @@ A ticked box means "true of this prototype". It does **not** mean "ready for liv
 - [x] Resting-order, notional and worst-case position limits (R-1).
 - [x] Account suspension and instrument halt; cancels still accepted during a halt (R-2, R-3).
 - [ ] Connection, IP and global limits; order-to-trade ratio limits; cancel-on-disconnect.
-- [ ] Retention and bounds for orders, tape, executions and transitions; explicit outbox gap marker
-  (VR-13).
+- [x] Explicit outbox gap reporting (`eventsPage`), opt-in audit retention reported as partial
+  history, head-only in-memory journal (M11 Venue, A-6). Defaults discard no audit history.
+- [ ] Bounds for engine orders and the client-ID index (permanent by design; needs a durable archive).
+  VR-13 partly open.
 - [ ] Surveillance: probing, layering, spoofing, wash trading across accounts.
 
 ### A8. Dependencies and supply chain

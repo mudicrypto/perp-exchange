@@ -259,6 +259,22 @@ Specification and results: `docs/venue/RECOVERY-INTEGRITY.md`. Not deployable.
 - [ ] Ledger durability beyond the in-memory store; the ledger hash is not tamper-proof without an anchor
 - [ ] Still open from M9: VR-08, VR-13, VR-15, VR-18
 
+## Milestone 11 (Venue) — Durability protocol, retention and poison diagnostics (venue prototype)
+Scope: workstreams A (commit records), B (retention), C (poison diagnostics). App milestone numbers below are unchanged. Engine unchanged.
+Specification and results: `docs/venue/DURABILITY-PROTOCOL.md`; verification `docs/venue/VERIFICATION-REPORT.md` §9. Not deployable.
+- [x] Tests written first: against 9812049, four suites cannot load (new module) and 16 of the 29 runnable tests fail; all 106 pass after the change (`m11-tests-against-9812049.log`)
+- [x] D-6 commit records: two checksummed slots, selection rules S1–S6 (odd and even migration bases tested), live commit before processing, crash matrix rows 1–26, fail-closed conditions F1–F10, each refusal leaving both stores byte-identical
+- [x] Recovery in two phases; repair steps ordered and read back; convergence under modelled faults (every interrupted-repair boundary, plus a 150-run property); nonconforming overshoot into committed data refused
+- [x] Crash-boundary property with commit records (9 boundaries, 150 runs); Milestone 9 and 10 properties unchanged and passing
+- [x] Offline migration (`migrateToCommitRecord`): backup, validation and a bound approval required; re-runnable; not reachable from recovery
+- [x] Retry semantics documented and tested: request vs effect idempotency; cancel, replace and mass cancel shown unsafe to retry blindly; client reconciliation via `eventsPage`
+- [x] A-6 retention: outbox ring buffer with exact gaps, opt-in audit retention reported as partial history, head-only in-memory journal; client-ID duplicate protection tested across all of them
+- [x] D-3 / D-7: `ReplayFaultError` without payload, snapshot rules version (legacy flag explicit and reported), runbook `RUNBOOK-POISON-COMMAND.md`; no skipping or journal rewriting
+- [ ] Real durable, independent stores (fsync, group commit, separate failure domains); external trust anchor
+- [ ] Bounded engine orders and client-ID index (durable archive); position and fill-history query for clients
+- [ ] Request IDs for cancel, replace and mass cancel; authenticated operator approval for migration
+- [ ] Still open: VR-08, VR-15, VR-16, VR-17; id-key management
+
 ## Milestone 11 — Watch-only account UI
 - [ ] `HyperliquidAccountDataSource` (public address → `clearinghouseState`, `openOrders`, fills) via server
 - [ ] Address input with validation; never request keys/seeds

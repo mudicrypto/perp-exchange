@@ -251,7 +251,9 @@ describe("A-4 / VR-09 idempotency across restarts", () => {
         const execs = final.executions.map((x) => x.execId);
         expect(new Set(execs).size).toBe(execs.length);
       }),
-      { numRuns: 150 },
+      // 300 runs (was 150): with an unseeded 150-run sample the coverage floor below was missed in about
+      // 2 of 25 runs, on 9812049 and on Milestone 11 alike (docs/venue/verification/m11-final-review.log).
+      { numRuns: 300 },
     );
     // The property must actually exercise retries of accepted orders (identical and conflicting).
     expect(totalChecks).toBeGreaterThan(300);

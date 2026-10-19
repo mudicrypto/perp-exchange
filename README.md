@@ -15,7 +15,9 @@ venue with native hidden orders, plus a deterministic, local-only prototype on s
 verification and hardening of that prototype — verified with limitations, not deployable
 (`docs/venue/VERIFICATION-REPORT.md`). **Milestone 10:** recovery integrity and idempotency
 for that prototype: idempotency across restarts, duplicate journal records, order-ID key policy
-(`docs/venue/RECOVERY-INTEGRITY.md`). No real orders, custody,
+(`docs/venue/RECOVERY-INTEGRITY.md`). **Milestone 11 (Venue):** a commit-record durability protocol,
+retention with exact gap reporting, and poison-command diagnostics for that prototype
+(`docs/venue/DURABILITY-PROTOCOL.md`). No real orders, custody,
 deposits or withdrawals.
 
 - Architecture: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)

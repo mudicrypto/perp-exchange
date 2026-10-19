@@ -38,21 +38,32 @@ export function entryHash(prevHash: string, seq: number, ts: number, command: En
 
 export class Journal {
   private readonly items: JournalEntry[] = [];
+  private last: JournalEntry | undefined;
+  /**
+   * Head-only mode (MATCHING-RULES A-6): only the last entry is kept in memory; the durable store holds
+   * the journal. Whole-journal reads then throw instead of returning a partial journal.
+   */
+  readonly headOnly: boolean;
+
+  constructor(options: { headOnly?: boolean } = {}) {
+    this.headOnly = options.headOnly === true;
+  }
 
   get entries(): readonly JournalEntry[] {
+    if (this.headOnly) throw new Error("journal is kept head-only in memory (journalMemory: \"head\"); read the journal from its store");
     return this.items;
   }
 
   get head(): string {
-    return this.items.at(-1)?.hash ?? GENESIS_HASH;
+    return this.last?.hash ?? GENESIS_HASH;
   }
 
   get lastSeq(): number {
-    return this.items.at(-1)?.seq ?? 0;
+    return this.last?.seq ?? 0;
   }
 
   get lastTs(): number {
-    return this.items.at(-1)?.ts ?? 0;
+    return this.last?.ts ?? 0;
   }
 
   append(ts: number, command: EngineCommand): JournalEntry {
@@ -70,17 +81,20 @@ export class Journal {
 
   commit(entry: JournalEntry): void {
     if (entry.seq !== this.lastSeq + 1 || entry.prevHash !== this.head) throw new Error("journal entry does not extend the head");
-    this.items.push(entry);
+    this.last = entry;
+    if (!this.headOnly) this.items.push(entry);
   }
 
   /** Serialises as JSON Lines (one entry per line), the prototype's "durable" form. */
   toJsonl(): string {
-    return this.items.map((e) => canonicalJson(e)).join("\n") + (this.items.length ? "\n" : "");
+    const entries = this.entries;
+    return entries.map((e) => canonicalJson(e)).join("\n") + (entries.length ? "\n" : "");
   }
 
-  static fromEntries(entries: readonly JournalEntry[]): Journal {
-    const journal = new Journal();
-    journal.items.push(...entries);
+  static fromEntries(entries: readonly JournalEntry[], options: { headOnly?: boolean } = {}): Journal {
+    const journal = new Journal(options);
+    journal.last = entries.at(-1);
+    if (!journal.headOnly) journal.items.push(...entries);
     return journal;
   }
 }

@@ -1,0 +1,170 @@
+# Milestone 11 (Venue) tests — final versions — run against the Milestone 10 commit 9812049 (before) and the M11 working tree (after).
+# Before: git archive 9812049 into a scratch directory (node_modules linked), these test files plus src/venue/durability-fixtures.ts copied in, then
+#   npx vitest run src/venue/{commit-record-slots,commit-record,migration,retry-semantics,retention,poison-diagnostics,crash-recovery}.test.ts
+# Classification of the BEFORE failures:
+#   new mechanism (suite cannot load: src/venue/commit-record.ts does not exist): commit-record-slots, commit-record, migration, poison-diagnostics
+#   new mechanism (MemoryCommitRecordStore missing): all 7 retry-semantics tests; these characterise retry behaviour that also exists in 9812049
+#   behaviour: retention (unbounded audit stores, no eventsPage, no history reporting, no head-only mode);
+#              crash-recovery VR-18 (the 9812049 message echoes the raw engine fault, which can carry order data)
+#   passing on 9812049 (unchanged behaviour pinned): retention ring-buffer equivalence and per-account sequence contiguity; the other crash-recovery tests
+
+=== BEFORE (9812049) ===
+SUITE FAILED TO LOAD  commit-record-slots.test.ts: Cannot find module './commit-record' imported from <baseline>
+SUITE FAILED TO LOAD  commit-record.test.ts: Cannot find module './commit-record' imported from <baseline>
+PASS  crash-recovery.test.ts > D-1 / D-2 / D-4 recovery equals the last committed state at every boundary, and the journal stays appendable
+PASS  crash-recovery.test.ts > VR-07 a failed append stops the venue: no later command can follow a torn line in the store
+PASS  crash-recovery.test.ts > D-2 a complete final entry without its newline is committed, and recovery restores the newline before appending
+PASS  crash-recovery.test.ts > VR-10 / D-5 a duplicated final line refuses recovery without touching the store; an interior duplicate does too
+FAIL  crash-recovery.test.ts > VR-18 a command that faults deterministically stops replay and names its sequence number (poison command)
+        AssertionError: expected 'replay stopped at seq 25: determinist…' not to contain 'deterministic fault'
+PASS  crash-recovery.test.ts > VR-05 a snapshot whose content was altered is refused even when it is internally consistent
+PASS  crash-recovery.test.ts > externally visible results never get ahead of the durable journal
+PASS  crash-recovery.test.ts > VR-20 a failure while routing outputs after the commit is reported as outcome-unknown, not 'nothing recorded'
+PASS  crash-recovery.test.ts > VR-20 through the gateway the same failure answers outcome-unknown
+PASS  crash-recovery.test.ts > VR-21 recovery refuses journal text and a store together
+PASS  crash-recovery.test.ts > VR-22 a recovery that fails leaves the store byte-for-byte untouched (bad snapshot, poison command)
+PASS  crash-recovery.test.ts > VR-23 crash injection is not configurable through VenueOptions; only a test subclass can simulate a crash
+SUITE FAILED TO LOAD  migration.test.ts: Cannot find module './commit-record' imported from <baseline>
+SUITE FAILED TO LOAD  poison-diagnostics.test.ts: Cannot find module './commit-record' imported from <baseline>
+FAIL  retention.test.ts > A-6 by default no audit history is discarded, however long the run
+        AssertionError: expected undefined to deeply equal { executions: +0, …(3) }
+FAIL  retention.test.ts > A-6 opt-in audit retention bounds every audit store, keeps exactly the newest records and marks history partial
+        AssertionError: expected 21 to be less than or equal to 20
+FAIL  retention.test.ts > A-6 reconciliation never reports complete history after a snapshot restore; a full replay is complete
+        AssertionError: expected { ok: true, violations: [], …(1) } to match object { history: 'partial', …(1) }
+PASS  retention.test.ts > A-6 the ring-buffer outbox returns exactly what the Milestone 10 outbox returned
+FAIL  retention.test.ts > A-6 eventsPage reports gaps exactly: at the boundary, across a wrap, beyond the high-water mark
+        TypeError: venue.privateEventsPage is not a function
+FAIL  retention.test.ts > A-6 after a snapshot restore the high-water mark comes from the snapshot and earlier events are an exact gap
+        TypeError: restored.privateEventsPage is not a function
+PASS  retention.test.ts > A-6 per-account sequence numbers are contiguous, so a gap can only come from retention
+FAIL  retention.test.ts > A-6 the gateway keeps events() unchanged and adds eventsPage() for the caller's own account only
+        TypeError: gateway.eventsPage is not a function
+FAIL  retention.test.ts > A-6 head-only mode requires a store, refuses whole-journal reads, and recovers to the same state as full mode
+        AssertionError: expected [Function] to throw an error
+FAIL  retention.test.ts > A-4 old filled, cancelled and live orders cannot be accepted again after ledger eviction, outbox and audit wrap, head-only journal, snapshot restore and full replay
+        TypeError: __vite_ssr_import_5__.MemoryCommitRecordStore is not a constructor
+FAIL  retry-semantics.test.ts > A-4 new order (committed: true): an identical retry returns the original or executes once; never twice
+        TypeError: __vite_ssr_import_3__.MemoryCommitRecordStore is not a constructor
+FAIL  retry-semantics.test.ts > A-4 new order (committed: false): an identical retry returns the original or executes once; never twice
+        TypeError: __vite_ssr_import_3__.MemoryCommitRecordStore is not a constructor
+FAIL  retry-semantics.test.ts > A-4 a rejected original does not consume the client order id: the retry is evaluated again and may now be accepted
+        TypeError: __vite_ssr_import_3__.MemoryCommitRecordStore is not a constructor
+FAIL  retry-semantics.test.ts > A-4 cancel is not request-idempotent: the same retry answer covers different outcomes; only a lookup tells them apart
+        TypeError: __vite_ssr_import_3__.MemoryCommitRecordStore is not a constructor
+FAIL  retry-semantics.test.ts > A-4 replace is not safe to retry blindly: a retry can revert an interleaved replace
+        TypeError: __vite_ssr_import_3__.MemoryCommitRecordStore is not a constructor
+FAIL  retry-semantics.test.ts > A-4 mass cancel is neither request- nor effect-idempotent: a retry cancels orders placed after the original
+        TypeError: __vite_ssr_import_3__.MemoryCommitRecordStore is not a constructor
+FAIL  retry-semantics.test.ts > A-6 reconciliation: after recovery the private feed resolves the unknown outcome without a gap
+        TypeError: __vite_ssr_import_3__.MemoryCommitRecordStore is not a constructor
+Totals: 16 failed, 13 passed, 29 tests run; 13 of 14 suites failed
+
+=== AFTER (Milestone 11 working tree) ===
+PASS  commit-record-slots.test.ts > D-6 a written record is valid only in the slot of its parity
+PASS  commit-record-slots.test.ts > D-6 every strict prefix of a record (a torn write) is torn, never valid or inconsistent
+PASS  commit-record-slots.test.ts > D-6 a change to any single byte is detected (checksum) and never yields a valid record
+PASS  commit-record-slots.test.ts > D-6 a record with a valid checksum but unknown format is inconsistent (written by something other than the venue)
+PASS  commit-record-slots.test.ts > D-6 a record with a valid checksum but missing field is inconsistent (written by something other than the venue)
+PASS  commit-record-slots.test.ts > D-6 a record with a valid checksum but non-integer seq is inconsistent (written by something other than the venue)
+PASS  commit-record-slots.test.ts > D-6 a record with a valid checksum but seq below base is inconsistent (written by something other than the venue)
+PASS  commit-record-slots.test.ts > D-6 a record with a valid checksum but malformed head is inconsistent (written by something other than the venue)
+PASS  commit-record-slots.test.ts > D-6 a record with a valid checksum but malformed lineage is inconsistent (written by something other than the venue)
+PASS  commit-record-slots.test.ts > D-6 a record with a valid checksum but seq 0 with a non-genesis head is inconsistent (written by something other than the venue)
+PASS  commit-record-slots.test.ts > D-6 a fresh lineage is 128 random bits in hex
+PASS  commit-record-slots.test.ts > D-6 S3: two valid consecutive records select the newer, whichever slot it is in
+PASS  commit-record-slots.test.ts > D-6 S4: one valid record and one torn slot select the valid one and report the torn slot
+PASS  commit-record-slots.test.ts > D-6 S5: the first record of a lineage (base 0) is accepted with the other slot absent
+PASS  commit-record-slots.test.ts > D-6 S5: the first record of a lineage (base 7) is accepted with the other slot absent
+PASS  commit-record-slots.test.ts > D-6 S5: the first record of a lineage (base 8) is accepted with the other slot absent
+PASS  commit-record-slots.test.ts > D-6 S5 + S3: after a migration at 7 the following records alternate slots and stay consecutive
+PASS  commit-record-slots.test.ts > D-6 S5 + S3: after a migration at 8 the following records alternate slots and stay consecutive
+PASS  commit-record-slots.test.ts > D-6 S5: a later record with the other slot absent is refused (a slot was lost)
+PASS  commit-record-slots.test.ts > D-6 S2: both slots absent means no record yet
+PASS  commit-record-slots.test.ts > D-6 S1: an inconsistent slot refuses selection even when the other slot is valid
+PASS  commit-record-slots.test.ts > D-6 S3: records of different lineages or bases are refused (slots from different stores or a mixed backup)
+PASS  commit-record-slots.test.ts > D-6 S3: non-consecutive records are refused (the record store lost writes)
+PASS  commit-record-slots.test.ts > D-6 S6: no valid slot is refused
+PASS  commit-record-slots.test.ts > D-6 a consistent but outdated pair is selectable: only the journal comparison can reveal that it is behind
+PASS  commit-record.test.ts > D-6 a fresh venue writes the genesis record (seq 0, base 0) to slot 0 before it accepts any command
+PASS  commit-record.test.ts > D-6 every acknowledged command has a record in the slot of its parity that names its journal entry
+PASS  commit-record.test.ts > D-6 a venue with commit records requires a journal store and empty stores; existing stores are opened by recovery
+PASS  commit-record.test.ts > D-6 without a commit-record store recovery behaves exactly as in Milestone 10
+PASS  commit-record.test.ts > D-6 row 1 journal append fails before any byte: outcome-unknown, recovery to the committed state, and an identical retry never executes twice
+PASS  commit-record.test.ts > D-6 row 2 torn journal append: outcome-unknown, recovery to the committed state, and an identical retry never executes twice
+PASS  commit-record.test.ts > D-6 row 3 journal written, store acknowledgement lost: outcome-unknown, recovery to the committed state, and an identical retry never executes twice
+PASS  commit-record.test.ts > D-6 row 4 journal written, commit record missing (crash): outcome-unknown, recovery to the committed state, and an identical retry never executes twice
+PASS  commit-record.test.ts > D-6 row 5 record write fails before persisting: outcome-unknown, recovery to the committed state, and an identical retry never executes twice
+PASS  commit-record.test.ts > D-6 row 6 torn record slot: outcome-unknown, recovery to the committed state, and an identical retry never executes twice
+PASS  commit-record.test.ts > D-6 row 7 record written, acknowledgement lost: outcome-unknown, recovery to the committed state, and an identical retry never executes twice
+PASS  commit-record.test.ts > D-6 row 8 commit record written, execution not performed (crash): outcome-unknown, recovery to the committed state, and an identical retry never executes twice
+PASS  commit-record.test.ts > D-6 row 10 executed, outputs not released (crash): outcome-unknown, recovery to the committed state, and an identical retry never executes twice
+PASS  commit-record.test.ts > D-6 row 9 engine fault (poison): recovery refuses with a replay-fault diagnostic until the code is fixed, stores unchanged
+PASS  commit-record.test.ts > D-6 row 11 routing fails mid-release: committed, applied once on recovery, retry replays the original
+PASS  commit-record.test.ts > D-6 row 12 executed and acknowledged, response lost in transport: indistinguishable from row 10; retry replays
+PASS  commit-record.test.ts > D-6 rows 13–16: after an acknowledged response, loss or corruption of journal data is refused, never silently accepted
+PASS  commit-record.test.ts > D-6 row 17 (limitation): the same entry lost from both stores is not detected; recovery returns the older state
+PASS  commit-record.test.ts > D-6 rows 18–21: a record ahead of, behind or inconsistent with the journal, unreadable or absent, is refused
+PASS  commit-record.test.ts > D-6 a lost record write: on the final command it rolls forward; followed by one write it is refused; followed by two it is covered
+PASS  commit-record.test.ts > D-5 and VR-28 stay fail-closed with commit records present
+PASS  commit-record.test.ts > D-6 row 22 a snapshot at or below the record restores to the same state as a full replay
+PASS  commit-record.test.ts > D-6 row 23 snapshot plus a journaled but uncommitted entry rolls forward
+PASS  commit-record.test.ts > D-6 row 24 a snapshot does not mask a committed entry missing from the journal
+PASS  commit-record.test.ts > D-6 row 25 a snapshot ahead of the commit record is refused
+PASS  commit-record.test.ts > D-6 RI-2 recovery mutates the stores only by the planned steps, journal first and record last
+PASS  commit-record.test.ts > D-6 RI-5 a failed repair returns no venue and reports the completed and failed steps
+PASS  commit-record.test.ts > D-6 IR-2 truncate throws before changing anything
+PASS  commit-record.test.ts > D-6 IR-3 partial truncate, then throws
+PASS  commit-record.test.ts > D-6 IR-3b partial truncate reported as success (read-back detects it)
+PASS  commit-record.test.ts > D-6 IR-4 truncate overshoots into a committed entry (nonconforming)
+PASS  commit-record.test.ts > D-6 IR-5 truncate overshoots into the uncommitted entry (nonconforming)
+PASS  commit-record.test.ts > D-6 IR-7 newline append fails before writing
+PASS  commit-record.test.ts > D-6 IR-7b newline append written, then throws
+PASS  commit-record.test.ts > D-6 IR-9 record write fails before persisting
+PASS  commit-record.test.ts > D-6 IR-10 torn record slot
+PASS  commit-record.test.ts > D-6 IR-11 record written, acknowledgement lost
+PASS  commit-record.test.ts > D-6 IR-12 record write acknowledged but lost (read-back detects it)
+PASS  commit-record.test.ts > D-6 IR-3 a partial truncation is repaired by a revised R1 that removes fewer bytes (no literal plan suffix)
+PASS  commit-record.test.ts > D-6 IR-14 convergence: any sequence of up to five recoverable repair faults ends in the same committed state
+PASS  commit-record.test.ts > D-6 / D-1 recovery equals exactly the committed commands at every boundary, and the stores stay appendable
+PASS  crash-recovery.test.ts > D-1 / D-2 / D-4 recovery equals the last committed state at every boundary, and the journal stays appendable
+PASS  crash-recovery.test.ts > VR-07 a failed append stops the venue: no later command can follow a torn line in the store
+PASS  crash-recovery.test.ts > D-2 a complete final entry without its newline is committed, and recovery restores the newline before appending
+PASS  crash-recovery.test.ts > VR-10 / D-5 a duplicated final line refuses recovery without touching the store; an interior duplicate does too
+PASS  crash-recovery.test.ts > VR-18 a command that faults deterministically stops replay and names its sequence number (poison command)
+PASS  crash-recovery.test.ts > VR-05 a snapshot whose content was altered is refused even when it is internally consistent
+PASS  crash-recovery.test.ts > externally visible results never get ahead of the durable journal
+PASS  crash-recovery.test.ts > VR-20 a failure while routing outputs after the commit is reported as outcome-unknown, not 'nothing recorded'
+PASS  crash-recovery.test.ts > VR-20 through the gateway the same failure answers outcome-unknown
+PASS  crash-recovery.test.ts > VR-21 recovery refuses journal text and a store together
+PASS  crash-recovery.test.ts > VR-22 a recovery that fails leaves the store byte-for-byte untouched (bad snapshot, poison command)
+PASS  crash-recovery.test.ts > VR-23 crash injection is not configurable through VenueOptions; only a test subclass can simulate a crash
+PASS  migration.test.ts > D-6 normal recovery never adopts an unrecorded journal, whatever options are passed
+PASS  migration.test.ts > D-6 an odd migration base: the first record is accepted under S5, later records keep parity and sequence through crash/recovery cycles
+PASS  migration.test.ts > D-6 an even migration base: the first record is accepted under S5, later records keep parity and sequence through crash/recovery cycles
+PASS  migration.test.ts > D-6 migration refuses without a matching backup, a clean journal, a bound approval and an empty record store; nothing changes
+PASS  migration.test.ts > D-6 migration is re-runnable after a torn record write, and idempotent once complete
+PASS  poison-diagnostics.test.ts > D-3 a replay fault names seq, entry hash and command type, never the command payload or the raw engine message
+PASS  poison-diagnostics.test.ts > D-3 the diagnostic distinguishes a committed entry, a final entry and a journaled-but-uncommitted entry
+PASS  poison-diagnostics.test.ts > D-3 no API skips, quarantines or rewrites journal entries
+PASS  poison-diagnostics.test.ts > D-7 snapshots carry the rules version; an incompatible snapshot is refused, full replay still recovers
+PASS  poison-diagnostics.test.ts > D-7 a legacy snapshot without a rules version is refused unless explicitly allowed, and the report says so
+PASS  poison-diagnostics.test.ts > D-7 a commit record written under another rules version is reported, not refused
+PASS  retention.test.ts > A-6 by default no audit history is discarded, however long the run
+PASS  retention.test.ts > A-6 opt-in audit retention bounds every audit store, keeps exactly the newest records and marks history partial
+PASS  retention.test.ts > A-6 reconciliation never reports complete history after a snapshot restore; a full replay is complete
+PASS  retention.test.ts > A-6 the ring-buffer outbox returns exactly what the Milestone 10 outbox returned
+PASS  retention.test.ts > A-6 eventsPage reports gaps exactly: at the boundary, across a wrap, beyond the high-water mark
+PASS  retention.test.ts > A-6 after a snapshot restore the high-water mark comes from the snapshot and earlier events are an exact gap
+PASS  retention.test.ts > A-6 per-account sequence numbers are contiguous, so a gap can only come from retention
+PASS  retention.test.ts > A-6 the gateway keeps events() unchanged and adds eventsPage() for the caller's own account only
+PASS  retention.test.ts > A-6 head-only mode requires a store, refuses whole-journal reads, and recovers to the same state as full mode
+PASS  retention.test.ts > A-4 old filled, cancelled and live orders cannot be accepted again after ledger eviction, outbox and audit wrap, head-only journal, snapshot restore and full replay
+PASS  retry-semantics.test.ts > A-4 new order (committed: true): an identical retry returns the original or executes once; never twice
+PASS  retry-semantics.test.ts > A-4 new order (committed: false): an identical retry returns the original or executes once; never twice
+PASS  retry-semantics.test.ts > A-4 a rejected original does not consume the client order id: the retry is evaluated again and may now be accepted
+PASS  retry-semantics.test.ts > A-4 cancel is not request-idempotent: the same retry answer covers different outcomes; only a lookup tells them apart
+PASS  retry-semantics.test.ts > A-4 replace is not safe to retry blindly: a retry can revert an interleaved replace
+PASS  retry-semantics.test.ts > A-4 mass cancel is neither request- nor effect-idempotent: a retry cancels orders placed after the original
+PASS  retry-semantics.test.ts > A-6 reconciliation: after recovery the private feed resolves the unknown outcome without a gap
+Totals: 0 failed, 106 passed, 106 tests run; 0 of 24 suites failed

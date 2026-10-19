@@ -1,0 +1,48 @@
+# F8 memory probe, 3 independent processes, 30 000 commands each (node --expose-gc). Indicative: shared container, single process.
+## run 1
+{"configuration":"store, full journal in memory (Milestone 10 default)","forcedGc":true,"heapBytesPerCommand":2371.0858818042507,"storeBytesPerCommand":360.0945765873809,"engineOrders":16492}
+{"configuration":"store + commit records, full journal","forcedGc":true,"heapBytesPerCommand":2346.710107268972,"storeBytesPerCommand":360.0945765873809,"engineOrders":16492}
+{"configuration":"store + commit records, head-only journal","forcedGc":true,"heapBytesPerCommand":2067.777733359984,"storeBytesPerCommand":360.0945765873809,"engineOrders":16492}
+{"configuration":"head-only journal + auditRetention 1 000","forcedGc":true,"heapBytesPerCommand":1779.7108401625692,"storeBytesPerCommand":360.0945765873809,"engineOrders":16492}
+## run 2
+{"configuration":"store, full journal in memory (Milestone 10 default)","forcedGc":true,"heapBytesPerCommand":2371.1303884336066,"storeBytesPerCommand":360.0945765873809,"engineOrders":16492}
+{"configuration":"store + commit records, full journal","forcedGc":true,"heapBytesPerCommand":2347.5066959824107,"storeBytesPerCommand":360.0945765873809,"engineOrders":16492}
+{"configuration":"store + commit records, head-only journal","forcedGc":true,"heapBytesPerCommand":2066.757811979479,"storeBytesPerCommand":360.0945765873809,"engineOrders":16492}
+{"configuration":"head-only journal + auditRetention 1 000","forcedGc":true,"heapBytesPerCommand":1779.9349723499233,"storeBytesPerCommand":360.0945765873809,"engineOrders":16492}
+## run 3
+{"configuration":"store, full journal in memory (Milestone 10 default)","forcedGc":true,"heapBytesPerCommand":2371.07868612166,"storeBytesPerCommand":360.0945765873809,"engineOrders":16492}
+{"configuration":"store + commit records, full journal","forcedGc":true,"heapBytesPerCommand":2346.657338929975,"storeBytesPerCommand":360.0945765873809,"engineOrders":16492}
+{"configuration":"store + commit records, head-only journal","forcedGc":true,"heapBytesPerCommand":2067.8249050569657,"storeBytesPerCommand":360.0945765873809,"engineOrders":16492}
+{"configuration":"head-only journal + auditRetention 1 000","forcedGc":true,"heapBytesPerCommand":1779.6791258578187,"storeBytesPerCommand":360.0945765873809,"engineOrders":16492}
+
+# CLI smoke run: npm run venue:perf -- 0.1 1
+Environment: node v22.22.0, linux 6.18.44-fc-v139 x64, 4 × Intel(R) Xeon(R) Processor @ 2.10GHz, 16 GiB RAM
+Parameters: scale 0.1, runs 1, seeds 1001.. (engine flow) / 2001.. (gateway flow)
+
+| Scenario | Run | Parameters | Ops | Ops/s | p50 µs | p95 µs | p99 µs | max µs |
+|---|---|---|---|---|---|---|---|---|
+| F1 matching, no persistence | 1 | 6000 mixed commands, 16 accounts | 6000 | 93,214 | 4.8 | 31.9 | 62.2 | 2255 |
+| F2 matching + journal (memory store) | 1 | 6000 mixed commands; store 2.1 MiB | 6000 | 13,728 | 51.5 | 171.8 | 294.7 | 5737 |
+| F3 publication (immediate) | 1 | 6000 commands; 3903 public msgs; mirror validates each | 6000 | 15,604 | 47.2 | 158.3 | 254.7 | 3236 |
+| F3 publication (batched) | 1 | 6000 commands; 2775 public msgs; mirror validates each; publish every 50 | 6000 | 17,055 | 43.5 | 141.0 | 250.3 | 2339 |
+| F4 gateway mixed entry/cancel/execution | 1 | 6000 synthetic messages (seeded) | 6000 | 12,845 | 56.5 | 166.3 | 253.5 | 4633 |
+| F5 bursty (queueing + service) | 1 | bursts of 2000 every 200 ms, open loop | 6000 | 17,102 | 57990.3 | 112376.8 | 123573.2 | 126654 |
+| F6 large book | 1 | 15000 resting orders (25 % hidden) + 6000 mixed commands | 6000 | 13,514 | 52.1 | 182.5 | 275.0 | 4565 |
+| F7 recovery (full replay) | 1 | 6018 entries replayed; snapshot 1.8 MiB | 6018 | 18,395 | 54.4 | 54.4 | 54.4 | 54 |
+| F7 recovery (snapshot + suffix) | 1 | 2999 entries replayed; snapshot 1.8 MiB | 2999 | 12,174 | 82.1 | 82.1 | 82.1 | 82 |
+
+Timing probe (engine path) — median µs of a displayed add at a new level in front of N hidden-only levels, per round:
+  hidden-only levels      0: 2.9, 2.7, 2.5, 2.4, 2.8
+  hidden-only levels   1000: 3.1, 2.9, 2.8, 2.6, 3.0
+  hidden-only levels  50000: 9.9, 9.7, 9.7, 10.7, 9.7
+
+Timing probe (gateway path) — median µs of a displayed add at a new level in front of N hidden-only levels, per round:
+  hidden-only levels      0: 167.6, 167.0, 183.1, 168.7, 161.3
+  hidden-only levels   1000: 168.6, 167.0, 185.6, 205.8, 166.8
+  hidden-only levels  50000: 183.7, 204.9, 166.2, 171.4, 200.5
+
+Memory probe (F8) — retained heap per submitted command after 3000 commands:
+  store, full journal in memory (Milestone 10 default)     heap   2283 B/command (journal text 359 B/command; engine orders 1661)
+  store + commit records, full journal                     heap   2310 B/command (journal text 359 B/command; engine orders 1661)
+  store + commit records, head-only journal                heap   2010 B/command (journal text 359 B/command; engine orders 1661)
+  head-only journal + auditRetention 1 000                 heap   1865 B/command (journal text 359 B/command; engine orders 1661)

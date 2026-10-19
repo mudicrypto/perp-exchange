@@ -18,7 +18,7 @@
     "test:e2e:external": "playwright test --config playwright.external.config.ts",
     "venue:demo": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON src/venue/cli/demo.ts",
     "venue:bench": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON src/venue/cli/bench.ts",
-    "venue:perf": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON src/venue/cli/perf.ts"
+    "venue:perf": "node --expose-gc --disable-warning=MODULE_TYPELESS_PACKAGE_JSON src/venue/cli/perf.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "0.127.0",

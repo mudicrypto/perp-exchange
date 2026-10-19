@@ -126,3 +126,24 @@ Tests: `src/venue/recovery-integrity.test.ts`. Specification and full results:
 | Consumers mutating delivered events (first response, private feed, public listeners, stored tape) | Refused (objects frozen); no other consumer, the ledger, the tape or engine state changes (recovery-final VR-29) |
 
 The crash-boundary property in §2 passes unchanged.
+
+## 7. Milestone 11 (Venue) — commit records, interrupted repair, retention
+
+Tests: `commit-record.test.ts`, `commit-record-slots.test.ts`, `migration.test.ts`,
+`retry-semantics.test.ts`, `retention.test.ts`, `poison-diagnostics.test.ts`. Protocol and full crash
+matrix: [DURABILITY-PROTOCOL.md](DURABILITY-PROTOCOL.md).
+
+| Case | Result |
+|---|---|
+| Crash-boundary property with commit records: 9 boundaries (journal faults, record faults, crashes after the journal, after the record and after processing), 150 runs | Recovery equals an uninterrupted run of exactly the committed commands; the stores stay appendable; a second recovery plans no repair |
+| Crash-matrix rows 1–12 | Each outcome-unknown resolves to the committed state; an identical retry of the new order returns the original (committed) or executes once (not committed); never twice |
+| Committed entry lost, truncated, replaced by the previous bytes, or an interior entry corrupted, after the response was returned | Refused (F4, F4, D-5, F1); both stores byte-identical |
+| The same entry lost from both stores | **Not detected** (pinned as a limitation) |
+| Record ahead, two behind, wrong head, unreadable, absent | Refused (F4, F6, F5, F2, F3) |
+| Snapshot + roll forward; snapshot + missing committed entry; snapshot ahead of the record | Rolls forward; F4 (not masked); F7 |
+| Interrupted repair at every boundary (IR-2 to IR-12) | Converges to the same committed state under the modelled faults; an overshoot into a committed entry is refused (RI-6); an overshoot into the uncommitted entry converges without it |
+| Convergence property (IR-14): up to five random recoverable repair faults, 150 runs | Always the same committed state and canonical stores |
+| Offline migration at odd and even bases, then commands and three crash/recovery cycles | First record accepted under S5; parity and sequence correct after every write; the final state equals the reference |
+
+The Milestone 9 crash-boundary property in §2 passes unchanged (no commit-record store: Milestone 10
+behaviour).

@@ -207,7 +207,17 @@ describe("crash at persistence boundaries", () => {
       return original.call(this, order);
     };
     try {
-      expect(() => Venue.recover({ engine: ENGINE, allowTestFixtureIdKey: true, clock: () => 0 }, venue.journal.toJsonl())).toThrow(new RegExp(`replay stopped at seq ${r.seq}: deterministic fault`));
+      // Milestone 11 (D-3): the message names the sequence number but no longer echoes the raw engine message,
+      // which can carry order data; the original error is kept as `cause` (poison-diagnostics.test.ts).
+      let error: unknown;
+      try {
+        Venue.recover({ engine: ENGINE, allowTestFixtureIdKey: true, clock: () => 0 }, venue.journal.toJsonl());
+      } catch (e) {
+        error = e;
+      }
+      expect((error as Error).message).toMatch(new RegExp(`^replay stopped at seq ${r.seq}\\b`));
+      expect((error as Error).message).not.toContain("deterministic fault");
+      expect(((error as Error).cause as Error).message).toContain("deterministic fault");
     } finally {
       BookSide.prototype.add = original;
     }

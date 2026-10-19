@@ -295,6 +295,9 @@ interval:
     schema, and its sequence and hash chain checked.
   - Recovery takes journal text or a store, never both. The store is repaired only after the
     journal, the snapshot and the replay have all succeeded (VR-21, VR-22).
+  - Since Milestone 11 (Venue), recovery has a read-only verify phase, in which every refusal happens
+    and no store changes, and a repair phase that is not atomic across stores: ordered steps, each
+    read back, converging on the next recovery (D-6; DURABILITY-PROTOCOL §4).
   - A torn final line, meaning an **unparseable** final line without a newline, is dropped (and
     truncated from the store). Under the store contract that command was never acknowledged; the
     reader cannot verify the contract.
@@ -319,6 +322,11 @@ interval:
   - A command that faults deterministically also faults on replay. Recovery then stops and names
     its sequence number (VR-18).
   - A snapshot whose holdings disagree with its orders is refused on restore.
+  - Since Milestone 11 (Venue), a replay fault is reported as `ReplayFaultError`: seq, entry hash,
+    command type, whether the entry is final, its commit state and the rules versions. The message
+    never carries the command payload or the raw engine message, which is kept as `cause` only. There
+    is no command skipping or journal rewriting
+    ([RUNBOOK-POISON-COMMAND.md](RUNBOOK-POISON-COMMAND.md)).
 - **D-4** **Duplicate outputs after recovery.**
   - Outputs regenerated after recovery carry the same sequence numbers: `publicSeq`, `accountSeq`,
     and command `seq`.
@@ -341,6 +349,25 @@ interval:
   - A partial final line (torn write, unparseable) is still dropped as uncommitted. This relies on
     the store contract that an append is acknowledged only once it is durable. A store that breaks
     it can lose an acknowledged entry by truncation or omission without detection.
+
+- **D-6** **Commit records** (details: [DURABILITY-PROTOCOL.md](DURABILITY-PROTOCOL.md)).
+  - With a commit-record store, a command is **committed** only when its journal entry and a commit
+    record naming it (seq and entry hash) are both written. Only then is it processed and answered.
+  - A commit record proves that a command was committed. It never proves that a response was
+    delivered.
+  - Records alternate between two checksummed slots (seq mod 2) and are tied by a lineage and a base.
+    They are selected by rules S1–S6.
+  - Recovery refuses a record ahead of the journal (F4), naming another head (F5), or behind it by
+    two or more (F6). It refuses an unreadable or inconsistent record (F2), an unrecorded non-empty
+    journal (F3), and a snapshot ahead of the record (F7).
+  - It rolls forward a journaled but uncommitted final entry.
+  - A journal without commit records is adopted only by the offline migration procedure, never by
+    recovery.
+- **D-7** **Rules-version compatibility.**
+  - Snapshots record the rules version that wrote them. A snapshot of another version is not
+    restored, and full replay remains possible.
+  - A snapshot without a version is restored only under an explicit, reported legacy flag.
+  - A commit record's writer version is reported, never refused.
 
 ## 10. Gateway and access
 
@@ -386,6 +413,11 @@ interval:
   - A rejected order creates no ledger entry, so a retry is evaluated again (§11).
   - `outcome-unknown`: once the venue is recovered, an identical retry returns the original events if
     the command was committed and accepted. Otherwise it is evaluated as a new request.
+  - **Request idempotency** (same response, no further effect) exists only for accepted new orders
+    while the ledger retains them. Cancel, replace and mass cancel are not request-idempotent. Cancel
+    and replace are at most effect-idempotent, and only if nothing else touched the order; mass cancel
+    is neither. After an unknown outcome, clients reconcile before sending further commands
+    (DURABILITY-PROTOCOL §5).
 - **A-5** **Order-ID key policy** (details: [RECOVERY-INTEGRITY.md](RECOVERY-INTEGRITY.md) §3).
   - `Venue` and `Venue.recover` refuse an `idKey` that:
     - is shorter than 43 characters
@@ -397,6 +429,16 @@ interval:
   - Errors never echo the key.
   - Fixture key literals exist only in `id-key.ts` and tests (static check).
   - Key rotation and storage are not covered (open).
+
+- **A-6** **Retention and gap reporting** (details: [DURABILITY-PROTOCOL.md](DURABILITY-PROTOCOL.md) §7).
+  - Authoritative and recovery data is never discarded: journal, commit records, snapshots, engine
+    orders and the permanent client-ID index, and the idempotency ledger within its verified capacity.
+  - Audit records are discarded only under an explicit `auditRetention`. The discarded counts are
+    reported, and history is then reported as partial, never complete.
+  - The per-account outbox is a bounded ring buffer. `eventsPage` names exactly the per-account
+    sequence numbers that are no longer retained. Per-account sequences are contiguous, so any gap
+    comes from retention or a snapshot restore.
+  - The in-memory journal copy may be kept head-only when a store holds the journal.
 
 ## 11. Order of validation
 

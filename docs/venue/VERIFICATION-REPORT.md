@@ -514,14 +514,14 @@ These are the final results. Logs are in `docs/venue/verification/final/`.
 - **Medium:** none open. VR-02, VR-03, VR-04, VR-05, VR-07 and VR-19 are resolved.
 - **Resolved in the review follow-up:** VR-20, VR-21 and VR-22 (Low) and VR-23 (Info).
 - **Resolved in Milestone 10:** VR-09 and VR-10 (Low). VR-14 (Low) is resolved as a policy; key management stays open.
-- **Low, open:** VR-08, VR-13, VR-15 and VR-18 (partially mitigated).
+- **Low, open:** VR-08 and VR-15. VR-13 and VR-18 are partly mitigated in Milestone 11 (Venue) (§9).
 - **Info:** VR-16 and VR-17 (design).
 
 These are not findings against the specification, but they remain the highest risks of the design
 as a whole:
 
 - **No real authentication.** Sessions are local tokens.
-- **Durability is unverified.** Only the in-memory store has been tested. That includes the idempotency ledger, which is as durable as the journal it is rebuilt from.
+- **Durability is unverified.** Only the in-memory stores have been tested. That includes the idempotency ledger, which is as durable as the journal it is rebuilt from, and the commit-record store, whose independence from the journal store is modelled, not real.
 - **No trust anchor.** The hash chain has no independently protected anchor.
 - **The operator and the process can read all hidden orders**, which are also stored in plaintext.
 
@@ -637,3 +637,96 @@ reportable differences:
 - **Output immutability scope:** routed events and public messages are frozen (VR-29). Execution
   records and the venue's own arrays (`executions`, `publicTape`, outboxes) are reachable, mutable,
   through the in-process `Venue` object.
+
+## 9. Milestone 11 (Venue): durability protocol, retention and poison diagnostics
+
+**Scope:** three workstreams.
+
+- **A:** a commit record in a separate store, recovery split into verify and repair phases, offline
+  migration.
+- **B:** retention with exact gap reporting.
+- **C:** poison-command diagnostics and rules-version compatibility.
+
+Design and results: [DURABILITY-PROTOCOL.md](DURABILITY-PROTOCOL.md). `src/venue/engine.ts` is
+unchanged (`git diff 9812049 -- src/venue/engine.ts` is empty). D-5 stays fail-closed.
+
+**Verdict for this milestone:** verified with limitations, within the tested scope, for the in-memory
+prototype. The venue remains a synthetic, local prototype and is not deployable.
+
+### Evidence
+
+- **Tests written first** (94 new across six files; one Milestone 9 test changed). Against `9812049`:
+  - four suites cannot load (the commit-record module does not exist);
+  - the remaining runs gave **16 failed and 13 passed**:
+    - retention behaviour: unbounded audit stores, no `eventsPage`, no history reporting, no
+      head-only mode;
+    - all seven retry-semantics tests, which need the commit-record store;
+    - the changed VR-18 test: the old message echoes the raw engine fault.
+  - The 13 that pass pin unchanged behaviour.
+
+  After the change all **106** pass. Log: `docs/venue/verification/m11-tests-against-9812049.log`.
+- **Properties:**
+  - crash-boundary property with commit records: 9 boundaries, 150 runs;
+  - repair-convergence property: up to five random repair faults, 150 runs;
+  - the Milestone 9 crash-boundary property and the Milestone 10 idempotency property, unchanged.
+- **Existing tests changed:** two.
+  - `crash-recovery` "VR-18 …" now requires that the message does **not** contain the raw engine
+    message and that `cause` does.
+  - `recovery-integrity` "A-4 property …" runs 300 cases instead of 150. Unseeded, its coverage floor
+    (more than 300 retry checks) was missed in 2 of 25 runs on `9812049` and on this tree alike; with
+    300 cases, 0 of 25. The seed, the assertions and the floor are unchanged
+    (`m11-final-review.log`).
+
+  The rest of the Milestone 9 and 10 suites pass unmodified.
+
+### Checks
+
+Logs are in `docs/venue/verification/m11-final/`.
+
+| Check | Result |
+|---|---|
+| Venue tests | 311 passed (18 files) |
+| Full unit suite | 688 passed (54 files) |
+| Typecheck / lint / build / bundle scan | pass / pass / pass / clean |
+| E2E | 52 passed. The same benign `NO_COLOR` and "Venue request failed (network)" lines as in Milestones 9 and 10 (no outbound network in this sandbox). |
+| Demo | reconciliation OK; state and output hashes identical to Milestones 9 and 10 (`a11cdf37…`, `54733390…`) |
+| Memory probe (F8) | PERFORMANCE-RESULTS §8 |
+
+### Findings and design changes during implementation
+
+| ID | Severity | Status | Summary |
+|---|---|---|---|
+| VR-30 | Medium | Resolved (design) | Without a commit record, a committed entry that a non-conforming store loses or truncates is indistinguishable from an uncommitted torn write. With a commit-record store, recovery refuses (F4). Correlated loss in both stores remains undetected. |
+| VR-31 | Low | Resolved | A repair step could report success while the store did not apply it: a partial or overshooting truncation, or a lost record write. Each step is now read back. An overshoot into uncommitted data is caught before the record is advanced over it. |
+| VR-32 | Info | Documented | A lost record write followed by exactly one more write is refused (F2-stale). Followed by two or more, the later record covers the entry and it is not detected. That is harmless, but it corrects the earlier design table. |
+| VR-33 | Low | Resolved | The replay-fault message echoed the raw engine error, which can carry order data. The message is now fixed-format, and the error is kept as `cause` only. |
+| VR-34 | Low | Resolved (final review) | A migration re-run overwrote any torn residue that was a strict prefix of its intended record. A residue shorter than the checksum is a prefix of every approval's record for that seq, so it identified no approval. The residue must now contain the full checksum. The test fails against the earlier rule (`m11-final-review.log`). |
+
+**Final correctness review:** six confirmation tests in `commit-record.test.ts` and four in
+`migration.test.ts`:
+
+- a lost record write healed by two or three later writes: the record binds the complete journal
+  prefix (shortened journal: F4; rewritten history with recomputed hashes: F5);
+- every refusal code checked against a write trap: zero mutating calls;
+- repair read-back catches a silent truncation no-op, a lost newline append and a lost record write;
+- a migration approval is bound to the complete history (fork refused both ways);
+- a completed migration refuses retries under other approvals, and refuses once the venue has run.
+
+### Open after Milestone 11 (Venue)
+
+- **Storage:**
+  - no atomic update across the two stores;
+  - correlated loss or consistent rollback of both stores is undetected;
+  - a corrupted newest slot looks like a torn write;
+  - both stores are in memory, so real independence, fsync and group commit are unverified;
+  - no external trust anchor.
+- **Clients:**
+  - cancel, replace and mass cancel are not request-idempotent (mass cancel not even
+    effect-idempotent);
+  - there is no position or fill-history query to recover fills lost in an outbox gap.
+- **VR-13 (partly open):** engine orders and the permanent client-ID index grow without bound by
+  design; bounding them needs a durable archive.
+- **VR-18 (partly open):** diagnostics and a runbook exist; a poison command still keeps the venue
+  down. Skipping is deliberately absent.
+- **Migration:** the operator approval is unauthenticated, and the backup is caller-supplied.
+- **Still open:** VR-08, VR-15, VR-16, VR-17, and id-key management.

@@ -4,7 +4,7 @@ import { priceToTicks, quantityToLots, type InstrumentSpec } from "./instrument.
 import { canonicalJson } from "./journal.ts";
 import { WindowLimiter } from "./rate-limit.ts";
 import { engineCommandSchema, STP_MODES, SIDES, TIME_IN_FORCE, VISIBILITIES, type EngineCommand, type OrderRef, type OrderView, type PrivateEvent } from "./types.ts";
-import { OutcomeUnknownError, VenueUnavailableError, type Venue } from "./venue.ts";
+import { OutcomeUnknownError, VenueUnavailableError, type PrivateEventsPage, type Venue } from "./venue.ts";
 
 /**
  * Order-entry gateway: the only path from (synthetic) clients to the
@@ -281,5 +281,15 @@ export class VenueGateway {
   events(token: string, afterAccountSeq = 0): PrivateEvent[] | null {
     const accountId = this.sessions.get(token);
     return accountId ? this.venue.privateEvents(accountId, afterAccountSeq) : null;
+  }
+
+  /**
+   * The caller's own private events after `afterAccountSeq`, with exact retention bookkeeping: `gap`
+   * names events that are no longer retained (MATCHING-RULES A-6). Clients use it to reconcile after an
+   * unknown outcome (docs/venue/DURABILITY-PROTOCOL.md §5.3). `events()` is unchanged.
+   */
+  eventsPage(token: string, afterAccountSeq = 0): PrivateEventsPage | null {
+    const accountId = this.sessions.get(token);
+    return accountId ? this.venue.privateEventsPage(accountId, afterAccountSeq) : null;
   }
 }

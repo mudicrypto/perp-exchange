@@ -194,3 +194,40 @@ session with nothing else running. Three rounds per side, `venue:perf` scale 0.5
   message (VR-29). It adds a per-event freeze on every command; no A/B run was made for it.
 - **A cheaper design is possible** if this matters later: freeze once without cloning, and give
   responses their own copies. It was not pursued, to keep the fix minimal and obviously correct.
+
+## 8. Milestone 11 (Venue): memory probe (F8)
+
+`npm run venue:perf` now ends with a memory probe; the script passes `--expose-gc`.
+
+**Method:**
+
+- Retained heap per submitted command after 30 000 seeded commands, measured after forced GC.
+- Three independent processes.
+- Raw output: `docs/venue/verification/m11-final/perf-memory.log`.
+- The in-memory journal store's text is part of the heap here: about 360 bytes per command as
+  canonical JSON. In a deployment it would be on disk.
+
+| Configuration | Heap per command (3 runs) | Engine orders held |
+|---|---|---|
+| Store, full journal in memory (Milestone 10 default) | 2 371, 2 371, 2 371 B | 16 492 |
+| Store + commit records, full journal | 2 347, 2 348, 2 347 B | 16 492 |
+| Store + commit records, head-only journal | 2 068, 2 067, 2 068 B | 16 492 |
+| Head-only journal + `auditRetention` 1 000 | 1 780, 1 780, 1 780 B | 16 492 |
+
+**Reading:**
+
+- The measurements are repeatable to within 1 byte, because allocation is deterministic for a seeded
+  flow. They still describe this container and runtime only.
+- **Head-only mode saves about 300 bytes per command, and audit retention about 290 more.**
+- The commit-record store adds nothing measurable: it holds two short slots.
+- **Most of the remaining heap is permanent by design:** engine orders and the client-ID index (every
+  order is kept), the idempotency ledger (up to 100 000 accepted orders), and the in-memory journal
+  store text. None of these is bounded by Milestone 11. Bounding the first two needs a durable
+  archive (VR-13).
+- **Throughput was not re-measured.**
+  - No A/B run was made for this milestone.
+  - The default path gains one extra boundary call, and an option check per command.
+  - The outbox's O(n) `shift()` was replaced by an amortised ring buffer.
+  - With commit records, each command performs one extra canonical-JSON encoding, a sha256 and a
+    store write; in a real deployment that is a second synchronous write.
+  - No effect size is claimed.

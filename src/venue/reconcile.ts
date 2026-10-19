@@ -13,6 +13,12 @@ export interface ReconciliationReport {
   readonly ok: boolean;
   readonly violations: string[];
   readonly checked: { orders: number; liveOrders: number; executions: number; accounts: number; instruments: number };
+  /**
+   * "complete" only when the audit stores hold every record since seq 1. Otherwise "partial", with the
+   * reasons (snapshot restore, audit retention), and the execution-derived checks are skipped (A-6).
+   */
+  readonly history: "complete" | "partial";
+  readonly historyReasons: readonly string[];
 }
 
 export function reconcile(venue: Venue, mirror?: PublicBookMirror): ReconciliationReport {
@@ -136,6 +142,8 @@ export function reconcile(venue: Venue, mirror?: PublicBookMirror): Reconciliati
       accounts: snap.accounts.length,
       instruments: snap.instruments.length,
     },
+    history: venue.historyComplete ? "complete" : "partial",
+    historyReasons: venue.historyIncompleteReasons,
   };
 }
 

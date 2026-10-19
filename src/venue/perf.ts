@@ -3,10 +3,10 @@ import { MatchingEngine } from "./engine.ts";
 import { PERF_FIXTURE_ID_KEY } from "./id-key.ts";
 import { canonicalJson } from "./journal.ts";
 import { PublicBookMirror } from "./public-feed.ts";
-import { MemoryJournalStore } from "./storage.ts";
+import { MemoryCommitRecordStore, MemoryJournalStore } from "./storage.ts";
 import { createLocalVenue, seededRandom, syntheticFlow } from "./synthetic.ts";
 import type { EngineCommand, SequencedCommand } from "./types.ts";
-import { Venue } from "./venue.ts";
+import { Venue, type VenueOptions } from "./venue.ts";
 
 /**
  * Milestone 9 reproducible synthetic benchmarks (docs/venue/PERFORMANCE-RESULTS.md).
@@ -260,6 +260,39 @@ export function timingProbe(rounds = 5, perRound = 4_000, via: "engine" | "gatew
     }
   }
   return out;
+}
+
+/**
+ * F8 (Milestone 11, Venue): retained heap per submitted command after `n` commands, for each retention
+ * configuration, measured with forced GC when the process runs with --expose-gc. The in-memory journal
+ * store and commit-record store are part of the heap here; in a real deployment they would be on disk.
+ * Engine order and client-ID maps grow in every configuration: they are permanent by design (A-4, A-6).
+ */
+export function memoryProbe(n = 30_000): { configuration: string; forcedGc: boolean; heapBytesPerCommand: number; storeBytesPerCommand: number; engineOrders: number }[] {
+  const gc = (globalThis as { gc?: () => void }).gc;
+  const settle = () => {
+    gc?.();
+    gc?.();
+    return process.memoryUsage().heapUsed;
+  };
+  const commands = [...setupCommands(), ...engineFlow(4_242, n)];
+  const configurations: [string, (store: MemoryJournalStore) => Partial<VenueOptions>][] = [
+    ["store, full journal in memory (Milestone 10 default)", () => ({})],
+    ["store + commit records, full journal", () => ({ commitRecords: new MemoryCommitRecordStore() })],
+    ["store + commit records, head-only journal", () => ({ commitRecords: new MemoryCommitRecordStore(), journalMemory: "head" })],
+    ["head-only journal + auditRetention 1 000", () => ({ commitRecords: new MemoryCommitRecordStore(), journalMemory: "head", auditRetention: 1_000 })],
+  ];
+  return configurations.map(([configuration, extra]) => {
+    const store = new MemoryJournalStore();
+    const before = settle();
+    let venue: Venue | null = new Venue({ engine: ENGINE, ...FIXTURE, clock: () => 1_700_000_000_000, store, ...extra(store) });
+    for (const c of commands) venue.submit(c);
+    const after = settle();
+    const engineOrders = venue.engine.snapshot().orders.length;
+    const storeBytesPerCommand = store.read().length / commands.length;
+    venue = null;
+    return { configuration, forcedGc: gc !== undefined, heapBytesPerCommand: (after - before) / commands.length, storeBytesPerCommand, engineOrders };
+  });
 }
 
 export function environment(): string {

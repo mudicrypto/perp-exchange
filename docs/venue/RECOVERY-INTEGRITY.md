@@ -9,6 +9,11 @@ now **fail-closed** again (§2). A final read-only review found two pre-existing
 complete but invalid final line was dropped as a torn write; VR-29: consumers shared mutable event
 objects). Both are fixed (§7).
 
+**Milestone 11 (Venue) follow-up:** the torn-tail assumption in §2 is now established *relative to a
+commit record* when a commit-record store is configured. A committed entry that is missing or
+truncated is refused (F4) instead of being dropped as a torn write. Correlated loss in both stores
+remains undetected. See [DURABILITY-PROTOCOL.md](DURABILITY-PROTOCOL.md).
+
 **Constraints:**
 
 - The matching engine (`src/venue/engine.ts`) is not changed.

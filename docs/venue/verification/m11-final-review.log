@@ -1,0 +1,85 @@
+# Milestone 11 (Venue) final correctness review.
+# 1. Lost record write healed by later writes; record binds the complete journal prefix: commit-record.test.ts 'D-6 final correctness review' (confirmation tests, no code change needed).
+# 2. Migration identity: a torn residue was accepted if it was ANY strict prefix of the intended record, so a residue shorter
+#    than the checksum (e.g. {"base":15,"checksum":") identified no approval. Fixed: the residue must contain the record's full checksum.
+#    BEFORE = the M11 working tree with the old rule restored in a scratch copy; AFTER = the fixed tree.
+# 3. Phase V write trap and repair read-back: commit-record.test.ts 'D-6 final correctness review' (confirmation tests).
+
+=== BEFORE (old migration residue rule): migration.test.ts ===
+PASS  migration.test.ts > D-6 normal recovery never adopts an unrecorded journal, whatever options are passed
+PASS  migration.test.ts > D-6 an odd migration base: the first record is accepted under S5, later records keep parity and sequence through crash/recovery cycles
+PASS  migration.test.ts > D-6 an even migration base: the first record is accepted under S5, later records keep parity and sequence through crash/recovery cycles
+PASS  migration.test.ts > D-6 migration refuses without a matching backup, a clean journal, a bound approval and an empty record store; nothing changes
+PASS  migration.test.ts > D-6 migration is re-runnable after a torn record write, and idempotent once complete
+PASS  migration.test.ts > D-6 an approval is bound to the complete journal history: a fork with the same length cannot use it, nor vice versa
+PASS  migration.test.ts > D-6 after a completed migration, a retry under a different approval is refused and changes nothing
+FAIL  migration.test.ts > D-6 an interrupted write is resumed only by the same approval, and only when the residue identifies it
+        AssertionError: expected function to throw an error, but it didn't
+PASS  migration.test.ts > D-6 a migrated store cannot be migrated again after the venue has run
+Totals: 1 failed, 8 passed, 9 tests run; 2 of 3 suites failed
+
+=== AFTER (fixed tree): migration.test.ts + commit-record.test.ts ===
+PASS  commit-record.test.ts > D-6 a fresh venue writes the genesis record (seq 0, base 0) to slot 0 before it accepts any command
+PASS  commit-record.test.ts > D-6 every acknowledged command has a record in the slot of its parity that names its journal entry
+PASS  commit-record.test.ts > D-6 a venue with commit records requires a journal store and empty stores; existing stores are opened by recovery
+PASS  commit-record.test.ts > D-6 without a commit-record store recovery behaves exactly as in Milestone 10
+PASS  commit-record.test.ts > D-6 row 1 journal append fails before any byte: outcome-unknown, recovery to the committed state, and an identical retry never executes twice
+PASS  commit-record.test.ts > D-6 row 2 torn journal append: outcome-unknown, recovery to the committed state, and an identical retry never executes twice
+PASS  commit-record.test.ts > D-6 row 3 journal written, store acknowledgement lost: outcome-unknown, recovery to the committed state, and an identical retry never executes twice
+PASS  commit-record.test.ts > D-6 row 4 journal written, commit record missing (crash): outcome-unknown, recovery to the committed state, and an identical retry never executes twice
+PASS  commit-record.test.ts > D-6 row 5 record write fails before persisting: outcome-unknown, recovery to the committed state, and an identical retry never executes twice
+PASS  commit-record.test.ts > D-6 row 6 torn record slot: outcome-unknown, recovery to the committed state, and an identical retry never executes twice
+PASS  commit-record.test.ts > D-6 row 7 record written, acknowledgement lost: outcome-unknown, recovery to the committed state, and an identical retry never executes twice
+PASS  commit-record.test.ts > D-6 row 8 commit record written, execution not performed (crash): outcome-unknown, recovery to the committed state, and an identical retry never executes twice
+PASS  commit-record.test.ts > D-6 row 10 executed, outputs not released (crash): outcome-unknown, recovery to the committed state, and an identical retry never executes twice
+PASS  commit-record.test.ts > D-6 row 9 engine fault (poison): recovery refuses with a replay-fault diagnostic until the code is fixed, stores unchanged
+PASS  commit-record.test.ts > D-6 row 11 routing fails mid-release: committed, applied once on recovery, retry replays the original
+PASS  commit-record.test.ts > D-6 row 12 executed and acknowledged, response lost in transport: indistinguishable from row 10; retry replays
+PASS  commit-record.test.ts > D-6 rows 13–16: after an acknowledged response, loss or corruption of journal data is refused, never silently accepted
+PASS  commit-record.test.ts > D-6 row 17 (limitation): the same entry lost from both stores is not detected; recovery returns the older state
+PASS  commit-record.test.ts > D-6 rows 18–21: a record ahead of, behind or inconsistent with the journal, unreadable or absent, is refused
+PASS  commit-record.test.ts > D-6 a lost record write: on the final command it rolls forward; followed by one write it is refused; followed by two it is covered
+PASS  commit-record.test.ts > D-5 and VR-28 stay fail-closed with commit records present
+PASS  commit-record.test.ts > D-6 row 22 a snapshot at or below the record restores to the same state as a full replay
+PASS  commit-record.test.ts > D-6 row 23 snapshot plus a journaled but uncommitted entry rolls forward
+PASS  commit-record.test.ts > D-6 row 24 a snapshot does not mask a committed entry missing from the journal
+PASS  commit-record.test.ts > D-6 row 25 a snapshot ahead of the commit record is refused
+PASS  commit-record.test.ts > D-6 RI-2 recovery mutates the stores only by the planned steps, journal first and record last
+PASS  commit-record.test.ts > D-6 RI-5 a failed repair returns no venue and reports the completed and failed steps
+PASS  commit-record.test.ts > D-6 IR-2 truncate throws before changing anything
+PASS  commit-record.test.ts > D-6 IR-3 partial truncate, then throws
+PASS  commit-record.test.ts > D-6 IR-3b partial truncate reported as success (read-back detects it)
+PASS  commit-record.test.ts > D-6 IR-4 truncate overshoots into a committed entry (nonconforming)
+PASS  commit-record.test.ts > D-6 IR-5 truncate overshoots into the uncommitted entry (nonconforming)
+PASS  commit-record.test.ts > D-6 IR-7 newline append fails before writing
+PASS  commit-record.test.ts > D-6 IR-7b newline append written, then throws
+PASS  commit-record.test.ts > D-6 IR-9 record write fails before persisting
+PASS  commit-record.test.ts > D-6 IR-10 torn record slot
+PASS  commit-record.test.ts > D-6 IR-11 record written, acknowledgement lost
+PASS  commit-record.test.ts > D-6 IR-12 record write acknowledged but lost (read-back detects it)
+PASS  commit-record.test.ts > D-6 IR-3 a partial truncation is repaired by a revised R1 that removes fewer bytes (no literal plan suffix)
+PASS  commit-record.test.ts > D-6 IR-14 convergence: any sequence of up to five recoverable repair faults ends in the same committed state
+PASS  commit-record.test.ts > D-6 / D-1 recovery equals exactly the committed commands at every boundary, and the stores stay appendable
+PASS  commit-record.test.ts > D-6 a lost record write healed by 2 later writes: the selected record binds the complete journal prefix
+PASS  commit-record.test.ts > D-6 a lost record write healed by 3 later writes: the selected record binds the complete journal prefix
+PASS  commit-record.test.ts > D-6 Phase V never calls a mutating store method for any refusal (write trap, not only byte equality)
+PASS  commit-record.test.ts > D-6 repair read-back detects a truncation that silently does nothing, returns no venue, and the next recovery converges
+PASS  commit-record.test.ts > D-6 repair read-back detects a newline append acknowledged but not stored, returns no venue, and the next recovery converges
+PASS  commit-record.test.ts > D-6 repair read-back detects a record write acknowledged but not stored, returns no venue, and the next recovery converges
+PASS  migration.test.ts > D-6 normal recovery never adopts an unrecorded journal, whatever options are passed
+PASS  migration.test.ts > D-6 an odd migration base: the first record is accepted under S5, later records keep parity and sequence through crash/recovery cycles
+PASS  migration.test.ts > D-6 an even migration base: the first record is accepted under S5, later records keep parity and sequence through crash/recovery cycles
+PASS  migration.test.ts > D-6 migration refuses without a matching backup, a clean journal, a bound approval and an empty record store; nothing changes
+PASS  migration.test.ts > D-6 migration is re-runnable after a torn record write, and idempotent once complete
+PASS  migration.test.ts > D-6 an approval is bound to the complete journal history: a fork with the same length cannot use it, nor vice versa
+PASS  migration.test.ts > D-6 after a completed migration, a retry under a different approval is refused and changes nothing
+PASS  migration.test.ts > D-6 an interrupted write is resumed only by the same approval, and only when the residue identifies it
+PASS  migration.test.ts > D-6 a migrated store cannot be migrated again after the venue has run
+Totals: 0 failed, 56 passed, 56 tests run; 0 of 10 suites failed
+
+=== Pre-existing intermittent coverage-floor failure (Milestone 10 property, recovery-integrity.test.ts 'A-4 property') ===
+Unseeded fast-check property, 150 runs, floor: totalChecks > 300. Seen once in the full unit run (267). Measured, 25 runs each:
+  9812049 baseline copy (150 runs): 2/25 failed
+  Milestone 11 tree     (150 runs): 2/25 failed
+  Milestone 11 tree     (300 runs): 0/25 failed
+No correctness assertion failed in any run; only the coverage floor. Fix: numRuns 150 -> 300; seed, assertions and floor unchanged.

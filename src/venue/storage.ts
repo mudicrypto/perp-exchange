@@ -50,3 +50,50 @@ export class MemoryJournalStore implements JournalStore {
     this.text = this.text.slice(0, length);
   }
 }
+
+/**
+ * Commit-record store (MATCHING-RULES D-6; docs/venue/DURABILITY-PROTOCOL.md §3.5). Two slots, written
+ * one at a time. Contract: `writeSlot(i, …)` touches only slot `i` and is durable once it returns; a slot
+ * write need not be atomic (a torn slot is detected by its checksum); `readSlots` returns the last
+ * durable bytes of each slot; failures are independent of the journal store's. Like the journal store,
+ * the prototype has only an in-memory implementation, so real independence and durability are unverified.
+ */
+export interface CommitRecordStore {
+  readSlots(): readonly [string | null, string | null];
+  writeSlot(index: 0 | 1, bytes: string): void;
+}
+
+/**
+ * `before-write`: throws, nothing stored. `torn-write`: stores a prefix, then throws.
+ * `after-write`: stores everything, then throws. `lost-write`: returns normally but stores nothing
+ * (a nonconforming store that acknowledges a write it did not persist).
+ */
+export type SlotWriteFault = "before-write" | "torn-write" | "after-write" | "lost-write";
+
+export class MemoryCommitRecordStore implements CommitRecordStore {
+  private slots: [string | null, string | null] = [null, null];
+  /** Test-only: fault applied to the next slot write, then cleared. */
+  failNextWrite: SlotWriteFault | null = null;
+
+  readSlots(): readonly [string | null, string | null] {
+    return [this.slots[0], this.slots[1]];
+  }
+
+  writeSlot(index: 0 | 1, bytes: string): void {
+    const fault = this.failNextWrite;
+    this.failNextWrite = null;
+    if (fault === "before-write") throw new StorageFault("injected: slot write failed before any byte was stored");
+    if (fault === "lost-write") return;
+    if (fault === "torn-write") {
+      this.slots[index] = bytes.slice(0, Math.max(1, Math.floor(bytes.length / 2)));
+      throw new StorageFault("injected: torn slot write");
+    }
+    this.slots[index] = bytes;
+    if (fault === "after-write") throw new StorageFault("injected: failure after the slot write completed");
+  }
+
+  /** Test-only: replace both slots (simulates restores, rollbacks and external damage). */
+  replaceSlots(slots: readonly [string | null, string | null]): void {
+    this.slots = [slots[0], slots[1]];
+  }
+}
