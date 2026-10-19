@@ -19,7 +19,7 @@ const SPEC = SYNTHETIC_INSTRUMENTS[0]!;
 const px = (ticks: number) => formatPrice(SPEC, ticks);
 const qty = (lots: number) => formatQuantity(SPEC, lots);
 
-function describePrivate(e: PrivateEvent): string {
+export function describePrivate(e: PrivateEvent): string {
   switch (e.kind) {
     case "accepted":
       return `accepted ${e.order.side} ${qty(e.order.qtyLots)} @ ${px(e.order.priceTicks)} (${e.order.visibility}${e.order.postOnly ? ", post-only" : ""})`;
@@ -38,7 +38,7 @@ function describePrivate(e: PrivateEvent): string {
   }
 }
 
-function describePublic(m: PublicMessage): string {
+export function describePublic(m: PublicMessage): string {
   switch (m.kind) {
     case "trade":
       return `#${m.publicSeq} trade ${qty(m.qtyLots)} @ ${px(m.priceTicks)} (aggressor ${m.aggressor})`;

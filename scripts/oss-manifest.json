@@ -1,0 +1,86 @@
+{
+  "status": "PROPOSAL \u2014 not published, no licence applied. Pending IP/ownership review, dependency review and approval (Milestone 12, WP2).",
+  "proposedLicense": "Apache-2.0 (decision D1, pending IP and licensing review)",
+  "proposedPackageName": "TBD (trademark clearance pending; must not use third-party venue names)",
+  "include": [
+    "src/venue/",
+    "docs/venue/"
+  ],
+  "exclude": [
+    {
+      "path": "docs/venue/verification/",
+      "reason": "Run logs of this private repository, including application E2E and build output; regenerate evidence in the open repository's CI instead."
+    },
+    {
+      "path": "docs/venue/OPEN-SOURCE-MANIFEST.md",
+      "reason": "Internal release-review record (ownership findings, release blockers); not part of the published package."
+    }
+  ],
+  "scaffold": [
+    "package.json",
+    "tsconfig.json",
+    "vitest.config.mts",
+    "eslint.config.mjs",
+    "README.md",
+    "SECURITY.md",
+    "NOTICE",
+    "LICENSE (only after approval)"
+  ],
+  "retained": [
+    {
+      "path": "src/app/, src/features/, src/components/",
+      "reason": "Commercial trading terminal (Next.js)"
+    },
+    {
+      "path": "src/server/analyst/",
+      "reason": "Commercial AI analyst (third-party API integration)"
+    },
+    {
+      "path": "src/adapters/, src/server/rfq/, src/core/rfq/, src/core/trading/",
+      "reason": "Third-party venue integrations, RFQ and private execution"
+    },
+    {
+      "path": "src/core/risk/",
+      "reason": "Commercial risk engine (decision D3)"
+    },
+    {
+      "path": "src/core/ (other), src/lib/, src/config/, src/server/ (other)",
+      "reason": "Application domain and server code; not used by the venue"
+    },
+    {
+      "path": "docs/ (outside docs/venue/), README.md, AGENTS.md",
+      "reason": "Application documentation and repository instructions"
+    },
+    {
+      "path": "scripts/verify-client-bundle.mjs, tests/, playwright*.ts",
+      "reason": "Application build and E2E tooling"
+    }
+  ],
+  "allowedPackages": {
+    "runtime": [
+      "zod"
+    ],
+    "test": [
+      "vitest",
+      "fast-check"
+    ],
+    "builtins": [
+      "node:crypto",
+      "node:fs",
+      "node:path",
+      "node:os",
+      "node:url"
+    ]
+  },
+  "reviewTerms": [
+    "hyperliquid",
+    "anthropic",
+    "claude",
+    "nova",
+    "openai",
+    "/tmp/",
+    "@gmail.com",
+    "TODO",
+    "FIXME"
+  ]
+}

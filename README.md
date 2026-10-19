@@ -17,7 +17,9 @@ verification and hardening of that prototype — verified with limitations, not 
 for that prototype: idempotency across restarts, duplicate journal records, order-ID key policy
 (`docs/venue/RECOVERY-INTEGRITY.md`). **Milestone 11 (Venue):** a commit-record durability protocol,
 retention with exact gap reporting, and poison-command diagnostics for that prototype
-(`docs/venue/DURABILITY-PROTOCOL.md`). No real orders, custody,
+(`docs/venue/DURABILITY-PROTOCOL.md`). **Milestone 12 (Venue), in progress:** a reproducible offline
+demonstration (`npm run --silent venue:showcase > showcase.html`; `docs/venue/SHOWCASE.md`), open-source
+extraction preparation (nothing published) and a Stellar settlement safety design for review. No real orders, custody,
 deposits or withdrawals.
 
 - Architecture: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)

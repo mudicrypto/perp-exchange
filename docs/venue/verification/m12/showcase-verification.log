@@ -1,0 +1,37 @@
+# Milestone 12 WP1 reproducibility evidence
+# Generated: npm run --silent venue:showcase > showcase.html (twice: default environment, and TZ=Asia/Kolkata LC_ALL=fr_FR.UTF-8)
+
+venue showcase: 6 scenarios, 27 checks, 0 failed
+bundle hash 7f81ed0d9fa484bec33fbacacede04315797ff67a93536e70838d85d7507bf35
+
+sha256 showcase.html (default env):  84cdb30e77b921b3b532320de02da001219f843868bf651a9957db488254072f
+sha256 showcase.html (other TZ/locale): 84cdb30e77b921b3b532320de02da001219f843868bf651a9957db488254072f
+size: 671167 bytes
+
+## npm run --silent venue:showcase:verify < showcase.html
+hidden-orders: journal 15 entries, replay ✓ hashes, public feed (8), 3 private feeds, 8 checks, 0 refusal samples
+priority-stp: journal 18 entries, replay ✓ hashes, public feed (14), 3 private feeds, 4 checks, 0 refusal samples
+abuse-controls: journal 22 entries, replay ✓ hashes, public feed (15), 3 private feeds, 3 checks, 0 refusal samples
+crash-recovery: journal 6 entries, replay ✓ hashes, public feed (6), 2 private feeds, 6 checks, 1 refusal samples
+determinism: journal 631 entries, replay ✓ hashes, public feed (374), 4 private feeds, 4 checks, 0 refusal samples
+unknown-outcome: journal 6 entries, replay ✓ hashes, public feed (3), 2 private feeds, 2 checks, 0 refusal samples
+regenerated from this code: identical bundle hash
+bundle hash 7f81ed0d9fa484bec33fbacacede04315797ff67a93536e70838d85d7507bf35
+VERIFIED
+exit 0
+
+## Tampered copy (one public-feed price changed): must be NOT VERIFIED
+hidden-orders: journal 15 entries, replay ✓ hashes, public feed (8), 3 private feeds, 8 checks, 0 refusal samples
+priority-stp: journal 18 entries, replay ✓ hashes, public feed (14), 3 private feeds, 4 checks, 0 refusal samples
+abuse-controls: journal 22 entries, replay ✓ hashes, public feed (15), 3 private feeds, 3 checks, 0 refusal samples
+crash-recovery: journal 6 entries, replay ✓ hashes, public feed (6), 2 private feeds, 6 checks, 1 refusal samples
+determinism: journal 631 entries, replay ✓ hashes, public feed (374), 4 private feeds, 4 checks, 0 refusal samples
+unknown-outcome: journal 6 entries, replay ✓ hashes, public feed (3), 2 private feeds, 2 checks, 0 refusal samples
+bundle hash 7f81ed0d9fa484bec33fbacacede04315797ff67a93536e70838d85d7507bf35
+FAILED hidden-orders: recorded public feed differs from what the journal produces
+FAILED bundle hash does not match the bundle content
+NOT VERIFIED
+exit 1
+
+## Headless Chromium (Playwright, file:// URL)
+{ "buttons": 6, "results": [ { "title": "Hidden orders: public versus private view", "checks": 8, "failed": 0, "steps": 10 }, { "title": "Price, displayed and time priority; self-trade prevention", "checks": 4, "failed": 0, "steps": 13 }, { "title": "Abuse controls: probe throttle, idempotency, rate limits", "checks": 3, "failed": 0, "steps": 23 }, { "title": "Crash recovery with commit records", "checks": 6, "failed": 0, "steps": 8 }, { "title": "Deterministic replay and reconciliation", "checks": 4, "failed": 0, "steps": 2 }, { "title": "Unknown outcomes and client reconciliation", "checks": 2, "failed": 0, "steps": 5 } ], "requests": [], "errors": [], "phoneHorizontalOverflow": false}
