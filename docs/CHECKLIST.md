@@ -276,11 +276,13 @@ Specification and results: `docs/venue/DURABILITY-PROTOCOL.md`; verification `do
 - [ ] Still open: VR-08, VR-15, VR-16, VR-17; id-key management
 
 ## Milestone 12 (Venue) — Public demonstration and Stellar integration feasibility (in progress)
-Scope: WP1 reproducible demonstration, WP2 open-source extraction preparation, WP3 safety design. Nothing published, no licence applied, nothing deployed; `engine.ts` unchanged. App milestone numbers below are unchanged.
+Scope: WP1 reproducible demonstration, WP2 open-source extraction preparation, WP3 safety design and bounded testnet spike. Nothing published, no licence applied; only measurement contracts deployed, on testnet; no vault, no tokens; `engine.ts` unchanged. App milestone numbers below are unchanged.
 - [x] WP1: six seeded scenarios with narrative, recorded feeds, named checks and journals; offline single-file viewer (CSP forbids all requests); independent verifier replays every journal and regenerates the bundle (`docs/venue/SHOWCASE.md`; `showcase.test.ts`, 8 tests; byte-identical output across runs, timezones and locales)
 - [x] WP2: manifest and extraction check (`scripts/oss-manifest.json`, `scripts/oss-extraction-check.mjs`): import closure, permissive licences only, no secret patterns in tree or history, stand-alone staged copy passes typecheck and 319 tests (`docs/venue/OPEN-SOURCE-MANIFEST.md`)
 - [ ] WP2 release blockers: IP and ownership review (all commits carry the coding agent's identity), name clearance, clean-ups R3–R4, then licence and approval
-- [ ] WP3: settlement safety design for review (`docs/venue/STELLAR-FEASIBILITY.md`); bounded testnet measurement spike only after approval
+- [x] WP3: settlement safety design (`docs/venue/STELLAR-FEASIBILITY.md`), accepted as a preliminary design
+- [x] WP3 bounded testnet spike: measurement contract (`spikes/stellar-settlement/`, 9 native tests), two full testnet runs (169 transactions, every hash recorded in `docs/venue/verification/m12/stellar-spike/`), results and conditional-go recommendation (`docs/venue/STELLAR-SPIKE-RESULTS.md`)
+- [ ] WP3 before any vault proposal: hidden-order disclosure decision; idempotent fill identifiers in the design; archival/restoration, token-transfer cost, RPC size limit and event retention measured
 - [ ] Engine changes for settlement (funded-order reservations, settlement status, trade bust) — separate approved designs required
 
 ## Milestone 11 — Watch-only account UI

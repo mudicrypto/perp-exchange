@@ -1,0 +1,12 @@
+{
+  "name": "settlement-spike-client",
+  "private": true,
+  "type": "module",
+  "description": "Milestone 12 WP3 testnet spike client. Testnet only; keys are generated in memory per run and never written to disk.",
+  "scripts": {
+    "spike": "node spike.mjs"
+  },
+  "dependencies": {
+    "@stellar/stellar-sdk": "17.2.1"
+  }
+}

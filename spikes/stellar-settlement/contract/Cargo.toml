@@ -1,0 +1,26 @@
+[package]
+name = "settlement-spike"
+version = "0.0.0"
+edition = "2021"
+publish = false
+description = "Milestone 12 WP3: measurement-only Soroban contract. Not a vault: no tokens, deposits or withdrawals; internal numbers only. Testnet only."
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+soroban-sdk = "=29.0.1"
+
+[dev-dependencies]
+soroban-sdk = { version = "=29.0.1", features = ["testutils"] }
+ed25519-dalek = "=2.2.0"
+
+[profile.release]
+opt-level = "z"
+overflow-checks = true
+debug = 0
+strip = "symbols"
+debug-assertions = false
+panic = "abort"
+codegen-units = 1
+lto = true

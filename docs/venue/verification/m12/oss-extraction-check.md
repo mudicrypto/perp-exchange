@@ -1,12 +1,14 @@
+venue showcase: 6 scenarios, 27 checks, 0 failed
+bundle hash 7f81ed0d9fa484bec33fbacacede04315797ff67a93536e70838d85d7507bf35
 # Open-source extraction check (Milestone 12, WP2)
 
 Status: PROPOSAL — not published, no licence applied. Pending IP/ownership review, dependency review and approval (Milestone 12, WP2).
 Proposed licence: Apache-2.0 (decision D1, pending IP and licensing review). **No LICENSE file is created by this check.**
-Repository HEAD: ae539653729ed4f4e9607449202be496699f8802 (working tree has uncommitted changes)
+Repository HEAD: 75f7869f25f51ad532bfc9e63fdbabe93d50cd36 (working tree has uncommitted changes)
 
 ## Result: no blocking findings
 
-## 1. Files (62; excluded 49)
+## 1. Files (63; excluded 55)
 
 - `docs/venue/ARCHITECTURE.md`
 - `docs/venue/DURABILITY-PROTOCOL.md`
@@ -21,6 +23,7 @@ Repository HEAD: ae539653729ed4f4e9607449202be496699f8802 (working tree has unco
 - `docs/venue/SECURITY-CHECKLIST.md`
 - `docs/venue/SHOWCASE.md`
 - `docs/venue/STELLAR-FEASIBILITY.md`
+- `docs/venue/STELLAR-SPIKE-RESULTS.md`
 - `docs/venue/THREAT-MODEL.md`
 - `docs/venue/VERIFICATION-REPORT.md`
 - `src/venue/adversarial.test.ts`
@@ -72,7 +75,7 @@ Repository HEAD: ae539653729ed4f4e9607449202be496699f8802 (working tree has unco
 - `src/venue/verification.test.ts`
 
 Excluded:
-- `docs/venue/verification/` (48 files): Run logs of this private repository, including application E2E and build output; regenerate evidence in the open repository's CI instead.
+- `docs/venue/verification/` (54 files): Run logs of this private repository, including application E2E and build output; regenerate evidence in the open repository's CI instead.
 - `docs/venue/OPEN-SOURCE-MANIFEST.md` (1 files): Internal release-review record (ownership findings, release blockers); not part of the published package.
 
 ## 2. Import closure
@@ -125,8 +128,8 @@ Relative imports leaving the manifest: none
 ## 4. Secret-pattern scan
 
 Patterns: private key block, Stellar secret seed, Anthropic API key, OpenAI-style key, GitHub token, AWS access key, Slack token, assigned secret.
-- Working tree (62 files): no matches
-- History of the included paths (4 commits, all branches, added lines only): no matches
+- Working tree (63 files): no matches
+- History of the included paths (5 commits, all branches, added lines only): no matches
 Pattern scanning is not proof of absence; a fresh-history extraction is still required.
 
 ## 5. Review terms (not blocking; each needs a decision before release)
@@ -143,12 +146,12 @@ Pattern scanning is not proof of absence; a fresh-history extraction is still re
 
 ## 6. Authorship of the included paths (input for the IP and ownership review)
 
-- author: Claude <noreply@anthropic.com>: 4 commit(s)
-- co-author trailer: Claude Opus 5.5 <noreply@anthropic.com>: 4 commit(s)
+- author: Claude <noreply@anthropic.com>: 5 commit(s)
+- co-author trailer: Claude Opus 5.5 <noreply@anthropic.com>: 5 commit(s)
 
 ## 7. Standalone staging run
 
-Copied 62 files plus a minimal scaffold (package.json marked private and UNLICENSED, tsconfig, vitest config) to a scratch directory outside the repository; node_modules linked from this repository.
+Copied 63 files plus a minimal scaffold (package.json marked private and UNLICENSED, tsconfig, vitest config) to a scratch directory outside the repository; node_modules linked from this repository.
 - typecheck: pass
 - tests: pass (Tests  319 passed (319))
 - showcase page sha256 from the staged copy: `84cdb30e77b921b3b532320de02da001219f843868bf651a9957db488254072f`

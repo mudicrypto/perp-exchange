@@ -1,0 +1,34 @@
+# WP3 spike verification (2026-10-24T10:35:47Z, base 75f7869)
+
+## cargo test (spikes/stellar-settlement/contract)
+test test::epoch_bump_and_expiry_invalidate_signed_orders ... ok
+test test::a_batch_is_atomic ... ok
+test test::cursor_rejects_duplicates_and_retries_but_cannot_see_gaps ... ok
+test test::cumulative_fill_limit_holds_across_partial_fills ... ok
+test test::price_limits_and_self_trade_are_enforced ... ok
+test test::idempotent_batch_is_atomic_and_rejects_internal_duplicates ... ok
+test test::signatures_do_not_replay_across_contracts ... ok
+test test::settles_at_maker_price_and_moves_internal_balances ... ok
+test test::idempotent_fill_ids_settle_once_in_any_order ... ok
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.24s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+## stellar contract build
+    Wasm File: target/wasm32v1-none/release/settlement_spike.wasm (12421 bytes optimized (original size was 15352 bytes))
+    Wasm Hash: 9a4bebc55ddbc1ba517c66a019a4903cb02b164c696b5b7de762372a76f321e3
+    Wasm Size: 12421 bytes optimized (original size was 15352 bytes)
+
+## npm run check
+      Tests  696 passed (696)
+ Test Files  55 passed (55)
+Client bundle clean: 20 files scanned, 9 forbidden patterns.
+✓ Compiled successfully in 2.2s
+exit 0 (first attempt stopped after compiling with Next.js SecurityFatalError advisory notice; re-run passed)
+
+## npm run test:e2e
+52 passed (1.0m)
+
+## showcase
+venue showcase: 6 scenarios, 27 checks, 0 failed
+bundle hash 7f81ed0d9fa484bec33fbacacede04315797ff67a93536e70838d85d7507bf35
+84cdb30e77b921b3b532320de02da001219f843868bf651a9957db488254072f  -

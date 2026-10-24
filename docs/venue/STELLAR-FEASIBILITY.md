@@ -1,7 +1,10 @@
 # Venue × Stellar — Settlement Safety Design and Feasibility Spike Plan (Milestone 12, WP3)
 
-**Status:** design for review. **No contract has been written, nothing has been deployed, and no key
-has been generated.**
+**Status:** accepted as a preliminary design (not approval to implement a vault). The bounded testnet
+spike of §9 has been run with a measurement contract; its results, and the changes they require to this
+design (idempotent fill identifiers instead of the strict cursor, a hidden-order decision, bounded order
+lifetime), are in [`STELLAR-SPIKE-RESULTS.md`](STELLAR-SPIKE-RESULTS.md). The text below is the design
+as accepted; where the spike contradicts it, the results document takes precedence.
 
 Decisions in force:
 
@@ -417,6 +420,9 @@ Anchoring therefore closes the long-open "no external trust anchor" item **for t
 | Anchor or sequence leakage | Head only, fixed cadence | Activity yes/no per interval |
 
 ## 9. Bounded testnet spike (after this design is approved)
+
+> **Done:** see [`STELLAR-SPIKE-RESULTS.md`](STELLAR-SPIKE-RESULTS.md) for the measured values of M1–M6
+> and the go/no-go.
 
 **Time box:** 2 engineer-weeks.
 

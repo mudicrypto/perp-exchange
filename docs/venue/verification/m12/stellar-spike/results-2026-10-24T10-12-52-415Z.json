@@ -1,0 +1,6288 @@
+{
+  "startedAt": "2026-10-24T10:12:52.415Z",
+  "rpcUrl": "https://soroban-testnet.stellar.org",
+  "passphrase": "Test SDF Network ; September 2015",
+  "txs": [
+    {
+      "label": "upload wasm",
+      "hash": "299248967676bf34c3c116aecf7c256951d5ae4f8aea58d6ad631021277e5ca0",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362645,
+      "prepareMs": 683,
+      "cost": {
+        "instructions": 11990013,
+        "diskReadBytes": 0,
+        "writeBytes": 0,
+        "readOnlyEntries": 1,
+        "readWriteEntries": 0,
+        "minResourceFee": 38773,
+        "events": 0,
+        "envelopeBytes": 12672
+      },
+      "status": "SUCCESS",
+      "ledger": 5362646,
+      "applicationOrder": 6,
+      "ledgersWaited": 1,
+      "confirmMs": 3049,
+      "feeCharged": 32013,
+      "resultCode": {
+        "code": 0,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "31815",
+        "totalRefundableResourceFeeCharged": "98",
+        "rentFeeCharged": "0"
+      },
+      "returnValue": "9a4bebc55ddbc1ba517c66a019a4903cb02b164c696b5b7de762372a76f321e3"
+    },
+    {
+      "label": "create A (persistent fill counters)",
+      "hash": "c812511d5bd5120f9a6efcf1c35381cd0ef7c230dba1818482aefc956c98e833",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362646,
+      "prepareMs": 267,
+      "cost": {
+        "instructions": 1020678,
+        "diskReadBytes": 0,
+        "writeBytes": 104,
+        "readOnlyEntries": 1,
+        "readWriteEntries": 1,
+        "minResourceFee": 125161,
+        "events": 2,
+        "envelopeBytes": 536
+      },
+      "status": "SUCCESS",
+      "ledger": 5362647,
+      "applicationOrder": 7,
+      "ledgersWaited": 1,
+      "confirmMs": 4479,
+      "feeCharged": 105198,
+      "resultCode": {
+        "code": 0,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "3366",
+        "totalRefundableResourceFeeCharged": "101732",
+        "rentFeeCharged": "101634"
+      },
+      "returnValue": "CBAIXBJII3CXEJJCKROYWUYQIVMY7EXKNUTZPJ2OB2PBTPV4MMRLKREE"
+    },
+    {
+      "label": "create B (temporary fill counters)",
+      "hash": "5fbbc53f0f87f62ed192f8e5ca6dbc5c69cc7b1b2ff6c210c57dfa5132a3a3eb",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362647,
+      "prepareMs": 219,
+      "cost": {
+        "instructions": 1020678,
+        "diskReadBytes": 0,
+        "writeBytes": 104,
+        "readOnlyEntries": 1,
+        "readWriteEntries": 1,
+        "minResourceFee": 125161,
+        "events": 2,
+        "envelopeBytes": 536
+      },
+      "status": "SUCCESS",
+      "ledger": 5362648,
+      "applicationOrder": 6,
+      "ledgersWaited": 1,
+      "confirmMs": 4061,
+      "feeCharged": 105198,
+      "resultCode": {
+        "code": 0,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "3366",
+        "totalRefundableResourceFeeCharged": "101732",
+        "rentFeeCharged": "101634"
+      },
+      "returnValue": "CCTWGMZZT7PGT3OO5N6EQ7QOKALRLC5UVTKAH2FFRP6CFBH66RI4V672"
+    },
+    {
+      "label": "create C (replay target)",
+      "hash": "e2938269a8a61ca2f51eb32187e2932ccb529846f002cf2ff2c0ee53073ed592",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362648,
+      "prepareMs": 438,
+      "cost": {
+        "instructions": 1020678,
+        "diskReadBytes": 0,
+        "writeBytes": 104,
+        "readOnlyEntries": 1,
+        "readWriteEntries": 1,
+        "minResourceFee": 125161,
+        "events": 2,
+        "envelopeBytes": 536
+      },
+      "status": "SUCCESS",
+      "ledger": 5362649,
+      "applicationOrder": 8,
+      "ledgersWaited": 1,
+      "confirmMs": 4079,
+      "feeCharged": 105198,
+      "resultCode": {
+        "code": 0,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "3366",
+        "totalRefundableResourceFeeCharged": "101732",
+        "rentFeeCharged": "101634"
+      },
+      "returnValue": "CADXJHOPWYHNVVT5GSFG372UDPA7PZABQLF5KEKPJMFF63M73Y4HLKXC"
+    },
+    {
+      "label": "init CBAIXB",
+      "hash": "4f4f5b3e86117816aa2d9b0e76d18e1b08f93805bec605df09d152990ea80394",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362649,
+      "prepareMs": 301,
+      "cost": {
+        "instructions": 621328,
+        "diskReadBytes": 0,
+        "writeBytes": 220,
+        "readOnlyEntries": 1,
+        "readWriteEntries": 1,
+        "minResourceFee": 6319011,
+        "events": 2,
+        "envelopeBytes": 392
+      },
+      "status": "SUCCESS",
+      "ledger": 5362650,
+      "applicationOrder": 4,
+      "ledgersWaited": 1,
+      "confirmMs": 4750,
+      "feeCharged": 5491932,
+      "resultCode": {
+        "code": 0,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "2981",
+        "totalRefundableResourceFeeCharged": "5488851",
+        "rentFeeCharged": "5488841"
+      },
+      "returnValue": null
+    },
+    {
+      "label": "init CCTWGM",
+      "hash": "55b27c33af0e4c7ba1acbb7d29bfd3c91e16d57f5ef8da6594d3d22504242ff7",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362650,
+      "prepareMs": 615,
+      "cost": {
+        "instructions": 620549,
+        "diskReadBytes": 0,
+        "writeBytes": 220,
+        "readOnlyEntries": 1,
+        "readWriteEntries": 1,
+        "minResourceFee": 6172039,
+        "events": 2,
+        "envelopeBytes": 392
+      },
+      "status": "SUCCESS",
+      "ledger": 5362651,
+      "applicationOrder": 4,
+      "ledgersWaited": 1,
+      "confirmMs": 3368,
+      "feeCharged": 5365401,
+      "resultCode": {
+        "code": 0,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "2981",
+        "totalRefundableResourceFeeCharged": "5362320",
+        "rentFeeCharged": "5362310"
+      },
+      "returnValue": null
+    },
+    {
+      "label": "init CADXJH",
+      "hash": "1615de75432b6dd7bfb261d5dab70575c0d47593cf2a212d23cd169644641501",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362651,
+      "prepareMs": 91,
+      "cost": {
+        "instructions": 620549,
+        "diskReadBytes": 0,
+        "writeBytes": 220,
+        "readOnlyEntries": 1,
+        "readWriteEntries": 1,
+        "minResourceFee": 6172039,
+        "events": 2,
+        "envelopeBytes": 392
+      },
+      "status": "SUCCESS",
+      "ledger": 5362652,
+      "applicationOrder": 10,
+      "ledgersWaited": 1,
+      "confirmMs": 4723,
+      "feeCharged": 5365401,
+      "resultCode": {
+        "code": 0,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "2981",
+        "totalRefundableResourceFeeCharged": "5362320",
+        "rentFeeCharged": "5362310"
+      },
+      "returnValue": null
+    },
+    {
+      "label": "setup CBAIXB 0",
+      "hash": "0286a7338a58c4320fd541e33f94349cc863ebf084846849ed2dfd9eda79be27",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362653,
+      "prepareMs": 6695,
+      "cost": {
+        "instructions": 20360522,
+        "diskReadBytes": 0,
+        "writeBytes": 19360,
+        "readOnlyEntries": 2,
+        "readWriteEntries": 120,
+        "minResourceFee": 21874170,
+        "events": 2,
+        "envelopeBytes": 18488
+      },
+      "status": "SUCCESS",
+      "ledger": 5362654,
+      "applicationOrder": 10,
+      "ledgersWaited": 1,
+      "confirmMs": 3401,
+      "feeCharged": 19040835,
+      "resultCode": {
+        "code": 0,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "205266",
+        "totalRefundableResourceFeeCharged": "18835469",
+        "rentFeeCharged": "18835459"
+      },
+      "returnValue": null
+    },
+    {
+      "label": "setup CBAIXB 40",
+      "hash": "d786e2a91bcb0a0ca44f6a913ede1e1c981d5c35c8338c1650d12417e2418e63",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362655,
+      "prepareMs": 5576,
+      "cost": {
+        "instructions": 20361040,
+        "diskReadBytes": 0,
+        "writeBytes": 19360,
+        "readOnlyEntries": 2,
+        "readWriteEntries": 120,
+        "minResourceFee": 21874170,
+        "events": 2,
+        "envelopeBytes": 18488
+      },
+      "status": "SUCCESS",
+      "ledger": 5362656,
+      "applicationOrder": 7,
+      "ledgersWaited": 1,
+      "confirmMs": 3845,
+      "feeCharged": 19040835,
+      "resultCode": {
+        "code": 0,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "205266",
+        "totalRefundableResourceFeeCharged": "18835469",
+        "rentFeeCharged": "18835459"
+      },
+      "returnValue": null
+    },
+    {
+      "label": "setup CBAIXB 80",
+      "hash": "962a98b09a9c7d3af6c9791cf48bd024414b435d2b026beb726025c0e023bab9",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362656,
+      "prepareMs": 4372,
+      "cost": {
+        "instructions": 20399916,
+        "diskReadBytes": 0,
+        "writeBytes": 19360,
+        "readOnlyEntries": 2,
+        "readWriteEntries": 120,
+        "minResourceFee": 21874181,
+        "events": 2,
+        "envelopeBytes": 18488
+      },
+      "status": "SUCCESS",
+      "ledger": 5362658,
+      "applicationOrder": 7,
+      "ledgersWaited": 2,
+      "confirmMs": 5773,
+      "feeCharged": 19040846,
+      "resultCode": {
+        "code": 0,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "205277",
+        "totalRefundableResourceFeeCharged": "18835469",
+        "rentFeeCharged": "18835459"
+      },
+      "returnValue": null
+    },
+    {
+      "label": "setup CBAIXB 120",
+      "hash": "a86a16496ef489c43d4170c6c4a6dc44b919ce8bcb7e56412046740ac64bd842",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362659,
+      "prepareMs": 5606,
+      "cost": {
+        "instructions": 20320399,
+        "diskReadBytes": 0,
+        "writeBytes": 19360,
+        "readOnlyEntries": 2,
+        "readWriteEntries": 120,
+        "minResourceFee": 21874158,
+        "events": 2,
+        "envelopeBytes": 18488
+      },
+      "status": "SUCCESS",
+      "ledger": 5362660,
+      "applicationOrder": 5,
+      "ledgersWaited": 1,
+      "confirmMs": 4289,
+      "feeCharged": 19040823,
+      "resultCode": {
+        "code": 0,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "205254",
+        "totalRefundableResourceFeeCharged": "18835469",
+        "rentFeeCharged": "18835459"
+      },
+      "returnValue": null
+    },
+    {
+      "label": "setup CCTWGM 0",
+      "hash": "ad550be2de0efaed2d687e41d8eab14a3ac01a48454f5d1e77470cca165a57f4",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362660,
+      "prepareMs": 873,
+      "cost": {
+        "instructions": 20360522,
+        "diskReadBytes": 0,
+        "writeBytes": 19360,
+        "readOnlyEntries": 2,
+        "readWriteEntries": 120,
+        "minResourceFee": 21874170,
+        "events": 2,
+        "envelopeBytes": 18488
+      },
+      "status": "SUCCESS",
+      "ledger": 5362661,
+      "applicationOrder": 4,
+      "ledgersWaited": 1,
+      "confirmMs": 3466,
+      "feeCharged": 19040835,
+      "resultCode": {
+        "code": 0,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "205266",
+        "totalRefundableResourceFeeCharged": "18835469",
+        "rentFeeCharged": "18835459"
+      },
+      "returnValue": null
+    },
+    {
+      "label": "setup CCTWGM 40",
+      "hash": "43d2ee749821fd3021169e344e7effee7a48b8cde806259ba8f9f56808b05576",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362661,
+      "prepareMs": 4688,
+      "cost": {
+        "instructions": 20361040,
+        "diskReadBytes": 0,
+        "writeBytes": 19360,
+        "readOnlyEntries": 2,
+        "readWriteEntries": 120,
+        "minResourceFee": 21874170,
+        "events": 2,
+        "envelopeBytes": 18488
+      },
+      "status": "SUCCESS",
+      "ledger": 5362663,
+      "applicationOrder": 7,
+      "ledgersWaited": 2,
+      "confirmMs": 5735,
+      "feeCharged": 19040835,
+      "resultCode": {
+        "code": 0,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "205266",
+        "totalRefundableResourceFeeCharged": "18835469",
+        "rentFeeCharged": "18835459"
+      },
+      "returnValue": null
+    },
+    {
+      "label": "setup CCTWGM 80",
+      "hash": "fbfb1d478d1020984061bb975b99b132181fbb185bc08590951f743ec1951726",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362663,
+      "prepareMs": 1156,
+      "cost": {
+        "instructions": 20399916,
+        "diskReadBytes": 0,
+        "writeBytes": 19360,
+        "readOnlyEntries": 2,
+        "readWriteEntries": 120,
+        "minResourceFee": 21874181,
+        "events": 2,
+        "envelopeBytes": 18488
+      },
+      "status": "SUCCESS",
+      "ledger": 5362664,
+      "applicationOrder": 5,
+      "ledgersWaited": 1,
+      "confirmMs": 3343,
+      "feeCharged": 19040846,
+      "resultCode": {
+        "code": 0,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "205277",
+        "totalRefundableResourceFeeCharged": "18835469",
+        "rentFeeCharged": "18835459"
+      },
+      "returnValue": null
+    },
+    {
+      "label": "setup CCTWGM 120",
+      "hash": "a1afa6d6ca425e7c8cac46b402b825ba35a100fdf79689151aa64f04a3755e42",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362664,
+      "prepareMs": 1172,
+      "cost": {
+        "instructions": 20320399,
+        "diskReadBytes": 0,
+        "writeBytes": 19360,
+        "readOnlyEntries": 2,
+        "readWriteEntries": 120,
+        "minResourceFee": 21874158,
+        "events": 2,
+        "envelopeBytes": 18488
+      },
+      "status": "SUCCESS",
+      "ledger": 5362665,
+      "applicationOrder": 8,
+      "ledgersWaited": 1,
+      "confirmMs": 3386,
+      "feeCharged": 19040823,
+      "resultCode": {
+        "code": 0,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "205254",
+        "totalRefundableResourceFeeCharged": "18835469",
+        "rentFeeCharged": "18835459"
+      },
+      "returnValue": null
+    },
+    {
+      "label": "setup C",
+      "hash": "3cdf6283f78428c3de75f79200826b78ee32fa896090c52892634f67ac74d64f",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362665,
+      "prepareMs": 299,
+      "cost": {
+        "instructions": 1383818,
+        "diskReadBytes": 0,
+        "writeBytes": 1936,
+        "readOnlyEntries": 2,
+        "readWriteEntries": 12,
+        "minResourceFee": 2192562,
+        "events": 2,
+        "envelopeBytes": 2216
+      },
+      "status": "SUCCESS",
+      "ledger": 5362666,
+      "applicationOrder": 9,
+      "ledgersWaited": 1,
+      "confirmMs": 4685,
+      "feeCharged": 1905325,
+      "resultCode": {
+        "code": 0,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "21669",
+        "totalRefundableResourceFeeCharged": "1883556",
+        "rentFeeCharged": "1883546"
+      },
+      "returnValue": null
+    },
+    {
+      "label": "settle A #0",
+      "hash": "c842caa14d83fbdf333a5a44e71ddf1af06df1a1f12d61040595546248333ec5",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362666,
+      "prepareMs": 893,
+      "cost": {
+        "instructions": 2682028,
+        "diskReadBytes": 0,
+        "writeBytes": 1176,
+        "readOnlyEntries": 5,
+        "readWriteEntries": 7,
+        "minResourceFee": 2039685,
+        "events": 3,
+        "envelopeBytes": 3152
+      },
+      "status": "SUCCESS",
+      "ledger": 5362668,
+      "applicationOrder": 19,
+      "ledgersWaited": 2,
+      "confirmMs": 5579,
+      "feeCharged": 1771846,
+      "resultCode": {
+        "code": 0,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "17522",
+        "totalRefundableResourceFeeCharged": "1754224",
+        "rentFeeCharged": "1753921"
+      },
+      "returnValue": null
+    },
+    {
+      "label": "settle B #0",
+      "hash": "e9cbff03b4674b094f9e665bef70db7559e64906cc6c74484a91e4dbed821bc5",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362668,
+      "prepareMs": 533,
+      "cost": {
+        "instructions": 2680910,
+        "diskReadBytes": 0,
+        "writeBytes": 1176,
+        "readOnlyEntries": 5,
+        "readWriteEntries": 7,
+        "minResourceFee": 1759510,
+        "events": 3,
+        "envelopeBytes": 3152
+      },
+      "status": "SUCCESS",
+      "ledger": 5362669,
+      "applicationOrder": 9,
+      "ledgersWaited": 1,
+      "confirmMs": 4143,
+      "feeCharged": 1528214,
+      "resultCode": {
+        "code": 0,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "17522",
+        "totalRefundableResourceFeeCharged": "1510592",
+        "rentFeeCharged": "1510289"
+      },
+      "returnValue": null
+    },
+    {
+      "label": "settle A #1",
+      "hash": "97db6c48cf4dac2fb1fe16176674bf67fe38e0a8366aff7cbe27dd71ba0ecef6",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362669,
+      "prepareMs": 412,
+      "cost": {
+        "instructions": 2694466,
+        "diskReadBytes": 0,
+        "writeBytes": 1176,
+        "readOnlyEntries": 5,
+        "readWriteEntries": 7,
+        "minResourceFee": 327462,
+        "events": 3,
+        "envelopeBytes": 3152
+      },
+      "status": "SUCCESS",
+      "ledger": 5362670,
+      "applicationOrder": 21,
+      "ledgersWaited": 1,
+      "confirmMs": 4186,
+      "feeCharged": 282958,
+      "resultCode": {
+        "code": 0,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "17526",
+        "totalRefundableResourceFeeCharged": "265332",
+        "rentFeeCharged": "265029"
+      },
+      "returnValue": null
+    },
+    {
+      "label": "settle B #1",
+      "hash": "183cfcaba558b736d33d719726cb3bf74705bf582d5bbf0553056b6ceb631136",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362670,
+      "prepareMs": 159,
+      "cost": {
+        "instructions": 2697242,
+        "diskReadBytes": 0,
+        "writeBytes": 1176,
+        "readOnlyEntries": 5,
+        "readWriteEntries": 7,
+        "minResourceFee": 47286,
+        "events": 3,
+        "envelopeBytes": 3152
+      },
+      "status": "SUCCESS",
+      "ledger": 5362671,
+      "applicationOrder": 11,
+      "ledgersWaited": 1,
+      "confirmMs": 4827,
+      "feeCharged": 39325,
+      "resultCode": {
+        "code": 0,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "17527",
+        "totalRefundableResourceFeeCharged": "21698",
+        "rentFeeCharged": "21395"
+      },
+      "returnValue": null
+    },
+    {
+      "label": "settle A #2",
+      "hash": "3aa4a6dfaa635ee5e751ad4f1956fa723186e73a09080fb3aeda1305c425c803",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362671,
+      "prepareMs": 732,
+      "cost": {
+        "instructions": 2692201,
+        "diskReadBytes": 0,
+        "writeBytes": 1176,
+        "readOnlyEntries": 5,
+        "readWriteEntries": 7,
+        "minResourceFee": 327461,
+        "events": 3,
+        "envelopeBytes": 3152
+      },
+      "status": "SUCCESS",
+      "ledger": 5362672,
+      "applicationOrder": 2,
+      "ledgersWaited": 1,
+      "confirmMs": 3839,
+      "feeCharged": 282957,
+      "resultCode": {
+        "code": 0,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "17525",
+        "totalRefundableResourceFeeCharged": "265332",
+        "rentFeeCharged": "265029"
+      },
+      "returnValue": null
+    },
+    {
+      "label": "settle B #2",
+      "hash": "b8ecdd150824859261174a686a581ec68e534921147f74bd11cf38989ec9748b",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362672,
+      "prepareMs": 425,
+      "cost": {
+        "instructions": 2691083,
+        "diskReadBytes": 0,
+        "writeBytes": 1176,
+        "readOnlyEntries": 5,
+        "readWriteEntries": 7,
+        "minResourceFee": 47282,
+        "events": 3,
+        "envelopeBytes": 3152
+      },
+      "status": "SUCCESS",
+      "ledger": 5362673,
+      "applicationOrder": 10,
+      "ledgersWaited": 1,
+      "confirmMs": 4166,
+      "feeCharged": 39321,
+      "resultCode": {
+        "code": 0,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "17525",
+        "totalRefundableResourceFeeCharged": "21696",
+        "rentFeeCharged": "21393"
+      },
+      "returnValue": null
+    },
+    {
+      "label": "settle A #3",
+      "hash": "8aaab507b2063643bc0e5f8ba0af24c7313bb88d818cb52d44c585d811e6cfd8",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362673,
+      "prepareMs": 277,
+      "cost": {
+        "instructions": 2694466,
+        "diskReadBytes": 0,
+        "writeBytes": 1176,
+        "readOnlyEntries": 5,
+        "readWriteEntries": 7,
+        "minResourceFee": 327462,
+        "events": 3,
+        "envelopeBytes": 3152
+      },
+      "status": "SUCCESS",
+      "ledger": 5362674,
+      "applicationOrder": 3,
+      "ledgersWaited": 1,
+      "confirmMs": 4961,
+      "feeCharged": 282958,
+      "resultCode": {
+        "code": 0,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "17526",
+        "totalRefundableResourceFeeCharged": "265332",
+        "rentFeeCharged": "265029"
+      },
+      "returnValue": null
+    },
+    {
+      "label": "settle B #3",
+      "hash": "b48555ae518f1a3732e4145098e61b4e4243ca951985e93ba8be9fc8ba5ac26e",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362674,
+      "prepareMs": 386,
+      "cost": {
+        "instructions": 2697242,
+        "diskReadBytes": 0,
+        "writeBytes": 1176,
+        "readOnlyEntries": 5,
+        "readWriteEntries": 7,
+        "minResourceFee": 47282,
+        "events": 3,
+        "envelopeBytes": 3152
+      },
+      "status": "SUCCESS",
+      "ledger": 5362675,
+      "applicationOrder": 13,
+      "ledgersWaited": 1,
+      "confirmMs": 4337,
+      "feeCharged": 39321,
+      "resultCode": {
+        "code": 0,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "17527",
+        "totalRefundableResourceFeeCharged": "21694",
+        "rentFeeCharged": "21391"
+      },
+      "returnValue": null
+    },
+    {
+      "label": "settle A #4",
+      "hash": "ec2eafeaddb8b2c7703c6dda6c27bf86ba206a7f9cd7cd2d3ae6d33bc05a3c6d",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362675,
+      "prepareMs": 359,
+      "cost": {
+        "instructions": 2698360,
+        "diskReadBytes": 0,
+        "writeBytes": 1176,
+        "readOnlyEntries": 5,
+        "readWriteEntries": 7,
+        "minResourceFee": 327463,
+        "events": 3,
+        "envelopeBytes": 3152
+      },
+      "status": "SUCCESS",
+      "ledger": 5362676,
+      "applicationOrder": 5,
+      "ledgersWaited": 1,
+      "confirmMs": 3882,
+      "feeCharged": 282959,
+      "resultCode": {
+        "code": 0,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "17527",
+        "totalRefundableResourceFeeCharged": "265332",
+        "rentFeeCharged": "265029"
+      },
+      "returnValue": null
+    },
+    {
+      "label": "settle B #4",
+      "hash": "b46bcb7dcda937bfad68ed93fecfe19266ac0289bd8767d6f020cc4642c24966",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362676,
+      "prepareMs": 595,
+      "cost": {
+        "instructions": 2701352,
+        "diskReadBytes": 0,
+        "writeBytes": 1176,
+        "readOnlyEntries": 5,
+        "readWriteEntries": 7,
+        "minResourceFee": 47278,
+        "events": 3,
+        "envelopeBytes": 3152
+      },
+      "status": "SUCCESS",
+      "ledger": 5362677,
+      "applicationOrder": 11,
+      "ledgersWaited": 1,
+      "confirmMs": 4345,
+      "feeCharged": 39320,
+      "resultCode": {
+        "code": 0,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "17528",
+        "totalRefundableResourceFeeCharged": "21692",
+        "rentFeeCharged": "21389"
+      },
+      "returnValue": null
+    },
+    {
+      "label": "settle_idem A #0",
+      "hash": "eefe0012c367622e0740ab8bcdfb6b906648e82065bb31f9ada68809d9dfc6be",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362677,
+      "prepareMs": 324,
+      "cost": {
+        "instructions": 2740183,
+        "diskReadBytes": 0,
+        "writeBytes": 1008,
+        "readOnlyEntries": 6,
+        "readWriteEntries": 7,
+        "minResourceFee": 453382,
+        "events": 3,
+        "envelopeBytes": 3252
+      },
+      "status": "SUCCESS",
+      "ledger": 5362678,
+      "applicationOrder": 4,
+      "ledgersWaited": 1,
+      "confirmMs": 4826,
+      "feeCharged": 392475,
+      "resultCode": {
+        "code": 0,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "17688",
+        "totalRefundableResourceFeeCharged": "374687",
+        "rentFeeCharged": "374384"
+      },
+      "returnValue": null
+    },
+    {
+      "label": "settle_idem B #0",
+      "hash": "e995dab50ba63b28eb105e103109113b74e7da227245391dbe58322f7f2c331d",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362678,
+      "prepareMs": 792,
+      "cost": {
+        "instructions": 2744314,
+        "diskReadBytes": 0,
+        "writeBytes": 1008,
+        "readOnlyEntries": 6,
+        "readWriteEntries": 7,
+        "minResourceFee": 57822,
+        "events": 3,
+        "envelopeBytes": 3252
+      },
+      "status": "SUCCESS",
+      "ledger": 5362679,
+      "applicationOrder": 9,
+      "ledgersWaited": 1,
+      "confirmMs": 3444,
+      "feeCharged": 48510,
+      "resultCode": {
+        "code": 0,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "17689",
+        "totalRefundableResourceFeeCharged": "30721",
+        "rentFeeCharged": "30418"
+      },
+      "returnValue": null
+    },
+    {
+      "label": "settle_idem A #1",
+      "hash": "7809f5a68a7b009388cdf12076d6dcd61d0d05b62230e7be832cb5165b7495fa",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362679,
+      "prepareMs": 292,
+      "cost": {
+        "instructions": 2747149,
+        "diskReadBytes": 0,
+        "writeBytes": 1008,
+        "readOnlyEntries": 6,
+        "readWriteEntries": 7,
+        "minResourceFee": 453384,
+        "events": 3,
+        "envelopeBytes": 3252
+      },
+      "status": "SUCCESS",
+      "ledger": 5362680,
+      "applicationOrder": 22,
+      "ledgersWaited": 1,
+      "confirmMs": 4323,
+      "feeCharged": 392477,
+      "resultCode": {
+        "code": 0,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "17690",
+        "totalRefundableResourceFeeCharged": "374687",
+        "rentFeeCharged": "374384"
+      },
+      "returnValue": null
+    },
+    {
+      "label": "settle_idem B #1",
+      "hash": "b27d6a809b7d64bcf4fa333a8c1de4fe806fc1aa4f4a9fb708fc37abef1c2fbc",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362680,
+      "prepareMs": 1229,
+      "cost": {
+        "instructions": 2747170,
+        "diskReadBytes": 0,
+        "writeBytes": 1008,
+        "readOnlyEntries": 6,
+        "readWriteEntries": 7,
+        "minResourceFee": 57820,
+        "events": 3,
+        "envelopeBytes": 3252
+      },
+      "status": "SUCCESS",
+      "ledger": 5362681,
+      "applicationOrder": 9,
+      "ledgersWaited": 1,
+      "confirmMs": 3295,
+      "feeCharged": 48508,
+      "resultCode": {
+        "code": 0,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "17690",
+        "totalRefundableResourceFeeCharged": "30718",
+        "rentFeeCharged": "30415"
+      },
+      "returnValue": null
+    },
+    {
+      "label": "settle_idem A #2",
+      "hash": "ffddfe3235275a3e24443676c9fd96fb0ee44ae3c6ad97aa9ec81ad06e4075fc",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362681,
+      "prepareMs": 938,
+      "cost": {
+        "instructions": 2740183,
+        "diskReadBytes": 0,
+        "writeBytes": 1008,
+        "readOnlyEntries": 6,
+        "readWriteEntries": 7,
+        "minResourceFee": 453382,
+        "events": 3,
+        "envelopeBytes": 3252
+      },
+      "status": "SUCCESS",
+      "ledger": 5362682,
+      "applicationOrder": 7,
+      "ledgersWaited": 1,
+      "confirmMs": 3606,
+      "feeCharged": 392475,
+      "resultCode": {
+        "code": 0,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "17688",
+        "totalRefundableResourceFeeCharged": "374687",
+        "rentFeeCharged": "374384"
+      },
+      "returnValue": null
+    },
+    {
+      "label": "settle_idem B #2",
+      "hash": "1fe79be6ca188d52e4c083aad1ec391e5f30f961e174ffb502611a660eb363e1",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362682,
+      "prepareMs": 692,
+      "cost": {
+        "instructions": 2744314,
+        "diskReadBytes": 0,
+        "writeBytes": 1008,
+        "readOnlyEntries": 6,
+        "readWriteEntries": 7,
+        "minResourceFee": 57816,
+        "events": 3,
+        "envelopeBytes": 3252
+      },
+      "status": "SUCCESS",
+      "ledger": 5362683,
+      "applicationOrder": 5,
+      "ledgersWaited": 1,
+      "confirmMs": 4223,
+      "feeCharged": 48504,
+      "resultCode": {
+        "code": 0,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "17689",
+        "totalRefundableResourceFeeCharged": "30715",
+        "rentFeeCharged": "30412"
+      },
+      "returnValue": null
+    },
+    {
+      "label": "settle_batch A distinct k=2",
+      "hash": "8de227b0bbc924267a4c5c5abad0cd3165901e3e904462c05e2f3f81a2089c07",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362734,
+      "prepareMs": 1544,
+      "cost": {
+        "instructions": 4984034,
+        "diskReadBytes": 0,
+        "writeBytes": 2072,
+        "readOnlyEntries": 9,
+        "readWriteEntries": 13,
+        "minResourceFee": 648080,
+        "events": 4,
+        "envelopeBytes": 5928
+      },
+      "status": "SUCCESS",
+      "ledger": 5362735,
+      "applicationOrder": 7,
+      "ledgersWaited": 1,
+      "confirmMs": 3121,
+      "feeCharged": 563166,
+      "resultCode": {
+        "code": 0,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "32148",
+        "totalRefundableResourceFeeCharged": "530918",
+        "rentFeeCharged": "530322"
+      },
+      "returnValue": null
+    },
+    {
+      "label": "settle_batch A distinct k=16",
+      "hash": "08ada4018097cc6fd87e6e117a7438d7e439353ee2349f132eb20c77a2523a0c",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362736,
+      "prepareMs": 4781,
+      "cost": {
+        "instructions": 52057669,
+        "diskReadBytes": 0,
+        "writeBytes": 14616,
+        "readOnlyEntries": 65,
+        "readWriteEntries": 97,
+        "minResourceFee": 5138472,
+        "events": 18,
+        "envelopeBytes": 44344
+      },
+      "status": "SUCCESS",
+      "ledger": 5362737,
+      "applicationOrder": 9,
+      "ledgersWaited": 1,
+      "confirmMs": 5165,
+      "feeCharged": 4487731,
+      "resultCode": {
+        "code": 0,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "240357",
+        "totalRefundableResourceFeeCharged": "4247274",
+        "rentFeeCharged": "4242576"
+      },
+      "returnValue": null
+    },
+    {
+      "label": "settle_batch A distinct k=33",
+      "hash": "2435910d85be762745a3cd66d46fefc60c9762e4764dc1dd3eb54f381a35d440",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362739,
+      "prepareMs": 12295,
+      "cost": {
+        "instructions": 144988738,
+        "diskReadBytes": 0,
+        "writeBytes": 29848,
+        "readOnlyEntries": 133,
+        "readWriteEntries": 199,
+        "minResourceFee": 10601820,
+        "events": 35,
+        "envelopeBytes": 90992
+      },
+      "status": "SUCCESS",
+      "ledger": 5362741,
+      "applicationOrder": 12,
+      "ledgersWaited": 2,
+      "confirmMs": 7296,
+      "feeCharged": 9264005,
+      "resultCode": {
+        "code": 0,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "503915",
+        "totalRefundableResourceFeeCharged": "8759990",
+        "rentFeeCharged": "8750312"
+      },
+      "returnValue": null
+    },
+    {
+      "label": "settle_batch B distinct k=33",
+      "hash": "c649a2a4c6963d4697b914a2b87d21310e087d85e820ac79180290f88028d54e",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362742,
+      "prepareMs": 5443,
+      "cost": {
+        "instructions": 147724183,
+        "diskReadBytes": 0,
+        "writeBytes": 29848,
+        "readOnlyEntries": 133,
+        "readWriteEntries": 199,
+        "minResourceFee": 1349217,
+        "events": 35,
+        "envelopeBytes": 90992
+      },
+      "status": "SUCCESS",
+      "ledger": 5362743,
+      "applicationOrder": 8,
+      "ledgersWaited": 1,
+      "confirmMs": 4404,
+      "feeCharged": 1218304,
+      "resultCode": {
+        "code": 0,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "504736",
+        "totalRefundableResourceFeeCharged": "713468",
+        "rentFeeCharged": "703790"
+      },
+      "returnValue": null
+    },
+    {
+      "label": "settle_batch A shared k=73",
+      "hash": "c0d65b911e67c3e2b711e2f2ec5277bb7a50a9489b9c4e1ad581e856214c9498",
+      "sendStatus": "RPC_REJECTED",
+      "rpcError": "invalid_xdr",
+      "ledgerAtSend": 5362743,
+      "prepareMs": 1057,
+      "cost": {
+        "instructions": 156141429,
+        "diskReadBytes": 0,
+        "writeBytes": 20760,
+        "readOnlyEntries": 5,
+        "readWriteEntries": 151,
+        "minResourceFee": 22848231,
+        "events": 75,
+        "envelopeBytes": 131056
+      }
+    },
+    {
+      "label": "settle_batch A shared k=58",
+      "hash": "a3b208c767021248d1ec0aaea80005453bc8170ea43c0f1e11990cadd0ea91ac",
+      "sendStatus": "RPC_REJECTED",
+      "rpcError": "invalid_xdr",
+      "ledgerAtSend": 5362744,
+      "prepareMs": 5446,
+      "cost": {
+        "instructions": 120464595,
+        "diskReadBytes": 0,
+        "writeBytes": 16680,
+        "readOnlyEntries": 5,
+        "readWriteEntries": 121,
+        "minResourceFee": 18155333,
+        "events": 60,
+        "envelopeBytes": 104416
+      }
+    },
+    {
+      "label": "settle_batch A shared k=46",
+      "hash": "f7c35aeaaec1e96b76c4b0cea04f676b1c214241467d61b752238cc7f34ed8eb",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362745,
+      "prepareMs": 4544,
+      "cost": {
+        "instructions": 93165426,
+        "diskReadBytes": 0,
+        "writeBytes": 13416,
+        "readOnlyEntries": 5,
+        "readWriteEntries": 97,
+        "minResourceFee": 14401385,
+        "events": 48,
+        "envelopeBytes": 83104
+      },
+      "status": "SUCCESS",
+      "ledger": 5362746,
+      "applicationOrder": 5,
+      "ledgersWaited": 1,
+      "confirmMs": 2818,
+      "feeCharged": 12547654,
+      "resultCode": {
+        "code": 0,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "336662",
+        "totalRefundableResourceFeeCharged": "12210892",
+        "rentFeeCharged": "12197405"
+      },
+      "returnValue": null
+    },
+    {
+      "label": "settle_batch_idem A distinct k=28",
+      "hash": "35cc9035aeae73cac7111f63d2ceab7846e952ca1bf2c71fae2dc73dac2562aa",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362746,
+      "prepareMs": 3786,
+      "cost": {
+        "instructions": 127621052,
+        "diskReadBytes": 0,
+        "writeBytes": 28224,
+        "readOnlyEntries": 114,
+        "readWriteEntries": 196,
+        "minResourceFee": 12562079,
+        "events": 30,
+        "envelopeBytes": 79864
+      },
+      "status": "SUCCESS",
+      "ledger": 5362748,
+      "applicationOrder": 8,
+      "ledgersWaited": 2,
+      "confirmMs": 5754,
+      "feeCharged": 10966264,
+      "resultCode": {
+        "code": 0,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "470006",
+        "totalRefundableResourceFeeCharged": "10496158",
+        "rentFeeCharged": "10487945"
+      },
+      "returnValue": null
+    },
+    {
+      "label": "anchor #0",
+      "hash": "7ef5863329fc59de98d9a8d541b65742576cda130c16b1f841843e2826adea1c",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362748,
+      "prepareMs": 202,
+      "cost": {
+        "instructions": 685599,
+        "diskReadBytes": 0,
+        "writeBytes": 396,
+        "readOnlyEntries": 1,
+        "readWriteEntries": 1,
+        "minResourceFee": 3320289,
+        "events": 3,
+        "envelopeBytes": 488
+      },
+      "status": "SUCCESS",
+      "ledger": 5362749,
+      "applicationOrder": 8,
+      "ledgersWaited": 1,
+      "confirmMs": 4760,
+      "feeCharged": 2883557,
+      "resultCode": {
+        "code": 0,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "3284",
+        "totalRefundableResourceFeeCharged": "2880173",
+        "rentFeeCharged": "2879899"
+      },
+      "returnValue": null
+    },
+    {
+      "label": "anchor #1",
+      "hash": "69465c469c7a09223a78951ded18e932d23d84fdc7a7bd8bf8934adbb6d8021d",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362749,
+      "prepareMs": 108,
+      "cost": {
+        "instructions": 707066,
+        "diskReadBytes": 0,
+        "writeBytes": 396,
+        "readOnlyEntries": 1,
+        "readWriteEntries": 1,
+        "minResourceFee": 8410,
+        "events": 3,
+        "envelopeBytes": 488
+      },
+      "status": "SUCCESS",
+      "ledger": 5362750,
+      "applicationOrder": 2,
+      "ledgersWaited": 1,
+      "confirmMs": 4419,
+      "feeCharged": 3665,
+      "resultCode": {
+        "code": 0,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "3291",
+        "totalRefundableResourceFeeCharged": "274",
+        "rentFeeCharged": "0"
+      },
+      "returnValue": null
+    },
+    {
+      "label": "anchor #2",
+      "hash": "db15875950263a3990f06ebef5e22db93ff4f9077870a31e7fd614569d8f68b6",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362750,
+      "prepareMs": 75,
+      "cost": {
+        "instructions": 707066,
+        "diskReadBytes": 0,
+        "writeBytes": 396,
+        "readOnlyEntries": 1,
+        "readWriteEntries": 1,
+        "minResourceFee": 8410,
+        "events": 3,
+        "envelopeBytes": 488
+      },
+      "status": "SUCCESS",
+      "ledger": 5362751,
+      "applicationOrder": 5,
+      "ledgersWaited": 1,
+      "confirmMs": 5011,
+      "feeCharged": 3665,
+      "resultCode": {
+        "code": 0,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "3291",
+        "totalRefundableResourceFeeCharged": "274",
+        "rentFeeCharged": "0"
+      },
+      "returnValue": null
+    },
+    {
+      "label": "probe temp to max",
+      "hash": "e01478676573ce7a6b1a581c4436a42f302350d9806fb9cbd5007de8a811b9dc",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362751,
+      "prepareMs": 67,
+      "cost": {
+        "instructions": 634112,
+        "diskReadBytes": 0,
+        "writeBytes": 100,
+        "readOnlyEntries": 2,
+        "readWriteEntries": 1,
+        "minResourceFee": 1436934,
+        "events": 2,
+        "envelopeBytes": 452
+      },
+      "status": "SUCCESS",
+      "ledger": 5362752,
+      "applicationOrder": 25,
+      "ledgersWaited": 1,
+      "confirmMs": 5003,
+      "feeCharged": 1245831,
+      "resultCode": {
+        "code": 0,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "3065",
+        "totalRefundableResourceFeeCharged": "1242666",
+        "rentFeeCharged": "1242646"
+      },
+      "returnValue": 3110399
+    },
+    {
+      "label": "probe persistent to max",
+      "hash": "8905e722b4370c169bc59ed834840a0f9d5497602feb319be6290476cd68f9f2",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362752,
+      "prepareMs": 219,
+      "cost": {
+        "instructions": 633832,
+        "diskReadBytes": 0,
+        "writeBytes": 100,
+        "readOnlyEntries": 2,
+        "readWriteEntries": 1,
+        "minResourceFee": 2865953,
+        "events": 2,
+        "envelopeBytes": 452
+      },
+      "status": "SUCCESS",
+      "ledger": 5362753,
+      "applicationOrder": 5,
+      "ledgersWaited": 1,
+      "confirmMs": 4374,
+      "feeCharged": 2488456,
+      "resultCode": {
+        "code": 0,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "3065",
+        "totalRefundableResourceFeeCharged": "2485291",
+        "rentFeeCharged": "2485271"
+      },
+      "returnValue": 3110399
+    },
+    {
+      "label": "probe persistent minimal",
+      "hash": "99e1170648d3612b9fe04c947c0f74000574560dc654764434095caec5263328",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362753,
+      "prepareMs": 131,
+      "cost": {
+        "instructions": 632729,
+        "diskReadBytes": 0,
+        "writeBytes": 100,
+        "readOnlyEntries": 2,
+        "readWriteEntries": 1,
+        "minResourceFee": 120442,
+        "events": 2,
+        "envelopeBytes": 452
+      },
+      "status": "SUCCESS",
+      "ledger": 5362754,
+      "applicationOrder": 12,
+      "ledgersWaited": 1,
+      "confirmMs": 4709,
+      "feeCharged": 101055,
+      "resultCode": {
+        "code": 0,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "3064",
+        "totalRefundableResourceFeeCharged": "97891",
+        "rentFeeCharged": "97871"
+      },
+      "returnValue": 3110399
+    },
+    {
+      "label": "settle A with a gap of 10",
+      "hash": "d74537778d63c9aa89fc444cdf6c9e4317e3a986bfdf33e982da90c4c65f3ed8",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362754,
+      "prepareMs": 175,
+      "cost": {
+        "instructions": 2719532,
+        "diskReadBytes": 0,
+        "writeBytes": 1292,
+        "readOnlyEntries": 5,
+        "readWriteEntries": 7,
+        "minResourceFee": 327823,
+        "events": 3,
+        "envelopeBytes": 3152
+      },
+      "status": "SUCCESS",
+      "ledger": 5362755,
+      "applicationOrder": 13,
+      "ledgersWaited": 1,
+      "confirmMs": 4160,
+      "feeCharged": 283279,
+      "resultCode": {
+        "code": 0,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "17583",
+        "totalRefundableResourceFeeCharged": "265596",
+        "rentFeeCharged": "265293"
+      },
+      "returnValue": null
+    },
+    {
+      "label": "same source",
+      "hash": "ce56f265f4d8a2a2339eaba38fbe681efaaa51681fe123d9eb56471e756bb28d",
+      "sendStatus": "PENDING",
+      "status": "SUCCESS",
+      "ledger": 5362756,
+      "applicationOrder": 15,
+      "feeCharged": 283279
+    },
+    {
+      "label": "same source",
+      "hash": "46175997bde20d90d1c8fd6ca624bebe0c2ed6ee67b631f7e9aa2e8ef05cf317",
+      "sendStatus": "ERROR",
+      "errorResult": {
+        "code": -5
+      }
+    },
+    {
+      "label": "cursor round 0 channel 2 cursor 116",
+      "hash": "bcde09a946892055187cbbda8389cd39377aac4772a0b3dd118287cbd1a6b40f",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362756,
+      "prepareMs": 449,
+      "cost": {
+        "instructions": 3312603,
+        "diskReadBytes": 144,
+        "writeBytes": 1368,
+        "readOnlyEntries": 6,
+        "readWriteEntries": 8,
+        "minResourceFee": 332563,
+        "events": 3,
+        "envelopeBytes": 3480
+      },
+      "status": "SUCCESS",
+      "ledger": 5362757,
+      "applicationOrder": 3,
+      "ledgersWaited": 1,
+      "confirmMs": 1822,
+      "feeCharged": 287757,
+      "resultCode": {
+        "code": 0,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "20571",
+        "totalRefundableResourceFeeCharged": "267086",
+        "rentFeeCharged": "266783"
+      },
+      "returnValue": null
+    },
+    {
+      "label": "cursor round 0 channel 1 cursor 115",
+      "hash": "02e9748374eed2e29ad2190a301501d887736b07d3af55975048a92b0a55f89a",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362756,
+      "prepareMs": 359,
+      "cost": {
+        "instructions": 3287038,
+        "diskReadBytes": 144,
+        "writeBytes": 1368,
+        "readOnlyEntries": 6,
+        "readWriteEntries": 8,
+        "minResourceFee": 332556,
+        "events": 3,
+        "envelopeBytes": 3480
+      },
+      "status": "FAILED",
+      "ledger": 5362757,
+      "applicationOrder": 4,
+      "ledgersWaited": 1,
+      "confirmMs": 2074,
+      "feeCharged": 20664,
+      "resultCode": {
+        "code": -2,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "20564",
+        "totalRefundableResourceFeeCharged": "0",
+        "rentFeeCharged": "0"
+      },
+      "contractError": 3
+    },
+    {
+      "label": "cursor round 0 channel 3 cursor 117",
+      "hash": "d72394c66ca4b200b50d6aa0ab46a9c8e5c9bfd2c5e5c12ea3df4f885f2acdbd",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362756,
+      "prepareMs": 426,
+      "cost": {
+        "instructions": 3287038,
+        "diskReadBytes": 144,
+        "writeBytes": 1368,
+        "readOnlyEntries": 6,
+        "readWriteEntries": 8,
+        "minResourceFee": 332556,
+        "events": 3,
+        "envelopeBytes": 3480
+      },
+      "status": "SUCCESS",
+      "ledger": 5362757,
+      "applicationOrder": 7,
+      "ledgersWaited": 1,
+      "confirmMs": 2095,
+      "feeCharged": 287750,
+      "resultCode": {
+        "code": 0,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "20564",
+        "totalRefundableResourceFeeCharged": "267086",
+        "rentFeeCharged": "266783"
+      },
+      "returnValue": null
+    },
+    {
+      "label": "cursor round 0 channel 4 cursor 118",
+      "hash": "82e5273299c45fbc7fa89d73c469fbf054ba759f4efb87096ff0e8da9f1bb9b2",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362756,
+      "prepareMs": 441,
+      "cost": {
+        "instructions": 3312603,
+        "diskReadBytes": 144,
+        "writeBytes": 1368,
+        "readOnlyEntries": 6,
+        "readWriteEntries": 8,
+        "minResourceFee": 332563,
+        "events": 3,
+        "envelopeBytes": 3480
+      },
+      "status": "SUCCESS",
+      "ledger": 5362757,
+      "applicationOrder": 13,
+      "ledgersWaited": 1,
+      "confirmMs": 2056,
+      "feeCharged": 287757,
+      "resultCode": {
+        "code": 0,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "20571",
+        "totalRefundableResourceFeeCharged": "267086",
+        "rentFeeCharged": "266783"
+      },
+      "returnValue": null
+    },
+    {
+      "label": "cursor round 0 channel 0 cursor 114",
+      "hash": "cd328b10f9a458236a899a2a83b38d9870b63c706837f35eeb370eb1a00b645a",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362756,
+      "prepareMs": 421,
+      "cost": {
+        "instructions": 3287038,
+        "diskReadBytes": 144,
+        "writeBytes": 1368,
+        "readOnlyEntries": 6,
+        "readWriteEntries": 8,
+        "minResourceFee": 332556,
+        "events": 3,
+        "envelopeBytes": 3480
+      },
+      "status": "FAILED",
+      "ledger": 5362757,
+      "applicationOrder": 6,
+      "ledgersWaited": 1,
+      "confirmMs": 2912,
+      "feeCharged": 20664,
+      "resultCode": {
+        "code": -2,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "20564",
+        "totalRefundableResourceFeeCharged": "0",
+        "rentFeeCharged": "0"
+      },
+      "contractError": 3
+    },
+    {
+      "label": "idem round 0 channel 1 id 1000033",
+      "hash": "a61137cbd3f80b917f79f5f7dfd9490c7ed586248a0e203d5a7bd699c13fdac6",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362758,
+      "prepareMs": 824,
+      "cost": {
+        "instructions": 3347195,
+        "diskReadBytes": 144,
+        "writeBytes": 1084,
+        "readOnlyEntries": 7,
+        "readWriteEntries": 8,
+        "minResourceFee": 458575,
+        "events": 3,
+        "envelopeBytes": 3580
+      },
+      "status": "SUCCESS",
+      "ledger": 5362759,
+      "applicationOrder": 6,
+      "ledgersWaited": 1,
+      "confirmMs": 2405,
+      "feeCharged": 397328,
+      "resultCode": {
+        "code": 0,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "20680",
+        "totalRefundableResourceFeeCharged": "376548",
+        "rentFeeCharged": "376245"
+      },
+      "returnValue": null
+    },
+    {
+      "label": "idem round 0 channel 4 id 1000036",
+      "hash": "4705f9f7ff0d88c4d327ae26a743fa99007715e5dacbc98f4d0f67617d462acd",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362758,
+      "prepareMs": 1109,
+      "cost": {
+        "instructions": 3368326,
+        "diskReadBytes": 144,
+        "writeBytes": 1084,
+        "readOnlyEntries": 7,
+        "readWriteEntries": 8,
+        "minResourceFee": 458581,
+        "events": 3,
+        "envelopeBytes": 3580
+      },
+      "status": "SUCCESS",
+      "ledger": 5362759,
+      "applicationOrder": 9,
+      "ledgersWaited": 1,
+      "confirmMs": 2607,
+      "feeCharged": 397334,
+      "resultCode": {
+        "code": 0,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "20686",
+        "totalRefundableResourceFeeCharged": "376548",
+        "rentFeeCharged": "376245"
+      },
+      "returnValue": null
+    },
+    {
+      "label": "idem round 0 channel 3 id 1000035",
+      "hash": "c5e942c1a4bddfcdf6a53c0a477a905d05933f136256125a2f482f2a56e47e7f",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362758,
+      "prepareMs": 1880,
+      "cost": {
+        "instructions": 3368326,
+        "diskReadBytes": 144,
+        "writeBytes": 1084,
+        "readOnlyEntries": 7,
+        "readWriteEntries": 8,
+        "minResourceFee": 458581,
+        "events": 3,
+        "envelopeBytes": 3580
+      },
+      "status": "SUCCESS",
+      "ledger": 5362759,
+      "applicationOrder": 4,
+      "ledgersWaited": 1,
+      "confirmMs": 2979,
+      "feeCharged": 397334,
+      "resultCode": {
+        "code": 0,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "20686",
+        "totalRefundableResourceFeeCharged": "376548",
+        "rentFeeCharged": "376245"
+      },
+      "returnValue": null
+    },
+    {
+      "label": "idem round 0 channel 0 id 1000032",
+      "hash": "fe742e8be3e2e11018e33d099d923062713aec65d043647bab7acff21e5d5ee8",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362758,
+      "prepareMs": 1662,
+      "cost": {
+        "instructions": 3360771,
+        "diskReadBytes": 144,
+        "writeBytes": 1084,
+        "readOnlyEntries": 7,
+        "readWriteEntries": 8,
+        "minResourceFee": 458579,
+        "events": 3,
+        "envelopeBytes": 3580
+      },
+      "status": "SUCCESS",
+      "ledger": 5362759,
+      "applicationOrder": 12,
+      "ledgersWaited": 1,
+      "confirmMs": 3212,
+      "feeCharged": 397332,
+      "resultCode": {
+        "code": 0,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "20684",
+        "totalRefundableResourceFeeCharged": "376548",
+        "rentFeeCharged": "376245"
+      },
+      "returnValue": null
+    },
+    {
+      "label": "idem round 0 channel 2 id 1000034",
+      "hash": "9d0c1cc400389be967fd02f8da086162daf173d8cd4d4ac10184e39b10970ebd",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362758,
+      "prepareMs": 920,
+      "cost": {
+        "instructions": 3360771,
+        "diskReadBytes": 144,
+        "writeBytes": 1084,
+        "readOnlyEntries": 7,
+        "readWriteEntries": 8,
+        "minResourceFee": 458579,
+        "events": 3,
+        "envelopeBytes": 3580
+      },
+      "status": "SUCCESS",
+      "ledger": 5362759,
+      "applicationOrder": 16,
+      "ledgersWaited": 1,
+      "confirmMs": 3061,
+      "feeCharged": 397332,
+      "resultCode": {
+        "code": 0,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "20684",
+        "totalRefundableResourceFeeCharged": "376548",
+        "rentFeeCharged": "376245"
+      },
+      "returnValue": null
+    },
+    {
+      "label": "cursor round 1 channel 0 cursor 119",
+      "hash": "bd97fd751231d890549e867076a2ddfc51df28af01d45063eaabbbacdf12d02c",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362760,
+      "prepareMs": 2297,
+      "cost": {
+        "instructions": 3293719,
+        "diskReadBytes": 144,
+        "writeBytes": 1368,
+        "readOnlyEntries": 6,
+        "readWriteEntries": 8,
+        "minResourceFee": 332558,
+        "events": 3,
+        "envelopeBytes": 3480
+      },
+      "status": "FAILED",
+      "ledger": 5362761,
+      "applicationOrder": 16,
+      "ledgersWaited": 1,
+      "confirmMs": 2066,
+      "feeCharged": 20666,
+      "resultCode": {
+        "code": -2,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "20566",
+        "totalRefundableResourceFeeCharged": "0",
+        "rentFeeCharged": "0"
+      },
+      "contractError": 3
+    },
+    {
+      "label": "cursor round 1 channel 1 cursor 120",
+      "hash": "d3f4728056cf0c11c1a02d79348dd4be6d9416bf2e834ea83f533d1719e70236",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362760,
+      "prepareMs": 1133,
+      "cost": {
+        "instructions": 3293719,
+        "diskReadBytes": 144,
+        "writeBytes": 1368,
+        "readOnlyEntries": 6,
+        "readWriteEntries": 8,
+        "minResourceFee": 332558,
+        "events": 3,
+        "envelopeBytes": 3480
+      },
+      "status": "SUCCESS",
+      "ledger": 5362761,
+      "applicationOrder": 6,
+      "ledgersWaited": 1,
+      "confirmMs": 1995,
+      "feeCharged": 287752,
+      "resultCode": {
+        "code": 0,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "20566",
+        "totalRefundableResourceFeeCharged": "267086",
+        "rentFeeCharged": "266783"
+      },
+      "returnValue": null
+    },
+    {
+      "label": "cursor round 1 channel 4 cursor 123",
+      "hash": "949627aae47d23c9ecedf23a1edca88666528564e71d3b66aa9b87f2fb3693f8",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362760,
+      "prepareMs": 869,
+      "cost": {
+        "instructions": 3287038,
+        "diskReadBytes": 144,
+        "writeBytes": 1368,
+        "readOnlyEntries": 6,
+        "readWriteEntries": 8,
+        "minResourceFee": 332556,
+        "events": 3,
+        "envelopeBytes": 3480
+      },
+      "status": "SUCCESS",
+      "ledger": 5362761,
+      "applicationOrder": 11,
+      "ledgersWaited": 1,
+      "confirmMs": 2112,
+      "feeCharged": 287750,
+      "resultCode": {
+        "code": 0,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "20564",
+        "totalRefundableResourceFeeCharged": "267086",
+        "rentFeeCharged": "266783"
+      },
+      "returnValue": null
+    },
+    {
+      "label": "cursor round 1 channel 3 cursor 122",
+      "hash": "de991362745c47e3ba49c98dd5ea44075f161b6834d5866ceb04f91bf6e9a1fc",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362760,
+      "prepareMs": 1227,
+      "cost": {
+        "instructions": 3312603,
+        "diskReadBytes": 144,
+        "writeBytes": 1368,
+        "readOnlyEntries": 6,
+        "readWriteEntries": 8,
+        "minResourceFee": 332563,
+        "events": 3,
+        "envelopeBytes": 3480
+      },
+      "status": "FAILED",
+      "ledger": 5362761,
+      "applicationOrder": 15,
+      "ledgersWaited": 1,
+      "confirmMs": 2117,
+      "feeCharged": 20671,
+      "resultCode": {
+        "code": -2,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "20571",
+        "totalRefundableResourceFeeCharged": "0",
+        "rentFeeCharged": "0"
+      },
+      "contractError": 3
+    },
+    {
+      "label": "cursor round 1 channel 2 cursor 121",
+      "hash": "a4e581385b4f73a3d4708b32396f5a2c38ae47de2b0babf7e8805b8bf043eabf",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362760,
+      "prepareMs": 1011,
+      "cost": {
+        "instructions": 3293719,
+        "diskReadBytes": 144,
+        "writeBytes": 1368,
+        "readOnlyEntries": 6,
+        "readWriteEntries": 8,
+        "minResourceFee": 332558,
+        "events": 3,
+        "envelopeBytes": 3480
+      },
+      "status": "SUCCESS",
+      "ledger": 5362761,
+      "applicationOrder": 7,
+      "ledgersWaited": 1,
+      "confirmMs": 2281,
+      "feeCharged": 287752,
+      "resultCode": {
+        "code": 0,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "20566",
+        "totalRefundableResourceFeeCharged": "267086",
+        "rentFeeCharged": "266783"
+      },
+      "returnValue": null
+    },
+    {
+      "label": "idem round 1 channel 0 id 1000037",
+      "hash": "3efccf5b8c9b0576aa7a68e5f726c3289869bd3c6bb83c9655abc726d1b41456",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362762,
+      "prepareMs": 1630,
+      "cost": {
+        "instructions": 3347195,
+        "diskReadBytes": 144,
+        "writeBytes": 1084,
+        "readOnlyEntries": 7,
+        "readWriteEntries": 8,
+        "minResourceFee": 458575,
+        "events": 3,
+        "envelopeBytes": 3580
+      },
+      "status": "SUCCESS",
+      "ledger": 5362764,
+      "applicationOrder": 16,
+      "ledgersWaited": 2,
+      "confirmMs": 6648,
+      "feeCharged": 397328,
+      "resultCode": {
+        "code": 0,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "20680",
+        "totalRefundableResourceFeeCharged": "376548",
+        "rentFeeCharged": "376245"
+      },
+      "returnValue": null
+    },
+    {
+      "label": "idem round 1 channel 1 id 1000038",
+      "hash": "22e9e67d37cb1856ee572f3db04d758e1d7090caec9cedcdf70896c4f95939de",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362762,
+      "prepareMs": 1592,
+      "cost": {
+        "instructions": 3360771,
+        "diskReadBytes": 144,
+        "writeBytes": 1084,
+        "readOnlyEntries": 7,
+        "readWriteEntries": 8,
+        "minResourceFee": 458579,
+        "events": 3,
+        "envelopeBytes": 3580
+      },
+      "status": "SUCCESS",
+      "ledger": 5362764,
+      "applicationOrder": 12,
+      "ledgersWaited": 2,
+      "confirmMs": 6444,
+      "feeCharged": 397332,
+      "resultCode": {
+        "code": 0,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "20684",
+        "totalRefundableResourceFeeCharged": "376548",
+        "rentFeeCharged": "376245"
+      },
+      "returnValue": null
+    },
+    {
+      "label": "idem round 1 channel 4 id 1000041",
+      "hash": "7451ba73e4d96ebc3be61ffc3542d9fdee5c4e8faf72062e8224cddace010015",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362762,
+      "prepareMs": 1499,
+      "cost": {
+        "instructions": 3360771,
+        "diskReadBytes": 144,
+        "writeBytes": 1084,
+        "readOnlyEntries": 7,
+        "readWriteEntries": 8,
+        "minResourceFee": 458579,
+        "events": 3,
+        "envelopeBytes": 3580
+      },
+      "status": "SUCCESS",
+      "ledger": 5362764,
+      "applicationOrder": 13,
+      "ledgersWaited": 2,
+      "confirmMs": 6599,
+      "feeCharged": 397332,
+      "resultCode": {
+        "code": 0,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "20684",
+        "totalRefundableResourceFeeCharged": "376548",
+        "rentFeeCharged": "376245"
+      },
+      "returnValue": null
+    },
+    {
+      "label": "idem round 1 channel 3 id 1000040",
+      "hash": "35f1a5b69646c6d043a11a16916678c0bf1dce88baa16c3f74ed48c8326f125b",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362762,
+      "prepareMs": 2211,
+      "cost": {
+        "instructions": 3339640,
+        "diskReadBytes": 144,
+        "writeBytes": 1084,
+        "readOnlyEntries": 7,
+        "readWriteEntries": 8,
+        "minResourceFee": 458572,
+        "events": 3,
+        "envelopeBytes": 3580
+      },
+      "status": "SUCCESS",
+      "ledger": 5362764,
+      "applicationOrder": 20,
+      "ledgersWaited": 2,
+      "confirmMs": 6735,
+      "feeCharged": 397325,
+      "resultCode": {
+        "code": 0,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "20677",
+        "totalRefundableResourceFeeCharged": "376548",
+        "rentFeeCharged": "376245"
+      },
+      "returnValue": null
+    },
+    {
+      "label": "idem round 1 channel 2 id 1000039",
+      "hash": "c9f4d4e245b86d6a8fc2461963778f6f9d49ad59d965c38c17b40a4357f58ab4",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362762,
+      "prepareMs": 1289,
+      "cost": {
+        "instructions": 3368326,
+        "diskReadBytes": 144,
+        "writeBytes": 1084,
+        "readOnlyEntries": 7,
+        "readWriteEntries": 8,
+        "minResourceFee": 458581,
+        "events": 3,
+        "envelopeBytes": 3580
+      },
+      "status": "SUCCESS",
+      "ledger": 5362764,
+      "applicationOrder": 28,
+      "ledgersWaited": 2,
+      "confirmMs": 6921,
+      "feeCharged": 397334,
+      "resultCode": {
+        "code": 0,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "20686",
+        "totalRefundableResourceFeeCharged": "376548",
+        "rentFeeCharged": "376245"
+      },
+      "returnValue": null
+    },
+    {
+      "label": "cursor round 2 channel 1 cursor 125",
+      "hash": "6aaf8555b1479bfbb968b2682ea689ce1e0abd35518ecef6b10d7b09f37d2434",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362766,
+      "prepareMs": 1878,
+      "cost": {
+        "instructions": 3312603,
+        "diskReadBytes": 144,
+        "writeBytes": 1368,
+        "readOnlyEntries": 6,
+        "readWriteEntries": 8,
+        "minResourceFee": 332563,
+        "events": 3,
+        "envelopeBytes": 3480
+      },
+      "status": "SUCCESS",
+      "ledger": 5362767,
+      "applicationOrder": 6,
+      "ledgersWaited": 1,
+      "confirmMs": 3855,
+      "feeCharged": 287757,
+      "resultCode": {
+        "code": 0,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "20571",
+        "totalRefundableResourceFeeCharged": "267086",
+        "rentFeeCharged": "266783"
+      },
+      "returnValue": null
+    },
+    {
+      "label": "cursor round 2 channel 3 cursor 127",
+      "hash": "99776265b6362a2ff95cd06f1f488fa3372080cb77ab40e763a3aa2699150a78",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362766,
+      "prepareMs": 1825,
+      "cost": {
+        "instructions": 3312603,
+        "diskReadBytes": 144,
+        "writeBytes": 1368,
+        "readOnlyEntries": 6,
+        "readWriteEntries": 8,
+        "minResourceFee": 332563,
+        "events": 3,
+        "envelopeBytes": 3480
+      },
+      "status": "FAILED",
+      "ledger": 5362767,
+      "applicationOrder": 16,
+      "ledgersWaited": 1,
+      "confirmMs": 3477,
+      "feeCharged": 20671,
+      "resultCode": {
+        "code": -2,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "20571",
+        "totalRefundableResourceFeeCharged": "0",
+        "rentFeeCharged": "0"
+      },
+      "contractError": 3
+    },
+    {
+      "label": "cursor round 2 channel 2 cursor 126",
+      "hash": "1221e6c3527a2640ccac9a60295a5f34ed4a3b532c4ff3628b569f74ee315cb6",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362766,
+      "prepareMs": 2155,
+      "cost": {
+        "instructions": 3293719,
+        "diskReadBytes": 144,
+        "writeBytes": 1368,
+        "readOnlyEntries": 6,
+        "readWriteEntries": 8,
+        "minResourceFee": 332558,
+        "events": 3,
+        "envelopeBytes": 3480
+      },
+      "status": "SUCCESS",
+      "ledger": 5362767,
+      "applicationOrder": 11,
+      "ledgersWaited": 1,
+      "confirmMs": 3705,
+      "feeCharged": 287752,
+      "resultCode": {
+        "code": 0,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "20566",
+        "totalRefundableResourceFeeCharged": "267086",
+        "rentFeeCharged": "266783"
+      },
+      "returnValue": null
+    },
+    {
+      "label": "cursor round 2 channel 4 cursor 128",
+      "hash": "6a6c4845ec937b81011e944e99c87fcf62e58bcafd2de37754b118c081dff049",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362766,
+      "prepareMs": 592,
+      "cost": {
+        "instructions": 3312603,
+        "diskReadBytes": 144,
+        "writeBytes": 1368,
+        "readOnlyEntries": 6,
+        "readWriteEntries": 8,
+        "minResourceFee": 332563,
+        "events": 3,
+        "envelopeBytes": 3480
+      },
+      "status": "SUCCESS",
+      "ledger": 5362767,
+      "applicationOrder": 14,
+      "ledgersWaited": 1,
+      "confirmMs": 4028,
+      "feeCharged": 287757,
+      "resultCode": {
+        "code": 0,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "20571",
+        "totalRefundableResourceFeeCharged": "267086",
+        "rentFeeCharged": "266783"
+      },
+      "returnValue": null
+    },
+    {
+      "label": "cursor round 2 channel 0 cursor 124",
+      "hash": "797c40c792741ce764f34778586551210df58f0ef036a119c8167de5d9a6c917",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362766,
+      "prepareMs": 2571,
+      "cost": {
+        "instructions": 3293719,
+        "diskReadBytes": 144,
+        "writeBytes": 1368,
+        "readOnlyEntries": 6,
+        "readWriteEntries": 8,
+        "minResourceFee": 332558,
+        "events": 3,
+        "envelopeBytes": 3480
+      },
+      "status": "FAILED",
+      "ledger": 5362767,
+      "applicationOrder": 8,
+      "ledgersWaited": 1,
+      "confirmMs": 4458,
+      "feeCharged": 20666,
+      "resultCode": {
+        "code": -2,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "20566",
+        "totalRefundableResourceFeeCharged": "0",
+        "rentFeeCharged": "0"
+      },
+      "contractError": 3
+    },
+    {
+      "label": "idem round 2 channel 2 id 1000044",
+      "hash": "d8dc710ec1199636478834e0c542b826260cb1889e4d794efe79358021374a7d",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362769,
+      "prepareMs": 1805,
+      "cost": {
+        "instructions": 3368326,
+        "diskReadBytes": 144,
+        "writeBytes": 1084,
+        "readOnlyEntries": 7,
+        "readWriteEntries": 8,
+        "minResourceFee": 458581,
+        "events": 3,
+        "envelopeBytes": 3580
+      },
+      "status": "SUCCESS",
+      "ledger": 5362770,
+      "applicationOrder": 16,
+      "ledgersWaited": 1,
+      "confirmMs": 4426,
+      "feeCharged": 397334,
+      "resultCode": {
+        "code": 0,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "20686",
+        "totalRefundableResourceFeeCharged": "376548",
+        "rentFeeCharged": "376245"
+      },
+      "returnValue": null
+    },
+    {
+      "label": "idem round 2 channel 1 id 1000043",
+      "hash": "0a55171fc6530bd432e378b185b82856c102f5ae1ee7df4a7f2fb5c10070135b",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362769,
+      "prepareMs": 2428,
+      "cost": {
+        "instructions": 3360771,
+        "diskReadBytes": 144,
+        "writeBytes": 1084,
+        "readOnlyEntries": 7,
+        "readWriteEntries": 8,
+        "minResourceFee": 458579,
+        "events": 3,
+        "envelopeBytes": 3580
+      },
+      "status": "SUCCESS",
+      "ledger": 5362770,
+      "applicationOrder": 22,
+      "ledgersWaited": 1,
+      "confirmMs": 5007,
+      "feeCharged": 397332,
+      "resultCode": {
+        "code": 0,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "20684",
+        "totalRefundableResourceFeeCharged": "376548",
+        "rentFeeCharged": "376245"
+      },
+      "returnValue": null
+    },
+    {
+      "label": "idem round 2 channel 3 id 1000045",
+      "hash": "5551f6089357c160fde3193479d4d374b9951c9f531047396dbdeca5359af1fc",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362769,
+      "prepareMs": 1780,
+      "cost": {
+        "instructions": 3339640,
+        "diskReadBytes": 144,
+        "writeBytes": 1084,
+        "readOnlyEntries": 7,
+        "readWriteEntries": 8,
+        "minResourceFee": 458572,
+        "events": 3,
+        "envelopeBytes": 3580
+      },
+      "status": "SUCCESS",
+      "ledger": 5362770,
+      "applicationOrder": 20,
+      "ledgersWaited": 1,
+      "confirmMs": 4753,
+      "feeCharged": 397325,
+      "resultCode": {
+        "code": 0,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "20677",
+        "totalRefundableResourceFeeCharged": "376548",
+        "rentFeeCharged": "376245"
+      },
+      "returnValue": null
+    },
+    {
+      "label": "idem round 2 channel 4 id 1000046",
+      "hash": "146cc8256026dab9892ddb56d80993cf5b2acfa82b91bf02b5eee6dd90d7b7f5",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362769,
+      "prepareMs": 2142,
+      "cost": {
+        "instructions": 3339640,
+        "diskReadBytes": 144,
+        "writeBytes": 1084,
+        "readOnlyEntries": 7,
+        "readWriteEntries": 8,
+        "minResourceFee": 458572,
+        "events": 3,
+        "envelopeBytes": 3580
+      },
+      "status": "SUCCESS",
+      "ledger": 5362770,
+      "applicationOrder": 14,
+      "ledgersWaited": 1,
+      "confirmMs": 5114,
+      "feeCharged": 397325,
+      "resultCode": {
+        "code": 0,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "20677",
+        "totalRefundableResourceFeeCharged": "376548",
+        "rentFeeCharged": "376245"
+      },
+      "returnValue": null
+    },
+    {
+      "label": "idem round 2 channel 0 id 1000042",
+      "hash": "78f9552cd42ae447a75275310a03edfe3bace3cf2e9297d39ca22ff8c67a1851",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362769,
+      "prepareMs": 1707,
+      "cost": {
+        "instructions": 3360771,
+        "diskReadBytes": 144,
+        "writeBytes": 1084,
+        "readOnlyEntries": 7,
+        "readWriteEntries": 8,
+        "minResourceFee": 458579,
+        "events": 3,
+        "envelopeBytes": 3580
+      },
+      "status": "SUCCESS",
+      "ledger": 5362770,
+      "applicationOrder": 7,
+      "ledgersWaited": 1,
+      "confirmMs": 5433,
+      "feeCharged": 397332,
+      "resultCode": {
+        "code": 0,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "20684",
+        "totalRefundableResourceFeeCharged": "376548",
+        "rentFeeCharged": "376245"
+      },
+      "returnValue": null
+    },
+    {
+      "label": "idem duplicate via channel 0",
+      "hash": "098ce9e19ed61f67b61cf8a547289fc31010d9dafc1aa973e0f1884fe0fe0d68",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362771,
+      "prepareMs": 2600,
+      "cost": {
+        "instructions": 3368326,
+        "diskReadBytes": 144,
+        "writeBytes": 1084,
+        "readOnlyEntries": 7,
+        "readWriteEntries": 8,
+        "minResourceFee": 458581,
+        "events": 3,
+        "envelopeBytes": 3580
+      },
+      "status": "SUCCESS",
+      "ledger": 5362772,
+      "applicationOrder": 4,
+      "ledgersWaited": 1,
+      "confirmMs": 4453,
+      "feeCharged": 397334,
+      "resultCode": {
+        "code": 0,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "20686",
+        "totalRefundableResourceFeeCharged": "376548",
+        "rentFeeCharged": "376245"
+      },
+      "returnValue": null
+    },
+    {
+      "label": "idem duplicate via channel 1",
+      "hash": "f2ade32fc409c4ca40f8623e8f5a1a42d300dda3ce561ae2a5bd827c3356f3a2",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362771,
+      "prepareMs": 2509,
+      "cost": {
+        "instructions": 3368326,
+        "diskReadBytes": 144,
+        "writeBytes": 1084,
+        "readOnlyEntries": 7,
+        "readWriteEntries": 8,
+        "minResourceFee": 458581,
+        "events": 3,
+        "envelopeBytes": 3580
+      },
+      "status": "FAILED",
+      "ledger": 5362772,
+      "applicationOrder": 13,
+      "ledgersWaited": 1,
+      "confirmMs": 4188,
+      "feeCharged": 20786,
+      "resultCode": {
+        "code": -2,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "20686",
+        "totalRefundableResourceFeeCharged": "0",
+        "rentFeeCharged": "0"
+      },
+      "contractError": 14
+    },
+    {
+      "label": "sequential 0",
+      "hash": "eb8ecc3a9a3a3463bfbf4b39ff849f44481f22e511fd8942506db376cd6bf1ef",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362772,
+      "prepareMs": 1724,
+      "cost": {
+        "instructions": 3293719,
+        "diskReadBytes": 144,
+        "writeBytes": 1368,
+        "readOnlyEntries": 6,
+        "readWriteEntries": 8,
+        "minResourceFee": 332558,
+        "events": 3,
+        "envelopeBytes": 3480
+      },
+      "status": "SUCCESS",
+      "ledger": 5362773,
+      "applicationOrder": 7,
+      "ledgersWaited": 1,
+      "confirmMs": 2700,
+      "feeCharged": 287752,
+      "resultCode": {
+        "code": 0,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "20566",
+        "totalRefundableResourceFeeCharged": "267086",
+        "rentFeeCharged": "266783"
+      },
+      "returnValue": null
+    },
+    {
+      "label": "sequential 1",
+      "hash": "c693edff13b02031560d4aac66b858a5fc0008ebb481b47bb040f913f33a3cf1",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362773,
+      "prepareMs": 1768,
+      "cost": {
+        "instructions": 3312603,
+        "diskReadBytes": 144,
+        "writeBytes": 1368,
+        "readOnlyEntries": 6,
+        "readWriteEntries": 8,
+        "minResourceFee": 332563,
+        "events": 3,
+        "envelopeBytes": 3480
+      },
+      "status": "SUCCESS",
+      "ledger": 5362774,
+      "applicationOrder": 6,
+      "ledgersWaited": 1,
+      "confirmMs": 2993,
+      "feeCharged": 287757,
+      "resultCode": {
+        "code": 0,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "20571",
+        "totalRefundableResourceFeeCharged": "267086",
+        "rentFeeCharged": "266783"
+      },
+      "returnValue": null
+    },
+    {
+      "label": "sequential 2",
+      "hash": "31bee56b0d8ad0a3136ab9c9838db7e5c4c398949dc0c30b4e2caea700fa9313",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362774,
+      "prepareMs": 1350,
+      "cost": {
+        "instructions": 3293719,
+        "diskReadBytes": 144,
+        "writeBytes": 1368,
+        "readOnlyEntries": 6,
+        "readWriteEntries": 8,
+        "minResourceFee": 332558,
+        "events": 3,
+        "envelopeBytes": 3480
+      },
+      "status": "SUCCESS",
+      "ledger": 5362775,
+      "applicationOrder": 4,
+      "ledgersWaited": 1,
+      "confirmMs": 3835,
+      "feeCharged": 287752,
+      "resultCode": {
+        "code": 0,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "20566",
+        "totalRefundableResourceFeeCharged": "267086",
+        "rentFeeCharged": "266783"
+      },
+      "returnValue": null
+    },
+    {
+      "label": "bump epoch",
+      "hash": "771ab1748f867866a61eae4fb1920b1dea4bc1bbf60bfd99085cba09fc83049f",
+      "sendStatus": "ERROR",
+      "ledgerAtSend": 5362775,
+      "prepareMs": 543,
+      "cost": {
+        "instructions": 638218,
+        "diskReadBytes": 0,
+        "writeBytes": 136,
+        "readOnlyEntries": 2,
+        "readWriteEntries": 1,
+        "minResourceFee": 160575,
+        "events": 2,
+        "envelopeBytes": 508
+      },
+      "errorResult": {
+        "feeCharged": "160675",
+        "result": {
+          "code": -5
+        },
+        "ext": {
+          "v": 0
+        }
+      },
+      "retried": true
+    },
+    {
+      "label": "bump epoch (retry after txBAD_SEQ)",
+      "hash": "0d34a07d00c1946be29a228daf6d9a91c81ddee5b2f5f021a43f8f553edbe4f8",
+      "sendStatus": "PENDING",
+      "ledgerAtSend": 5362776,
+      "prepareMs": 576,
+      "cost": {
+        "instructions": 638218,
+        "diskReadBytes": 0,
+        "writeBytes": 136,
+        "readOnlyEntries": 2,
+        "readWriteEntries": 1,
+        "minResourceFee": 160575,
+        "events": 2,
+        "envelopeBytes": 508
+      },
+      "status": "SUCCESS",
+      "ledger": 5362777,
+      "applicationOrder": 23,
+      "ledgersWaited": 1,
+      "confirmMs": 4696,
+      "feeCharged": 135971,
+      "resultCode": {
+        "code": 0,
+        "type": 24
+      },
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "3204",
+        "totalRefundableResourceFeeCharged": "132667",
+        "rentFeeCharged": "132647"
+      },
+      "returnValue": 1
+    }
+  ],
+  "network": {
+    "network": {
+      "friendbotUrl": "https://friendbot.stellar.org/",
+      "passphrase": "Test SDF Network ; September 2015",
+      "protocolVersion": 29
+    },
+    "version": {
+      "version": "30.0.0-13e53516633c3ce1281c7edbacb607107d3a4e55",
+      "commitHash": "13e53516633c3ce1281c7edbacb607107d3a4e55",
+      "buildTimestamp": "2026-10-20T22:36:51",
+      "captiveCoreVersion": "stellar-core 30.0.0 (0e49751aa9ddf892302cca02cea7f3f5d97df9f1)",
+      "protocolVersion": 29
+    },
+    "latestLedger": 5362637,
+    "feeStats": {
+      "sorobanInclusionFee": {
+        "max": "200",
+        "min": "100",
+        "mode": "100",
+        "p10": "100",
+        "p20": "100",
+        "p30": "100",
+        "p40": "100",
+        "p50": "100",
+        "p60": "100",
+        "p70": "100",
+        "p80": "100",
+        "p90": "100",
+        "p95": "100",
+        "p99": "200",
+        "transactionCount": "697",
+        "ledgerCount": 50
+      },
+      "inclusionFee": {
+        "max": "100",
+        "min": "100",
+        "mode": "100",
+        "p10": "100",
+        "p20": "100",
+        "p30": "100",
+        "p40": "100",
+        "p50": "100",
+        "p60": "100",
+        "p70": "100",
+        "p80": "100",
+        "p90": "100",
+        "p95": "100",
+        "p99": "100",
+        "transactionCount": "28",
+        "ledgerCount": 10
+      },
+      "latestLedger": 5362637
+    },
+    "config": {
+      "contractCompute": {
+        "ledgerMaxInstructions": "580000000",
+        "txMaxInstructions": "400000000",
+        "feeRatePerInstructionsIncrement": "3",
+        "txMemoryLimit": 41943040
+      },
+      "contractLedgerCost": {
+        "ledgerMaxDiskReadEntries": 2000,
+        "ledgerMaxDiskReadBytes": 400000,
+        "ledgerMaxWriteLedgerEntries": 2000,
+        "ledgerMaxWriteBytes": 297000,
+        "txMaxDiskReadEntries": 200,
+        "txMaxDiskReadBytes": 200000,
+        "txMaxWriteLedgerEntries": 200,
+        "txMaxWriteBytes": 132096,
+        "feeDiskReadLedgerEntry": "781",
+        "feeWriteLedgerEntry": "1250",
+        "feeDiskRead1Kb": "223",
+        "sorobanStateTargetSizeBytes": "4000000000",
+        "rentFee1KbSorobanStateSizeLow": "-17000",
+        "rentFee1KbSorobanStateSizeHigh": "10000",
+        "sorobanStateRentFeeGrowthFactor": 5000
+      },
+      "contractLedgerCostExt": {
+        "txMaxFootprintEntries": 400,
+        "feeWrite1Kb": "437"
+      },
+      "contractBandwidth": {
+        "ledgerMaxTxsSizeBytes": 864000,
+        "txMaxSizeBytes": 132096,
+        "feeTxSize1Kb": "203"
+      },
+      "contractEvents": {
+        "txMaxContractEventsSizeBytes": 16384,
+        "feeContractEvents1Kb": "2500"
+      },
+      "contractDataEntrySizeBytes": 65536,
+      "contractDataKeySizeBytes": 250,
+      "stateArchivalSettings": {
+        "maxEntryTtl": 3110400,
+        "minTemporaryTtl": 720,
+        "minPersistentTtl": 120960,
+        "persistentRentRateDenominator": "1215",
+        "tempRentRateDenominator": "2430",
+        "maxEntriesToArchive": 1000,
+        "liveSorobanStateSizeWindowSampleSize": 30,
+        "liveSorobanStateSizeWindowSamplePeriod": 64,
+        "evictionScanSize": 500000,
+        "startingEvictionScanLevel": 7
+      },
+      "contractExecutionLanes": {
+        "ledgerMaxTxCount": 2000
+      },
+      "contractParallelCompute": {
+        "ledgerMaxDependentTxClusters": 3
+      },
+      "contractScpTiming": {
+        "ledgerTargetCloseTimeMilliseconds": 5000,
+        "nominationTimeoutInitialMilliseconds": 1000,
+        "nominationTimeoutIncrementMilliseconds": 1000,
+        "ballotTimeoutInitialMilliseconds": 1000,
+        "ballotTimeoutIncrementMilliseconds": 1000
+      }
+    },
+    "limits": {
+      "ledgerMaxInstructions": "580000000",
+      "txMaxInstructions": "400000000",
+      "ledgerMaxDiskReadEntries": 2000,
+      "ledgerMaxDiskReadBytes": 400000,
+      "ledgerMaxWriteLedgerEntries": 2000,
+      "ledgerMaxWriteBytes": 297000,
+      "txMaxDiskReadEntries": 200,
+      "txMaxDiskReadBytes": 200000,
+      "txMaxWriteLedgerEntries": 200,
+      "txMaxWriteBytes": 132096,
+      "txMaxFootprintEntries": 400,
+      "ledgerMaxTxsSizeBytes": 864000,
+      "txMaxSizeBytes": 132096,
+      "txMaxContractEventsSizeBytes": 16384,
+      "ledgerMaxTxCount": 2000,
+      "ledgerMaxDependentTxClusters": 3
+    }
+  },
+  "closeTimesBefore": {
+    "ledgers": 200,
+    "from": 5362437,
+    "to": 5362636,
+    "meanSec": 5,
+    "p50Sec": 5,
+    "p95Sec": 5,
+    "maxSec": 5
+  },
+  "wasm": {
+    "bytes": 12421,
+    "sha256": "9a4bebc55ddbc1ba517c66a019a4903cb02b164c696b5b7de762372a76f321e3"
+  },
+  "accounts": {
+    "operator": "GBVJNYM55QS5DNSKZJBMPJK6MSASTXYJEDBTU5DPEY4B6RA565KOKQ22",
+    "channels": [
+      "GADO2HEBLOPFIGSZGMCUCNTGPLPVA6MK6IM6WNJUL7E5OXOA7MVIBU7M",
+      "GD6QRQO7FZZQLEM3R3QWAJNGRPEYYA4JVF7YFYQWTZFBILOR5PT6DX2P",
+      "GAI6QGJODE5K5I2YGDRV652N7OVPSGPQW7F54AVSK4C4DNOPLZBQUFA6",
+      "GDYVGDCVEOQBC5C327OGELZMNLZWTZUPMBPOULX5MBVASUUPA7APMYCD",
+      "GBJBLD4MPFT747GMM6EFXSQ3FT2K5W34ULBM6747ID2UHIP4G7QGCVDX"
+    ],
+    "fundedOnChain": [
+      {
+        "account": "GBVJNYM55QS5DNSKZJBMPJK6MSASTXYJEDBTU5DPEY4B6RA565KOKQ22",
+        "balanceStroops": "100000000000",
+        "seqNum": "23032363420221440"
+      },
+      {
+        "account": "GADO2HEBLOPFIGSZGMCUCNTGPLPVA6MK6IM6WNJUL7E5OXOA7MVIBU7M",
+        "balanceStroops": "100000000000",
+        "seqNum": "23032367715188736"
+      },
+      {
+        "account": "GD6QRQO7FZZQLEM3R3QWAJNGRPEYYA4JVF7YFYQWTZFBILOR5PT6DX2P",
+        "balanceStroops": "100000000000",
+        "seqNum": "23032372010156032"
+      },
+      {
+        "account": "GAI6QGJODE5K5I2YGDRV652N7OVPSGPQW7F54AVSK4C4DNOPLZBQUFA6",
+        "balanceStroops": "100000000000",
+        "seqNum": "23032376305123328"
+      },
+      {
+        "account": "GDYVGDCVEOQBC5C327OGELZMNLZWTZUPMBPOULX5MBVASUUPA7APMYCD",
+        "balanceStroops": "100000000000",
+        "seqNum": "23032380600090624"
+      },
+      {
+        "account": "GBJBLD4MPFT747GMM6EFXSQ3FT2K5W34ULBM6747ID2UHIP4G7QGCVDX",
+        "balanceStroops": "100000000000",
+        "seqNum": "23032384895057920"
+      }
+    ]
+  },
+  "contracts": {
+    "wasmHash": "9a4bebc55ddbc1ba517c66a019a4903cb02b164c696b5b7de762372a76f321e3",
+    "A": "CBAIXBJII3CXEJJCKROYWUYQIVMY7EXKNUTZPJ2OB2PBTPV4MMRLKREE",
+    "B": "CCTWGMZZT7PGT3OO5N6EQ7QOKALRLC5UVTKAH2FFRP6CFBH66RI4V672",
+    "C": "CADXJHOPWYHNVVT5GSFG372UDPA7PZABQLF5KEKPJMFF63M73Y4HLKXC"
+  },
+  "setup": {
+    "chunk": 40,
+    "txs": 9,
+    "perAccountFeeStroops": 476020.875,
+    "first": {
+      "hash": "0286a7338a58c4320fd541e33f94349cc863ebf084846849ed2dfd9eda79be27",
+      "status": "SUCCESS",
+      "ledger": 5362654,
+      "applicationOrder": 10,
+      "feeCharged": 19040835,
+      "confirmMs": 3401,
+      "ledgersWaited": 1,
+      "prepareMs": 6695,
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "205266",
+        "totalRefundableResourceFeeCharged": "18835469",
+        "rentFeeCharged": "18835459"
+      },
+      "cost": {
+        "instructions": 20360522,
+        "diskReadBytes": 0,
+        "writeBytes": 19360,
+        "readOnlyEntries": 2,
+        "readWriteEntries": 120,
+        "minResourceFee": 21874170,
+        "events": 2,
+        "envelopeBytes": 18488
+      }
+    }
+  },
+  "orderExpiry": {
+    "latestAtSetup": 5362666,
+    "expiry": 5379946
+  },
+  "orderHashCheck": {
+    "local": "5bf76acde350c1e1c1dd15394ad7e491690cdc14ec541bc72f4e83128672348c",
+    "contract": "5bf76acde350c1e1c1dd15394ad7e491690cdc14ec541bc72f4e83128672348c"
+  },
+  "signatureVerification": {
+    "sweep": [
+      {
+        "n": 0,
+        "ok": true,
+        "instructions": 571443
+      },
+      {
+        "n": 1,
+        "ok": true,
+        "instructions": 991289
+      },
+      {
+        "n": 2,
+        "ok": true,
+        "instructions": 1415580
+      },
+      {
+        "n": 4,
+        "ok": true,
+        "instructions": 2288860
+      },
+      {
+        "n": 8,
+        "ok": true,
+        "instructions": 4035419
+      },
+      {
+        "n": 16,
+        "ok": true,
+        "instructions": 7528538
+      },
+      {
+        "n": 32,
+        "ok": true,
+        "instructions": 14514775
+      },
+      {
+        "n": 64,
+        "ok": true,
+        "instructions": 28487250
+      }
+    ],
+    "instructionsPerVerify": 436184.484375,
+    "baseInstructions": 571443,
+    "txMaxInstructions": 400000000,
+    "maxVerifiesPerTx": 915,
+    "atComputedMax": {
+      "n": 915,
+      "ok": true,
+      "instructions": 400067754
+    },
+    "fivePercentOver": {
+      "n": 961,
+      "ok": false,
+      "error": "host Error(Budget, ExceededLimit)"
+    }
+  },
+  "batchSweep": {
+    "distinct/A": {
+      "maxK": 33,
+      "firstFailingK": 34,
+      "limitingFactor": [
+        "client: [-32001] request exceeded processing limit threshold"
+      ],
+      "rows": [
+        {
+          "k": 1,
+          "ok": true,
+          "simulated": true,
+          "violations": [],
+          "cost": {
+            "instructions": 2697405,
+            "diskReadBytes": 0,
+            "writeBytes": 1176,
+            "readOnlyEntries": 5,
+            "readWriteEntries": 7,
+            "minResourceFee": 327533,
+            "events": 3,
+            "envelopeBytes": 3112
+          }
+        },
+        {
+          "k": 2,
+          "ok": true,
+          "simulated": true,
+          "violations": [],
+          "cost": {
+            "instructions": 4975182,
+            "diskReadBytes": 0,
+            "writeBytes": 2072,
+            "readOnlyEntries": 9,
+            "readWriteEntries": 13,
+            "minResourceFee": 647774,
+            "events": 4,
+            "envelopeBytes": 5856
+          }
+        },
+        {
+          "k": 4,
+          "ok": true,
+          "simulated": true,
+          "violations": [],
+          "cost": {
+            "instructions": 10006980,
+            "diskReadBytes": 0,
+            "writeBytes": 3864,
+            "readOnlyEntries": 17,
+            "readWriteEntries": 25,
+            "minResourceFee": 1288447,
+            "events": 6,
+            "envelopeBytes": 11344
+          }
+        },
+        {
+          "k": 8,
+          "ok": true,
+          "simulated": true,
+          "violations": [],
+          "cost": {
+            "instructions": 21862995,
+            "diskReadBytes": 0,
+            "writeBytes": 7448,
+            "readOnlyEntries": 33,
+            "readWriteEntries": 49,
+            "minResourceFee": 2570329,
+            "events": 10,
+            "envelopeBytes": 22320
+          }
+        },
+        {
+          "k": 12,
+          "ok": true,
+          "simulated": true,
+          "violations": [],
+          "cost": {
+            "instructions": 35903041,
+            "diskReadBytes": 0,
+            "writeBytes": 11032,
+            "readOnlyEntries": 49,
+            "readWriteEntries": 73,
+            "minResourceFee": 3852869,
+            "events": 14,
+            "envelopeBytes": 33296
+          }
+        },
+        {
+          "k": 16,
+          "ok": true,
+          "simulated": true,
+          "violations": [],
+          "cost": {
+            "instructions": 52098204,
+            "diskReadBytes": 0,
+            "writeBytes": 14616,
+            "readOnlyEntries": 65,
+            "readWriteEntries": 97,
+            "minResourceFee": 5136055,
+            "events": 18,
+            "envelopeBytes": 44272
+          }
+        },
+        {
+          "k": 24,
+          "ok": true,
+          "simulated": true,
+          "violations": [],
+          "cost": {
+            "instructions": 91067430,
+            "diskReadBytes": 0,
+            "writeBytes": 21784,
+            "readOnlyEntries": 97,
+            "readWriteEntries": 145,
+            "minResourceFee": 7704402,
+            "events": 26,
+            "envelopeBytes": 66224
+          }
+        },
+        {
+          "k": 32,
+          "ok": true,
+          "simulated": true,
+          "violations": [],
+          "cost": {
+            "instructions": 138386599,
+            "diskReadBytes": 0,
+            "writeBytes": 28952,
+            "readOnlyEntries": 129,
+            "readWriteEntries": 193,
+            "minResourceFee": 10275249,
+            "events": 34,
+            "envelopeBytes": 88176
+          }
+        },
+        {
+          "ok": false,
+          "simulated": false,
+          "violations": [],
+          "error": "client: [-32001] request exceeded processing limit threshold"
+        },
+        {
+          "k": 33,
+          "ok": true,
+          "simulated": true,
+          "violations": [],
+          "cost": {
+            "instructions": 144917120,
+            "diskReadBytes": 0,
+            "writeBytes": 29848,
+            "readOnlyEntries": 133,
+            "readWriteEntries": 199,
+            "minResourceFee": 10601799,
+            "events": 35,
+            "envelopeBytes": 90920
+          }
+        },
+        {
+          "k": 34,
+          "ok": false,
+          "simulated": true,
+          "violations": [
+            "write entries"
+          ],
+          "cost": {
+            "instructions": 151482876,
+            "diskReadBytes": 0,
+            "writeBytes": 30744,
+            "readOnlyEntries": 137,
+            "readWriteEntries": 205,
+            "minResourceFee": 10923504,
+            "events": 36,
+            "envelopeBytes": 93664
+          }
+        },
+        {
+          "k": 36,
+          "ok": false,
+          "simulated": true,
+          "violations": [
+            "write entries"
+          ],
+          "cost": {
+            "instructions": 165335749,
+            "diskReadBytes": 0,
+            "writeBytes": 32536,
+            "readOnlyEntries": 145,
+            "readWriteEntries": 217,
+            "minResourceFee": 11567124,
+            "events": 38,
+            "envelopeBytes": 99152
+          }
+        },
+        {
+          "k": 40,
+          "ok": false,
+          "simulated": true,
+          "violations": [
+            "footprint entries",
+            "write entries"
+          ],
+          "cost": {
+            "instructions": 194288706,
+            "diskReadBytes": 0,
+            "writeBytes": 36120,
+            "readOnlyEntries": 161,
+            "readWriteEntries": 241,
+            "minResourceFee": 12854747,
+            "events": 42,
+            "envelopeBytes": 110128
+          }
+        }
+      ]
+    },
+    "distinct/B": {
+      "maxK": 33,
+      "firstFailingK": 34,
+      "limitingFactor": [
+        "write entries"
+      ],
+      "rows": [
+        {
+          "k": 1,
+          "ok": true,
+          "simulated": true,
+          "violations": [],
+          "cost": {
+            "instructions": 2700181,
+            "diskReadBytes": 0,
+            "writeBytes": 1176,
+            "readOnlyEntries": 5,
+            "readWriteEntries": 7,
+            "minResourceFee": 47334,
+            "events": 3,
+            "envelopeBytes": 3112
+          }
+        },
+        {
+          "k": 2,
+          "ok": true,
+          "simulated": true,
+          "violations": [],
+          "cost": {
+            "instructions": 4982713,
+            "diskReadBytes": 0,
+            "writeBytes": 2072,
+            "readOnlyEntries": 9,
+            "readWriteEntries": 13,
+            "minResourceFee": 87376,
+            "events": 4,
+            "envelopeBytes": 5856
+          }
+        },
+        {
+          "k": 4,
+          "ok": true,
+          "simulated": true,
+          "violations": [],
+          "cost": {
+            "instructions": 10072170,
+            "diskReadBytes": 0,
+            "writeBytes": 3864,
+            "readOnlyEntries": 17,
+            "readWriteEntries": 25,
+            "minResourceFee": 167667,
+            "events": 6,
+            "envelopeBytes": 11344
+          }
+        },
+        {
+          "k": 8,
+          "ok": true,
+          "simulated": true,
+          "violations": [],
+          "cost": {
+            "instructions": 22019068,
+            "diskReadBytes": 0,
+            "writeBytes": 7448,
+            "readOnlyEntries": 33,
+            "readWriteEntries": 49,
+            "minResourceFee": 328778,
+            "events": 10,
+            "envelopeBytes": 22320
+          }
+        },
+        {
+          "k": 12,
+          "ok": true,
+          "simulated": true,
+          "violations": [],
+          "cost": {
+            "instructions": 36273154,
+            "diskReadBytes": 0,
+            "writeBytes": 11032,
+            "readOnlyEntries": 49,
+            "readWriteEntries": 73,
+            "minResourceFee": 490582,
+            "events": 14,
+            "envelopeBytes": 33296
+          }
+        },
+        {
+          "k": 16,
+          "ok": true,
+          "simulated": true,
+          "violations": [],
+          "cost": {
+            "instructions": 52776598,
+            "diskReadBytes": 0,
+            "writeBytes": 14616,
+            "readOnlyEntries": 65,
+            "readWriteEntries": 97,
+            "minResourceFee": 653024,
+            "events": 18,
+            "envelopeBytes": 44272
+          }
+        },
+        {
+          "k": 24,
+          "ok": true,
+          "simulated": true,
+          "violations": [],
+          "cost": {
+            "instructions": 92537023,
+            "diskReadBytes": 0,
+            "writeBytes": 21784,
+            "readOnlyEntries": 97,
+            "readWriteEntries": 145,
+            "minResourceFee": 979938,
+            "events": 26,
+            "envelopeBytes": 66224
+          }
+        },
+        {
+          "k": 32,
+          "ok": true,
+          "simulated": true,
+          "violations": [],
+          "cost": {
+            "instructions": 141112227,
+            "diskReadBytes": 0,
+            "writeBytes": 28952,
+            "readOnlyEntries": 129,
+            "readWriteEntries": 193,
+            "minResourceFee": 1309526,
+            "events": 34,
+            "envelopeBytes": 88176
+          }
+        },
+        {
+          "k": 33,
+          "ok": true,
+          "simulated": true,
+          "violations": [],
+          "cost": {
+            "instructions": 147683631,
+            "diskReadBytes": 0,
+            "writeBytes": 29848,
+            "readOnlyEntries": 133,
+            "readWriteEntries": 199,
+            "minResourceFee": 1350571,
+            "events": 35,
+            "envelopeBytes": 90920
+          }
+        },
+        {
+          "k": 34,
+          "ok": false,
+          "simulated": true,
+          "violations": [
+            "write entries"
+          ],
+          "cost": {
+            "instructions": 154729369,
+            "diskReadBytes": 0,
+            "writeBytes": 30744,
+            "readOnlyEntries": 137,
+            "readWriteEntries": 205,
+            "minResourceFee": 1392133,
+            "events": 36,
+            "envelopeBytes": 93664
+          }
+        },
+        {
+          "k": 36,
+          "ok": false,
+          "simulated": true,
+          "violations": [
+            "write entries"
+          ],
+          "cost": {
+            "instructions": 168719297,
+            "diskReadBytes": 0,
+            "writeBytes": 32536,
+            "readOnlyEntries": 145,
+            "readWriteEntries": 217,
+            "minResourceFee": 1475068,
+            "events": 38,
+            "envelopeBytes": 99152
+          }
+        },
+        {
+          "k": 40,
+          "ok": false,
+          "simulated": true,
+          "violations": [
+            "footprint entries",
+            "write entries"
+          ],
+          "cost": {
+            "instructions": 198488239,
+            "diskReadBytes": 0,
+            "writeBytes": 36120,
+            "readOnlyEntries": 161,
+            "readWriteEntries": 241,
+            "minResourceFee": 1641575,
+            "events": 42,
+            "envelopeBytes": 110128
+          }
+        },
+        {
+          "k": 48,
+          "ok": false,
+          "simulated": true,
+          "violations": [
+            "footprint entries",
+            "write entries"
+          ],
+          "cost": {
+            "instructions": 264753645,
+            "diskReadBytes": 0,
+            "writeBytes": 43288,
+            "readOnlyEntries": 193,
+            "readWriteEntries": 289,
+            "minResourceFee": 1976548,
+            "events": 50,
+            "envelopeBytes": 132080
+          }
+        }
+      ]
+    },
+    "shared/A": {
+      "maxK": 73,
+      "firstFailingK": 74,
+      "limitingFactor": [
+        "tx size"
+      ],
+      "rows": [
+        {
+          "k": 1,
+          "ok": true,
+          "simulated": true,
+          "violations": [],
+          "cost": {
+            "instructions": 2697405,
+            "diskReadBytes": 0,
+            "writeBytes": 1176,
+            "readOnlyEntries": 5,
+            "readWriteEntries": 7,
+            "minResourceFee": 327685,
+            "events": 3,
+            "envelopeBytes": 3112
+          }
+        },
+        {
+          "k": 2,
+          "ok": true,
+          "simulated": true,
+          "violations": [],
+          "cost": {
+            "instructions": 4485189,
+            "diskReadBytes": 0,
+            "writeBytes": 1448,
+            "readOnlyEntries": 5,
+            "readWriteEntries": 9,
+            "minResourceFee": 640342,
+            "events": 4,
+            "envelopeBytes": 4888
+          }
+        },
+        {
+          "k": 4,
+          "ok": true,
+          "simulated": true,
+          "violations": [],
+          "cost": {
+            "instructions": 8087788,
+            "diskReadBytes": 0,
+            "writeBytes": 1992,
+            "readOnlyEntries": 5,
+            "readWriteEntries": 13,
+            "minResourceFee": 1265715,
+            "events": 6,
+            "envelopeBytes": 8440
+          }
+        },
+        {
+          "k": 8,
+          "ok": true,
+          "simulated": true,
+          "violations": [],
+          "cost": {
+            "instructions": 15458627,
+            "diskReadBytes": 0,
+            "writeBytes": 3080,
+            "readOnlyEntries": 5,
+            "readWriteEntries": 21,
+            "minResourceFee": 2516513,
+            "events": 10,
+            "envelopeBytes": 15544
+          }
+        },
+        {
+          "k": 12,
+          "ok": true,
+          "simulated": true,
+          "violations": [],
+          "cost": {
+            "instructions": 23012193,
+            "diskReadBytes": 0,
+            "writeBytes": 4168,
+            "readOnlyEntries": 5,
+            "readWriteEntries": 29,
+            "minResourceFee": 3767363,
+            "events": 14,
+            "envelopeBytes": 22648
+          }
+        },
+        {
+          "k": 16,
+          "ok": true,
+          "simulated": true,
+          "violations": [],
+          "cost": {
+            "instructions": 30738079,
+            "diskReadBytes": 0,
+            "writeBytes": 5256,
+            "readOnlyEntries": 5,
+            "readWriteEntries": 37,
+            "minResourceFee": 5018268,
+            "events": 18,
+            "envelopeBytes": 29752
+          }
+        },
+        {
+          "k": 24,
+          "ok": true,
+          "simulated": true,
+          "violations": [],
+          "cost": {
+            "instructions": 46579603,
+            "diskReadBytes": 0,
+            "writeBytes": 7432,
+            "readOnlyEntries": 5,
+            "readWriteEntries": 53,
+            "minResourceFee": 7520190,
+            "events": 26,
+            "envelopeBytes": 43960
+          }
+        },
+        {
+          "k": 32,
+          "ok": true,
+          "simulated": true,
+          "violations": [],
+          "cost": {
+            "instructions": 63030397,
+            "diskReadBytes": 0,
+            "writeBytes": 9608,
+            "readOnlyEntries": 5,
+            "readWriteEntries": 69,
+            "minResourceFee": 10022296,
+            "events": 34,
+            "envelopeBytes": 58168
+          }
+        },
+        {
+          "k": 48,
+          "ok": true,
+          "simulated": true,
+          "violations": [],
+          "cost": {
+            "instructions": 97671526,
+            "diskReadBytes": 0,
+            "writeBytes": 13960,
+            "readOnlyEntries": 5,
+            "readWriteEntries": 101,
+            "minResourceFee": 15027031,
+            "events": 50,
+            "envelopeBytes": 86584
+          }
+        },
+        {
+          "k": 64,
+          "ok": true,
+          "simulated": true,
+          "violations": [],
+          "cost": {
+            "instructions": 134422042,
+            "diskReadBytes": 0,
+            "writeBytes": 18312,
+            "readOnlyEntries": 5,
+            "readWriteEntries": 133,
+            "minResourceFee": 20032396,
+            "events": 66,
+            "envelopeBytes": 115000
+          }
+        },
+        {
+          "k": 72,
+          "ok": true,
+          "simulated": true,
+          "violations": [],
+          "cost": {
+            "instructions": 153682538,
+            "diskReadBytes": 0,
+            "writeBytes": 20488,
+            "readOnlyEntries": 5,
+            "readWriteEntries": 149,
+            "minResourceFee": 22535347,
+            "events": 74,
+            "envelopeBytes": 129208
+          }
+        },
+        {
+          "k": 73,
+          "ok": true,
+          "simulated": true,
+          "violations": [],
+          "cost": {
+            "instructions": 155930575,
+            "diskReadBytes": 0,
+            "writeBytes": 20760,
+            "readOnlyEntries": 5,
+            "readWriteEntries": 151,
+            "minResourceFee": 22848168,
+            "events": 75,
+            "envelopeBytes": 130984
+          }
+        },
+        {
+          "k": 74,
+          "ok": false,
+          "simulated": true,
+          "violations": [
+            "tx size"
+          ],
+          "cost": {
+            "instructions": 158456094,
+            "diskReadBytes": 0,
+            "writeBytes": 21032,
+            "readOnlyEntries": 5,
+            "readWriteEntries": 153,
+            "minResourceFee": 23161070,
+            "events": 76,
+            "envelopeBytes": 132760
+          }
+        },
+        {
+          "k": 76,
+          "ok": false,
+          "simulated": true,
+          "violations": [
+            "tx size"
+          ],
+          "cost": {
+            "instructions": 163507734,
+            "diskReadBytes": 0,
+            "writeBytes": 21576,
+            "readOnlyEntries": 5,
+            "readWriteEntries": 157,
+            "minResourceFee": 23786879,
+            "events": 78,
+            "envelopeBytes": 136312
+          }
+        },
+        {
+          "k": 80,
+          "ok": false,
+          "simulated": true,
+          "violations": [
+            "tx size"
+          ],
+          "cost": {
+            "instructions": 173345694,
+            "diskReadBytes": 0,
+            "writeBytes": 22664,
+            "readOnlyEntries": 5,
+            "readWriteEntries": 165,
+            "minResourceFee": 25038417,
+            "events": 82,
+            "envelopeBytes": 143416
+          }
+        }
+      ]
+    },
+    "shared/B": {
+      "maxK": 73,
+      "firstFailingK": 74,
+      "limitingFactor": [
+        "tx size"
+      ],
+      "rows": [
+        {
+          "k": 1,
+          "ok": true,
+          "simulated": true,
+          "violations": [],
+          "cost": {
+            "instructions": 2704291,
+            "diskReadBytes": 0,
+            "writeBytes": 1176,
+            "readOnlyEntries": 5,
+            "readWriteEntries": 7,
+            "minResourceFee": 47317,
+            "events": 3,
+            "envelopeBytes": 3112
+          }
+        },
+        {
+          "k": 2,
+          "ok": true,
+          "simulated": true,
+          "violations": [],
+          "cost": {
+            "instructions": 4482485,
+            "diskReadBytes": 0,
+            "writeBytes": 1448,
+            "readOnlyEntries": 5,
+            "readWriteEntries": 9,
+            "minResourceFee": 79601,
+            "events": 4,
+            "envelopeBytes": 4888
+          }
+        },
+        {
+          "k": 4,
+          "ok": true,
+          "simulated": true,
+          "violations": [],
+          "cost": {
+            "instructions": 8113076,
+            "diskReadBytes": 0,
+            "writeBytes": 1992,
+            "readOnlyEntries": 5,
+            "readWriteEntries": 13,
+            "minResourceFee": 144242,
+            "events": 6,
+            "envelopeBytes": 8440
+          }
+        },
+        {
+          "k": 8,
+          "ok": true,
+          "simulated": true,
+          "violations": [],
+          "cost": {
+            "instructions": 15523426,
+            "diskReadBytes": 0,
+            "writeBytes": 3080,
+            "readOnlyEntries": 5,
+            "readWriteEntries": 21,
+            "minResourceFee": 273573,
+            "events": 10,
+            "envelopeBytes": 15544
+          }
+        },
+        {
+          "k": 12,
+          "ok": true,
+          "simulated": true,
+          "violations": [],
+          "cost": {
+            "instructions": 23164003,
+            "diskReadBytes": 0,
+            "writeBytes": 4168,
+            "readOnlyEntries": 5,
+            "readWriteEntries": 29,
+            "minResourceFee": 402969,
+            "events": 14,
+            "envelopeBytes": 22648
+          }
+        },
+        {
+          "k": 16,
+          "ok": true,
+          "simulated": true,
+          "violations": [],
+          "cost": {
+            "instructions": 30918285,
+            "diskReadBytes": 0,
+            "writeBytes": 5256,
+            "readOnlyEntries": 5,
+            "readWriteEntries": 37,
+            "minResourceFee": 532365,
+            "events": 18,
+            "envelopeBytes": 29752
+          }
+        },
+        {
+          "k": 24,
+          "ok": true,
+          "simulated": true,
+          "violations": [],
+          "cost": {
+            "instructions": 46991612,
+            "diskReadBytes": 0,
+            "writeBytes": 7432,
+            "readOnlyEntries": 5,
+            "readWriteEntries": 53,
+            "minResourceFee": 791379,
+            "events": 26,
+            "envelopeBytes": 43960
+          }
+        },
+        {
+          "k": 32,
+          "ok": true,
+          "simulated": true,
+          "violations": [],
+          "cost": {
+            "instructions": 63740240,
+            "diskReadBytes": 0,
+            "writeBytes": 9608,
+            "readOnlyEntries": 5,
+            "readWriteEntries": 69,
+            "minResourceFee": 1050595,
+            "events": 34,
+            "envelopeBytes": 58168
+          }
+        },
+        {
+          "k": 48,
+          "ok": true,
+          "simulated": true,
+          "violations": [],
+          "cost": {
+            "instructions": 99075299,
+            "diskReadBytes": 0,
+            "writeBytes": 13960,
+            "readOnlyEntries": 5,
+            "readWriteEntries": 101,
+            "minResourceFee": 1569582,
+            "events": 50,
+            "envelopeBytes": 86584
+          }
+        },
+        {
+          "k": 64,
+          "ok": true,
+          "simulated": true,
+          "violations": [],
+          "cost": {
+            "instructions": 136707927,
+            "diskReadBytes": 0,
+            "writeBytes": 18312,
+            "readOnlyEntries": 5,
+            "readWriteEntries": 133,
+            "minResourceFee": 2089255,
+            "events": 66,
+            "envelopeBytes": 115000
+          }
+        },
+        {
+          "k": 72,
+          "ok": true,
+          "simulated": true,
+          "violations": [],
+          "cost": {
+            "instructions": 156649515,
+            "diskReadBytes": 0,
+            "writeBytes": 20488,
+            "readOnlyEntries": 5,
+            "readWriteEntries": 149,
+            "minResourceFee": 2349431,
+            "events": 74,
+            "envelopeBytes": 129208
+          }
+        },
+        {
+          "k": 73,
+          "ok": true,
+          "simulated": true,
+          "violations": [],
+          "cost": {
+            "instructions": 158981069,
+            "diskReadBytes": 0,
+            "writeBytes": 20760,
+            "readOnlyEntries": 5,
+            "readWriteEntries": 151,
+            "minResourceFee": 2381905,
+            "events": 75,
+            "envelopeBytes": 130984
+          }
+        },
+        {
+          "k": 74,
+          "ok": false,
+          "simulated": true,
+          "violations": [
+            "tx size"
+          ],
+          "cost": {
+            "instructions": 161616410,
+            "diskReadBytes": 0,
+            "writeBytes": 21032,
+            "readOnlyEntries": 5,
+            "readWriteEntries": 153,
+            "minResourceFee": 2414468,
+            "events": 76,
+            "envelopeBytes": 132760
+          }
+        },
+        {
+          "k": 76,
+          "ok": false,
+          "simulated": true,
+          "violations": [
+            "tx size"
+          ],
+          "cost": {
+            "instructions": 166696288,
+            "diskReadBytes": 0,
+            "writeBytes": 21576,
+            "readOnlyEntries": 5,
+            "readWriteEntries": 157,
+            "minResourceFee": 2479540,
+            "events": 78,
+            "envelopeBytes": 136312
+          }
+        },
+        {
+          "k": 80,
+          "ok": false,
+          "simulated": true,
+          "violations": [
+            "tx size"
+          ],
+          "cost": {
+            "instructions": 176938708,
+            "diskReadBytes": 0,
+            "writeBytes": 22664,
+            "readOnlyEntries": 5,
+            "readWriteEntries": 165,
+            "minResourceFee": 2609711,
+            "events": 82,
+            "envelopeBytes": 143416
+          }
+        }
+      ]
+    },
+    "distinct/A_idem": {
+      "maxK": 28,
+      "firstFailingK": 29,
+      "limitingFactor": [
+        "write entries"
+      ],
+      "rows": [
+        {
+          "k": 1,
+          "ok": true,
+          "simulated": true,
+          "violations": [],
+          "cost": {
+            "instructions": 2747008,
+            "diskReadBytes": 0,
+            "writeBytes": 1008,
+            "readOnlyEntries": 6,
+            "readWriteEntries": 7,
+            "minResourceFee": 453684,
+            "events": 3,
+            "envelopeBytes": 3220
+          }
+        },
+        {
+          "k": 2,
+          "ok": true,
+          "simulated": true,
+          "violations": [],
+          "cost": {
+            "instructions": 5130532,
+            "diskReadBytes": 0,
+            "writeBytes": 2016,
+            "readOnlyEntries": 10,
+            "readWriteEntries": 14,
+            "minResourceFee": 901469,
+            "events": 4,
+            "envelopeBytes": 6056
+          }
+        },
+        {
+          "k": 4,
+          "ok": true,
+          "simulated": true,
+          "violations": [],
+          "cost": {
+            "instructions": 10511134,
+            "diskReadBytes": 0,
+            "writeBytes": 4032,
+            "readOnlyEntries": 18,
+            "readWriteEntries": 28,
+            "minResourceFee": 1797225,
+            "events": 6,
+            "envelopeBytes": 11728
+          }
+        },
+        {
+          "k": 8,
+          "ok": true,
+          "simulated": true,
+          "violations": [],
+          "cost": {
+            "instructions": 23408431,
+            "diskReadBytes": 0,
+            "writeBytes": 8064,
+            "readOnlyEntries": 34,
+            "readWriteEntries": 56,
+            "minResourceFee": 3589382,
+            "events": 10,
+            "envelopeBytes": 23072
+          }
+        },
+        {
+          "k": 12,
+          "ok": true,
+          "simulated": true,
+          "violations": [],
+          "cost": {
+            "instructions": 38959478,
+            "diskReadBytes": 0,
+            "writeBytes": 12096,
+            "readOnlyEntries": 50,
+            "readWriteEntries": 84,
+            "minResourceFee": 5382336,
+            "events": 14,
+            "envelopeBytes": 34416
+          }
+        },
+        {
+          "k": 16,
+          "ok": true,
+          "simulated": true,
+          "violations": [],
+          "cost": {
+            "instructions": 57131914,
+            "diskReadBytes": 0,
+            "writeBytes": 16128,
+            "readOnlyEntries": 66,
+            "readWriteEntries": 112,
+            "minResourceFee": 7176073,
+            "events": 18,
+            "envelopeBytes": 45760
+          }
+        },
+        {
+          "k": 24,
+          "ok": true,
+          "simulated": true,
+          "violations": [],
+          "cost": {
+            "instructions": 101547103,
+            "diskReadBytes": 0,
+            "writeBytes": 24192,
+            "readOnlyEntries": 98,
+            "readWriteEntries": 168,
+            "minResourceFee": 10765973,
+            "events": 26,
+            "envelopeBytes": 68448
+          }
+        },
+        {
+          "k": 28,
+          "ok": true,
+          "simulated": true,
+          "violations": [],
+          "cost": {
+            "instructions": 127671204,
+            "diskReadBytes": 0,
+            "writeBytes": 28224,
+            "readOnlyEntries": 114,
+            "readWriteEntries": 196,
+            "minResourceFee": 12562094,
+            "events": 30,
+            "envelopeBytes": 79792
+          }
+        },
+        {
+          "k": 29,
+          "ok": false,
+          "simulated": true,
+          "violations": [
+            "write entries"
+          ],
+          "cost": {
+            "instructions": 134587178,
+            "diskReadBytes": 0,
+            "writeBytes": 29232,
+            "readOnlyEntries": 118,
+            "readWriteEntries": 203,
+            "minResourceFee": 13011242,
+            "events": 31,
+            "envelopeBytes": 82628
+          }
+        },
+        {
+          "k": 30,
+          "ok": false,
+          "simulated": true,
+          "violations": [
+            "write entries"
+          ],
+          "cost": {
+            "instructions": 141685202,
+            "diskReadBytes": 0,
+            "writeBytes": 30240,
+            "readOnlyEntries": 122,
+            "readWriteEntries": 210,
+            "minResourceFee": 13460444,
+            "events": 32,
+            "envelopeBytes": 85464
+          }
+        },
+        {
+          "k": 32,
+          "ok": false,
+          "simulated": true,
+          "violations": [
+            "write entries"
+          ],
+          "cost": {
+            "instructions": 156349767,
+            "diskReadBytes": 0,
+            "writeBytes": 32256,
+            "readOnlyEntries": 130,
+            "readWriteEntries": 224,
+            "minResourceFee": 14358986,
+            "events": 34,
+            "envelopeBytes": 91136
+          }
+        }
+      ]
+    },
+    "distinct/B_idem": {
+      "maxK": 28,
+      "firstFailingK": 29,
+      "limitingFactor": [
+        "write entries"
+      ],
+      "rows": [
+        {
+          "k": 1,
+          "ok": true,
+          "simulated": true,
+          "violations": [],
+          "cost": {
+            "instructions": 2747028,
+            "diskReadBytes": 0,
+            "writeBytes": 1008,
+            "readOnlyEntries": 6,
+            "readWriteEntries": 7,
+            "minResourceFee": 57849,
+            "events": 3,
+            "envelopeBytes": 3220
+          }
+        },
+        {
+          "k": 2,
+          "ok": true,
+          "simulated": true,
+          "violations": [],
+          "cost": {
+            "instructions": 5141229,
+            "diskReadBytes": 0,
+            "writeBytes": 2016,
+            "readOnlyEntries": 10,
+            "readWriteEntries": 14,
+            "minResourceFee": 109800,
+            "events": 4,
+            "envelopeBytes": 6056
+          }
+        },
+        {
+          "k": 4,
+          "ok": true,
+          "simulated": true,
+          "violations": [],
+          "cost": {
+            "instructions": 10565408,
+            "diskReadBytes": 0,
+            "writeBytes": 4032,
+            "readOnlyEntries": 18,
+            "readWriteEntries": 28,
+            "minResourceFee": 213899,
+            "events": 6,
+            "envelopeBytes": 11728
+          }
+        },
+        {
+          "k": 8,
+          "ok": true,
+          "simulated": true,
+          "violations": [],
+          "cost": {
+            "instructions": 23692912,
+            "diskReadBytes": 0,
+            "writeBytes": 8064,
+            "readOnlyEntries": 34,
+            "readWriteEntries": 56,
+            "minResourceFee": 422781,
+            "events": 10,
+            "envelopeBytes": 23072
+          }
+        },
+        {
+          "k": 12,
+          "ok": true,
+          "simulated": true,
+          "violations": [],
+          "cost": {
+            "instructions": 39603044,
+            "diskReadBytes": 0,
+            "writeBytes": 12096,
+            "readOnlyEntries": 50,
+            "readWriteEntries": 84,
+            "minResourceFee": 632486,
+            "events": 14,
+            "envelopeBytes": 34416
+          }
+        },
+        {
+          "k": 16,
+          "ok": true,
+          "simulated": true,
+          "violations": [],
+          "cost": {
+            "instructions": 58195567,
+            "diskReadBytes": 0,
+            "writeBytes": 16128,
+            "readOnlyEntries": 66,
+            "readWriteEntries": 112,
+            "minResourceFee": 843002,
+            "events": 18,
+            "envelopeBytes": 45760
+          }
+        },
+        {
+          "k": 24,
+          "ok": true,
+          "simulated": true,
+          "violations": [],
+          "cost": {
+            "instructions": 104014681,
+            "diskReadBytes": 0,
+            "writeBytes": 24192,
+            "readOnlyEntries": 98,
+            "readWriteEntries": 168,
+            "minResourceFee": 1266572,
+            "events": 26,
+            "envelopeBytes": 68448
+          }
+        },
+        {
+          "k": 28,
+          "ok": true,
+          "simulated": true,
+          "violations": [],
+          "cost": {
+            "instructions": 130930926,
+            "diskReadBytes": 0,
+            "writeBytes": 28224,
+            "readOnlyEntries": 114,
+            "readWriteEntries": 196,
+            "minResourceFee": 1479381,
+            "events": 30,
+            "envelopeBytes": 79792
+          }
+        },
+        {
+          "k": 29,
+          "ok": false,
+          "simulated": true,
+          "violations": [
+            "write entries"
+          ],
+          "cost": {
+            "instructions": 138264530,
+            "diskReadBytes": 0,
+            "writeBytes": 29232,
+            "readOnlyEntries": 118,
+            "readWriteEntries": 203,
+            "minResourceFee": 1532541,
+            "events": 31,
+            "envelopeBytes": 82628
+          }
+        },
+        {
+          "k": 30,
+          "ok": false,
+          "simulated": true,
+          "violations": [
+            "write entries"
+          ],
+          "cost": {
+            "instructions": 145628414,
+            "diskReadBytes": 0,
+            "writeBytes": 30240,
+            "readOnlyEntries": 122,
+            "readWriteEntries": 210,
+            "minResourceFee": 1586140,
+            "events": 32,
+            "envelopeBytes": 85464
+          }
+        },
+        {
+          "k": 32,
+          "ok": false,
+          "simulated": true,
+          "violations": [
+            "write entries"
+          ],
+          "cost": {
+            "instructions": 160780960,
+            "diskReadBytes": 0,
+            "writeBytes": 32256,
+            "readOnlyEntries": 130,
+            "readWriteEntries": 224,
+            "minResourceFee": 1693351,
+            "events": 34,
+            "envelopeBytes": 91136
+          }
+        }
+      ]
+    }
+  },
+  "batches": [
+    {
+      "contract": "A",
+      "shape": "distinct",
+      "k": 2,
+      "hash": "8de227b0bbc924267a4c5c5abad0cd3165901e3e904462c05e2f3f81a2089c07",
+      "status": "SUCCESS",
+      "ledger": 5362735,
+      "applicationOrder": 7,
+      "feeCharged": 563166,
+      "confirmMs": 3121,
+      "ledgersWaited": 1,
+      "prepareMs": 1544,
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "32148",
+        "totalRefundableResourceFeeCharged": "530918",
+        "rentFeeCharged": "530322"
+      },
+      "cost": {
+        "instructions": 4984034,
+        "diskReadBytes": 0,
+        "writeBytes": 2072,
+        "readOnlyEntries": 9,
+        "readWriteEntries": 13,
+        "minResourceFee": 648080,
+        "events": 4,
+        "envelopeBytes": 5928
+      },
+      "feePerFill": 281583
+    },
+    {
+      "contract": "A",
+      "shape": "distinct",
+      "k": 16,
+      "hash": "08ada4018097cc6fd87e6e117a7438d7e439353ee2349f132eb20c77a2523a0c",
+      "status": "SUCCESS",
+      "ledger": 5362737,
+      "applicationOrder": 9,
+      "feeCharged": 4487731,
+      "confirmMs": 5165,
+      "ledgersWaited": 1,
+      "prepareMs": 4781,
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "240357",
+        "totalRefundableResourceFeeCharged": "4247274",
+        "rentFeeCharged": "4242576"
+      },
+      "cost": {
+        "instructions": 52057669,
+        "diskReadBytes": 0,
+        "writeBytes": 14616,
+        "readOnlyEntries": 65,
+        "readWriteEntries": 97,
+        "minResourceFee": 5138472,
+        "events": 18,
+        "envelopeBytes": 44344
+      },
+      "feePerFill": 280483.1875
+    },
+    {
+      "contract": "A",
+      "shape": "distinct",
+      "k": 33,
+      "hash": "2435910d85be762745a3cd66d46fefc60c9762e4764dc1dd3eb54f381a35d440",
+      "status": "SUCCESS",
+      "ledger": 5362741,
+      "applicationOrder": 12,
+      "feeCharged": 9264005,
+      "confirmMs": 7296,
+      "ledgersWaited": 2,
+      "prepareMs": 12295,
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "503915",
+        "totalRefundableResourceFeeCharged": "8759990",
+        "rentFeeCharged": "8750312"
+      },
+      "cost": {
+        "instructions": 144988738,
+        "diskReadBytes": 0,
+        "writeBytes": 29848,
+        "readOnlyEntries": 133,
+        "readWriteEntries": 199,
+        "minResourceFee": 10601820,
+        "events": 35,
+        "envelopeBytes": 90992
+      },
+      "feePerFill": 280727.42424242425
+    },
+    {
+      "contract": "B",
+      "shape": "distinct",
+      "k": 33,
+      "hash": "c649a2a4c6963d4697b914a2b87d21310e087d85e820ac79180290f88028d54e",
+      "status": "SUCCESS",
+      "ledger": 5362743,
+      "applicationOrder": 8,
+      "feeCharged": 1218304,
+      "confirmMs": 4404,
+      "ledgersWaited": 1,
+      "prepareMs": 5443,
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "504736",
+        "totalRefundableResourceFeeCharged": "713468",
+        "rentFeeCharged": "703790"
+      },
+      "cost": {
+        "instructions": 147724183,
+        "diskReadBytes": 0,
+        "writeBytes": 29848,
+        "readOnlyEntries": 133,
+        "readWriteEntries": 199,
+        "minResourceFee": 1349217,
+        "events": 35,
+        "envelopeBytes": 90992
+      },
+      "feePerFill": 36918.30303030303
+    },
+    {
+      "contract": "A",
+      "shape": "shared",
+      "k": 73,
+      "hash": "c0d65b911e67c3e2b711e2f2ec5277bb7a50a9489b9c4e1ad581e856214c9498",
+      "status": "RPC_REJECTED",
+      "rpcError": "invalid_xdr",
+      "prepareMs": 1057,
+      "cost": {
+        "instructions": 156141429,
+        "diskReadBytes": 0,
+        "writeBytes": 20760,
+        "readOnlyEntries": 5,
+        "readWriteEntries": 151,
+        "minResourceFee": 22848231,
+        "events": 75,
+        "envelopeBytes": 131056
+      }
+    },
+    {
+      "contract": "A",
+      "shape": "shared",
+      "k": 58,
+      "hash": "a3b208c767021248d1ec0aaea80005453bc8170ea43c0f1e11990cadd0ea91ac",
+      "status": "RPC_REJECTED",
+      "rpcError": "invalid_xdr",
+      "prepareMs": 5446,
+      "cost": {
+        "instructions": 120464595,
+        "diskReadBytes": 0,
+        "writeBytes": 16680,
+        "readOnlyEntries": 5,
+        "readWriteEntries": 121,
+        "minResourceFee": 18155333,
+        "events": 60,
+        "envelopeBytes": 104416
+      }
+    },
+    {
+      "contract": "A",
+      "shape": "shared",
+      "k": 46,
+      "hash": "f7c35aeaaec1e96b76c4b0cea04f676b1c214241467d61b752238cc7f34ed8eb",
+      "status": "SUCCESS",
+      "ledger": 5362746,
+      "applicationOrder": 5,
+      "feeCharged": 12547654,
+      "confirmMs": 2818,
+      "ledgersWaited": 1,
+      "prepareMs": 4544,
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "336662",
+        "totalRefundableResourceFeeCharged": "12210892",
+        "rentFeeCharged": "12197405"
+      },
+      "cost": {
+        "instructions": 93165426,
+        "diskReadBytes": 0,
+        "writeBytes": 13416,
+        "readOnlyEntries": 5,
+        "readWriteEntries": 97,
+        "minResourceFee": 14401385,
+        "events": 48,
+        "envelopeBytes": 83104
+      },
+      "feePerFill": 272775.0869565217
+    },
+    {
+      "contract": "A_idem",
+      "shape": "distinct",
+      "k": 28,
+      "hash": "35cc9035aeae73cac7111f63d2ceab7846e952ca1bf2c71fae2dc73dac2562aa",
+      "status": "SUCCESS",
+      "ledger": 5362748,
+      "applicationOrder": 8,
+      "feeCharged": 10966264,
+      "confirmMs": 5754,
+      "ledgersWaited": 2,
+      "prepareMs": 3786,
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "470006",
+        "totalRefundableResourceFeeCharged": "10496158",
+        "rentFeeCharged": "10487945"
+      },
+      "cost": {
+        "instructions": 127621052,
+        "diskReadBytes": 0,
+        "writeBytes": 28224,
+        "readOnlyEntries": 114,
+        "readWriteEntries": 196,
+        "minResourceFee": 12562079,
+        "events": 30,
+        "envelopeBytes": 79864
+      },
+      "feePerFill": 391652.28571428574
+    }
+  ],
+  "anchoring": [
+    {
+      "hash": "7ef5863329fc59de98d9a8d541b65742576cda130c16b1f841843e2826adea1c",
+      "status": "SUCCESS",
+      "ledger": 5362749,
+      "applicationOrder": 8,
+      "feeCharged": 2883557,
+      "confirmMs": 4760,
+      "ledgersWaited": 1,
+      "prepareMs": 202,
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "3284",
+        "totalRefundableResourceFeeCharged": "2880173",
+        "rentFeeCharged": "2879899"
+      },
+      "cost": {
+        "instructions": 685599,
+        "diskReadBytes": 0,
+        "writeBytes": 396,
+        "readOnlyEntries": 1,
+        "readWriteEntries": 1,
+        "minResourceFee": 3320289,
+        "events": 3,
+        "envelopeBytes": 488
+      }
+    },
+    {
+      "hash": "69465c469c7a09223a78951ded18e932d23d84fdc7a7bd8bf8934adbb6d8021d",
+      "status": "SUCCESS",
+      "ledger": 5362750,
+      "applicationOrder": 2,
+      "feeCharged": 3665,
+      "confirmMs": 4419,
+      "ledgersWaited": 1,
+      "prepareMs": 108,
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "3291",
+        "totalRefundableResourceFeeCharged": "274",
+        "rentFeeCharged": "0"
+      },
+      "cost": {
+        "instructions": 707066,
+        "diskReadBytes": 0,
+        "writeBytes": 396,
+        "readOnlyEntries": 1,
+        "readWriteEntries": 1,
+        "minResourceFee": 8410,
+        "events": 3,
+        "envelopeBytes": 488
+      }
+    },
+    {
+      "hash": "db15875950263a3990f06ebef5e22db93ff4f9077870a31e7fd614569d8f68b6",
+      "status": "SUCCESS",
+      "ledger": 5362751,
+      "applicationOrder": 5,
+      "feeCharged": 3665,
+      "confirmMs": 5011,
+      "ledgersWaited": 1,
+      "prepareMs": 75,
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "3291",
+        "totalRefundableResourceFeeCharged": "274",
+        "rentFeeCharged": "0"
+      },
+      "cost": {
+        "instructions": 707066,
+        "diskReadBytes": 0,
+        "writeBytes": 396,
+        "readOnlyEntries": 1,
+        "readWriteEntries": 1,
+        "minResourceFee": 8410,
+        "events": 3,
+        "envelopeBytes": 488
+      }
+    }
+  ],
+  "ttl": {
+    "maxTtlFromContract": 3110399,
+    "tempToMax": {
+      "hash": "e01478676573ce7a6b1a581c4436a42f302350d9806fb9cbd5007de8a811b9dc",
+      "status": "SUCCESS",
+      "ledger": 5362752,
+      "applicationOrder": 25,
+      "feeCharged": 1245831,
+      "confirmMs": 5003,
+      "ledgersWaited": 1,
+      "prepareMs": 67,
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "3065",
+        "totalRefundableResourceFeeCharged": "1242666",
+        "rentFeeCharged": "1242646"
+      },
+      "cost": {
+        "instructions": 634112,
+        "diskReadBytes": 0,
+        "writeBytes": 100,
+        "readOnlyEntries": 2,
+        "readWriteEntries": 1,
+        "minResourceFee": 1436934,
+        "events": 2,
+        "envelopeBytes": 452
+      }
+    },
+    "tempEntry": {
+      "liveUntilLedgerSeq": 8473151,
+      "lastModified": 5362752,
+      "latestLedger": 5362752
+    },
+    "persistentToMax": {
+      "hash": "8905e722b4370c169bc59ed834840a0f9d5497602feb319be6290476cd68f9f2",
+      "status": "SUCCESS",
+      "ledger": 5362753,
+      "applicationOrder": 5,
+      "feeCharged": 2488456,
+      "confirmMs": 4374,
+      "ledgersWaited": 1,
+      "prepareMs": 219,
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "3065",
+        "totalRefundableResourceFeeCharged": "2485291",
+        "rentFeeCharged": "2485271"
+      },
+      "cost": {
+        "instructions": 633832,
+        "diskReadBytes": 0,
+        "writeBytes": 100,
+        "readOnlyEntries": 2,
+        "readWriteEntries": 1,
+        "minResourceFee": 2865953,
+        "events": 2,
+        "envelopeBytes": 452
+      }
+    },
+    "persistentEntry": {
+      "liveUntilLedgerSeq": 8473152,
+      "lastModified": 5362753,
+      "latestLedger": 5362753
+    },
+    "persistentMinimal": {
+      "hash": "99e1170648d3612b9fe04c947c0f74000574560dc654764434095caec5263328",
+      "status": "SUCCESS",
+      "ledger": 5362754,
+      "applicationOrder": 12,
+      "feeCharged": 101055,
+      "confirmMs": 4709,
+      "ledgersWaited": 1,
+      "prepareMs": 131,
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "3064",
+        "totalRefundableResourceFeeCharged": "97891",
+        "rentFeeCharged": "97871"
+      },
+      "cost": {
+        "instructions": 632729,
+        "diskReadBytes": 0,
+        "writeBytes": 100,
+        "readOnlyEntries": 2,
+        "readWriteEntries": 1,
+        "minResourceFee": 120442,
+        "events": 2,
+        "envelopeBytes": 452
+      }
+    },
+    "persistentMinimalEntry": {
+      "liveUntilLedgerSeq": 5483713,
+      "lastModified": 5362754,
+      "latestLedger": 5362754
+    },
+    "overMax": {
+      "ok": false,
+      "error": "host Error(Storage, InvalidAction)"
+    },
+    "fillCounterA": {
+      "liveUntilLedgerSeq": 5483627,
+      "lastModified": 5362668,
+      "latestLedger": 5362754
+    },
+    "fillCounterB": {
+      "liveUntilLedgerSeq": 5380046,
+      "lastModified": 5362669,
+      "latestLedger": 5362754
+    },
+    "orderExpiry": 5379946,
+    "instance": {
+      "liveUntilLedgerSeq": 8473049,
+      "latestLedger": 5362754
+    }
+  },
+  "perFill": {
+    "A": [
+      {
+        "hash": "c842caa14d83fbdf333a5a44e71ddf1af06df1a1f12d61040595546248333ec5",
+        "status": "SUCCESS",
+        "ledger": 5362668,
+        "applicationOrder": 19,
+        "feeCharged": 1771846,
+        "confirmMs": 5579,
+        "ledgersWaited": 2,
+        "prepareMs": 893,
+        "fees": {
+          "totalNonRefundableResourceFeeCharged": "17522",
+          "totalRefundableResourceFeeCharged": "1754224",
+          "rentFeeCharged": "1753921"
+        },
+        "cost": {
+          "instructions": 2682028,
+          "diskReadBytes": 0,
+          "writeBytes": 1176,
+          "readOnlyEntries": 5,
+          "readWriteEntries": 7,
+          "minResourceFee": 2039685,
+          "events": 3,
+          "envelopeBytes": 3152
+        }
+      },
+      {
+        "hash": "97db6c48cf4dac2fb1fe16176674bf67fe38e0a8366aff7cbe27dd71ba0ecef6",
+        "status": "SUCCESS",
+        "ledger": 5362670,
+        "applicationOrder": 21,
+        "feeCharged": 282958,
+        "confirmMs": 4186,
+        "ledgersWaited": 1,
+        "prepareMs": 412,
+        "fees": {
+          "totalNonRefundableResourceFeeCharged": "17526",
+          "totalRefundableResourceFeeCharged": "265332",
+          "rentFeeCharged": "265029"
+        },
+        "cost": {
+          "instructions": 2694466,
+          "diskReadBytes": 0,
+          "writeBytes": 1176,
+          "readOnlyEntries": 5,
+          "readWriteEntries": 7,
+          "minResourceFee": 327462,
+          "events": 3,
+          "envelopeBytes": 3152
+        }
+      },
+      {
+        "hash": "3aa4a6dfaa635ee5e751ad4f1956fa723186e73a09080fb3aeda1305c425c803",
+        "status": "SUCCESS",
+        "ledger": 5362672,
+        "applicationOrder": 2,
+        "feeCharged": 282957,
+        "confirmMs": 3839,
+        "ledgersWaited": 1,
+        "prepareMs": 732,
+        "fees": {
+          "totalNonRefundableResourceFeeCharged": "17525",
+          "totalRefundableResourceFeeCharged": "265332",
+          "rentFeeCharged": "265029"
+        },
+        "cost": {
+          "instructions": 2692201,
+          "diskReadBytes": 0,
+          "writeBytes": 1176,
+          "readOnlyEntries": 5,
+          "readWriteEntries": 7,
+          "minResourceFee": 327461,
+          "events": 3,
+          "envelopeBytes": 3152
+        }
+      },
+      {
+        "hash": "8aaab507b2063643bc0e5f8ba0af24c7313bb88d818cb52d44c585d811e6cfd8",
+        "status": "SUCCESS",
+        "ledger": 5362674,
+        "applicationOrder": 3,
+        "feeCharged": 282958,
+        "confirmMs": 4961,
+        "ledgersWaited": 1,
+        "prepareMs": 277,
+        "fees": {
+          "totalNonRefundableResourceFeeCharged": "17526",
+          "totalRefundableResourceFeeCharged": "265332",
+          "rentFeeCharged": "265029"
+        },
+        "cost": {
+          "instructions": 2694466,
+          "diskReadBytes": 0,
+          "writeBytes": 1176,
+          "readOnlyEntries": 5,
+          "readWriteEntries": 7,
+          "minResourceFee": 327462,
+          "events": 3,
+          "envelopeBytes": 3152
+        }
+      },
+      {
+        "hash": "ec2eafeaddb8b2c7703c6dda6c27bf86ba206a7f9cd7cd2d3ae6d33bc05a3c6d",
+        "status": "SUCCESS",
+        "ledger": 5362676,
+        "applicationOrder": 5,
+        "feeCharged": 282959,
+        "confirmMs": 3882,
+        "ledgersWaited": 1,
+        "prepareMs": 359,
+        "fees": {
+          "totalNonRefundableResourceFeeCharged": "17527",
+          "totalRefundableResourceFeeCharged": "265332",
+          "rentFeeCharged": "265029"
+        },
+        "cost": {
+          "instructions": 2698360,
+          "diskReadBytes": 0,
+          "writeBytes": 1176,
+          "readOnlyEntries": 5,
+          "readWriteEntries": 7,
+          "minResourceFee": 327463,
+          "events": 3,
+          "envelopeBytes": 3152
+        }
+      }
+    ],
+    "B": [
+      {
+        "hash": "e9cbff03b4674b094f9e665bef70db7559e64906cc6c74484a91e4dbed821bc5",
+        "status": "SUCCESS",
+        "ledger": 5362669,
+        "applicationOrder": 9,
+        "feeCharged": 1528214,
+        "confirmMs": 4143,
+        "ledgersWaited": 1,
+        "prepareMs": 533,
+        "fees": {
+          "totalNonRefundableResourceFeeCharged": "17522",
+          "totalRefundableResourceFeeCharged": "1510592",
+          "rentFeeCharged": "1510289"
+        },
+        "cost": {
+          "instructions": 2680910,
+          "diskReadBytes": 0,
+          "writeBytes": 1176,
+          "readOnlyEntries": 5,
+          "readWriteEntries": 7,
+          "minResourceFee": 1759510,
+          "events": 3,
+          "envelopeBytes": 3152
+        }
+      },
+      {
+        "hash": "183cfcaba558b736d33d719726cb3bf74705bf582d5bbf0553056b6ceb631136",
+        "status": "SUCCESS",
+        "ledger": 5362671,
+        "applicationOrder": 11,
+        "feeCharged": 39325,
+        "confirmMs": 4827,
+        "ledgersWaited": 1,
+        "prepareMs": 159,
+        "fees": {
+          "totalNonRefundableResourceFeeCharged": "17527",
+          "totalRefundableResourceFeeCharged": "21698",
+          "rentFeeCharged": "21395"
+        },
+        "cost": {
+          "instructions": 2697242,
+          "diskReadBytes": 0,
+          "writeBytes": 1176,
+          "readOnlyEntries": 5,
+          "readWriteEntries": 7,
+          "minResourceFee": 47286,
+          "events": 3,
+          "envelopeBytes": 3152
+        }
+      },
+      {
+        "hash": "b8ecdd150824859261174a686a581ec68e534921147f74bd11cf38989ec9748b",
+        "status": "SUCCESS",
+        "ledger": 5362673,
+        "applicationOrder": 10,
+        "feeCharged": 39321,
+        "confirmMs": 4166,
+        "ledgersWaited": 1,
+        "prepareMs": 425,
+        "fees": {
+          "totalNonRefundableResourceFeeCharged": "17525",
+          "totalRefundableResourceFeeCharged": "21696",
+          "rentFeeCharged": "21393"
+        },
+        "cost": {
+          "instructions": 2691083,
+          "diskReadBytes": 0,
+          "writeBytes": 1176,
+          "readOnlyEntries": 5,
+          "readWriteEntries": 7,
+          "minResourceFee": 47282,
+          "events": 3,
+          "envelopeBytes": 3152
+        }
+      },
+      {
+        "hash": "b48555ae518f1a3732e4145098e61b4e4243ca951985e93ba8be9fc8ba5ac26e",
+        "status": "SUCCESS",
+        "ledger": 5362675,
+        "applicationOrder": 13,
+        "feeCharged": 39321,
+        "confirmMs": 4337,
+        "ledgersWaited": 1,
+        "prepareMs": 386,
+        "fees": {
+          "totalNonRefundableResourceFeeCharged": "17527",
+          "totalRefundableResourceFeeCharged": "21694",
+          "rentFeeCharged": "21391"
+        },
+        "cost": {
+          "instructions": 2697242,
+          "diskReadBytes": 0,
+          "writeBytes": 1176,
+          "readOnlyEntries": 5,
+          "readWriteEntries": 7,
+          "minResourceFee": 47282,
+          "events": 3,
+          "envelopeBytes": 3152
+        }
+      },
+      {
+        "hash": "b46bcb7dcda937bfad68ed93fecfe19266ac0289bd8767d6f020cc4642c24966",
+        "status": "SUCCESS",
+        "ledger": 5362677,
+        "applicationOrder": 11,
+        "feeCharged": 39320,
+        "confirmMs": 4345,
+        "ledgersWaited": 1,
+        "prepareMs": 595,
+        "fees": {
+          "totalNonRefundableResourceFeeCharged": "17528",
+          "totalRefundableResourceFeeCharged": "21692",
+          "rentFeeCharged": "21389"
+        },
+        "cost": {
+          "instructions": 2701352,
+          "diskReadBytes": 0,
+          "writeBytes": 1176,
+          "readOnlyEntries": 5,
+          "readWriteEntries": 7,
+          "minResourceFee": 47278,
+          "events": 3,
+          "envelopeBytes": 3152
+        }
+      }
+    ],
+    "A_idem": [
+      {
+        "hash": "eefe0012c367622e0740ab8bcdfb6b906648e82065bb31f9ada68809d9dfc6be",
+        "status": "SUCCESS",
+        "ledger": 5362678,
+        "applicationOrder": 4,
+        "feeCharged": 392475,
+        "confirmMs": 4826,
+        "ledgersWaited": 1,
+        "prepareMs": 324,
+        "fees": {
+          "totalNonRefundableResourceFeeCharged": "17688",
+          "totalRefundableResourceFeeCharged": "374687",
+          "rentFeeCharged": "374384"
+        },
+        "cost": {
+          "instructions": 2740183,
+          "diskReadBytes": 0,
+          "writeBytes": 1008,
+          "readOnlyEntries": 6,
+          "readWriteEntries": 7,
+          "minResourceFee": 453382,
+          "events": 3,
+          "envelopeBytes": 3252
+        }
+      },
+      {
+        "hash": "7809f5a68a7b009388cdf12076d6dcd61d0d05b62230e7be832cb5165b7495fa",
+        "status": "SUCCESS",
+        "ledger": 5362680,
+        "applicationOrder": 22,
+        "feeCharged": 392477,
+        "confirmMs": 4323,
+        "ledgersWaited": 1,
+        "prepareMs": 292,
+        "fees": {
+          "totalNonRefundableResourceFeeCharged": "17690",
+          "totalRefundableResourceFeeCharged": "374687",
+          "rentFeeCharged": "374384"
+        },
+        "cost": {
+          "instructions": 2747149,
+          "diskReadBytes": 0,
+          "writeBytes": 1008,
+          "readOnlyEntries": 6,
+          "readWriteEntries": 7,
+          "minResourceFee": 453384,
+          "events": 3,
+          "envelopeBytes": 3252
+        }
+      },
+      {
+        "hash": "ffddfe3235275a3e24443676c9fd96fb0ee44ae3c6ad97aa9ec81ad06e4075fc",
+        "status": "SUCCESS",
+        "ledger": 5362682,
+        "applicationOrder": 7,
+        "feeCharged": 392475,
+        "confirmMs": 3606,
+        "ledgersWaited": 1,
+        "prepareMs": 938,
+        "fees": {
+          "totalNonRefundableResourceFeeCharged": "17688",
+          "totalRefundableResourceFeeCharged": "374687",
+          "rentFeeCharged": "374384"
+        },
+        "cost": {
+          "instructions": 2740183,
+          "diskReadBytes": 0,
+          "writeBytes": 1008,
+          "readOnlyEntries": 6,
+          "readWriteEntries": 7,
+          "minResourceFee": 453382,
+          "events": 3,
+          "envelopeBytes": 3252
+        }
+      }
+    ],
+    "B_idem": [
+      {
+        "hash": "e995dab50ba63b28eb105e103109113b74e7da227245391dbe58322f7f2c331d",
+        "status": "SUCCESS",
+        "ledger": 5362679,
+        "applicationOrder": 9,
+        "feeCharged": 48510,
+        "confirmMs": 3444,
+        "ledgersWaited": 1,
+        "prepareMs": 792,
+        "fees": {
+          "totalNonRefundableResourceFeeCharged": "17689",
+          "totalRefundableResourceFeeCharged": "30721",
+          "rentFeeCharged": "30418"
+        },
+        "cost": {
+          "instructions": 2744314,
+          "diskReadBytes": 0,
+          "writeBytes": 1008,
+          "readOnlyEntries": 6,
+          "readWriteEntries": 7,
+          "minResourceFee": 57822,
+          "events": 3,
+          "envelopeBytes": 3252
+        }
+      },
+      {
+        "hash": "b27d6a809b7d64bcf4fa333a8c1de4fe806fc1aa4f4a9fb708fc37abef1c2fbc",
+        "status": "SUCCESS",
+        "ledger": 5362681,
+        "applicationOrder": 9,
+        "feeCharged": 48508,
+        "confirmMs": 3295,
+        "ledgersWaited": 1,
+        "prepareMs": 1229,
+        "fees": {
+          "totalNonRefundableResourceFeeCharged": "17690",
+          "totalRefundableResourceFeeCharged": "30718",
+          "rentFeeCharged": "30415"
+        },
+        "cost": {
+          "instructions": 2747170,
+          "diskReadBytes": 0,
+          "writeBytes": 1008,
+          "readOnlyEntries": 6,
+          "readWriteEntries": 7,
+          "minResourceFee": 57820,
+          "events": 3,
+          "envelopeBytes": 3252
+        }
+      },
+      {
+        "hash": "1fe79be6ca188d52e4c083aad1ec391e5f30f961e174ffb502611a660eb363e1",
+        "status": "SUCCESS",
+        "ledger": 5362683,
+        "applicationOrder": 5,
+        "feeCharged": 48504,
+        "confirmMs": 4223,
+        "ledgersWaited": 1,
+        "prepareMs": 692,
+        "fees": {
+          "totalNonRefundableResourceFeeCharged": "17689",
+          "totalRefundableResourceFeeCharged": "30715",
+          "rentFeeCharged": "30412"
+        },
+        "cost": {
+          "instructions": 2744314,
+          "diskReadBytes": 0,
+          "writeBytes": 1008,
+          "readOnlyEntries": 6,
+          "readWriteEntries": 7,
+          "minResourceFee": 57816,
+          "events": 3,
+          "envelopeBytes": 3252
+        }
+      }
+    ]
+  },
+  "cursor": {
+    "duplicateFill": {
+      "ok": false,
+      "error": "contract error #3",
+      "simulateMs": 160
+    },
+    "resendIdenticalEnvelope": {
+      "status": "ERROR",
+      "errorResult": {
+        "code": -3
+      }
+    },
+    "gapOfTen": {
+      "hash": "d74537778d63c9aa89fc444cdf6c9e4317e3a986bfdf33e982da90c4c65f3ed8",
+      "status": "SUCCESS",
+      "ledger": 5362755,
+      "applicationOrder": 13,
+      "feeCharged": 283279,
+      "confirmMs": 4160,
+      "ledgersWaited": 1,
+      "prepareMs": 175,
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "17583",
+        "totalRefundableResourceFeeCharged": "265596",
+        "rentFeeCharged": "265293"
+      },
+      "cost": {
+        "instructions": 2719532,
+        "diskReadBytes": 0,
+        "writeBytes": 1292,
+        "readOnlyEntries": 5,
+        "readWriteEntries": 7,
+        "minResourceFee": 327823,
+        "events": 3,
+        "envelopeBytes": 3152
+      }
+    },
+    "skippedFillAfterGap": {
+      "ok": false,
+      "error": "contract error #3",
+      "simulateMs": 162
+    },
+    "cursorAfter": "112",
+    "idemDuplicateFill": {
+      "ok": false,
+      "error": "contract error #14",
+      "simulateMs": 148
+    },
+    "idemResendIdenticalEnvelope": {
+      "status": "ERROR",
+      "errorResult": {
+        "code": -3
+      }
+    }
+  },
+  "concurrency": {
+    "sameSource": [
+      {
+        "hash": "ce56f265f4d8a2a2339eaba38fbe681efaaa51681fe123d9eb56471e756bb28d",
+        "sendStatus": "PENDING",
+        "status": "SUCCESS",
+        "ledger": 5362756,
+        "applicationOrder": 15,
+        "feeCharged": 283279
+      },
+      {
+        "hash": "46175997bde20d90d1c8fd6ca624bebe0c2ed6ee67b631f7e9aa2e8ef05cf317",
+        "sendStatus": "ERROR",
+        "errorResult": {
+          "code": -5
+        }
+      }
+    ],
+    "cursorConcurrent": [
+      [
+        {
+          "intendedCursor": "114",
+          "hash": "cd328b10f9a458236a899a2a83b38d9870b63c706837f35eeb370eb1a00b645a",
+          "status": "FAILED",
+          "ledger": 5362757,
+          "applicationOrder": 6,
+          "contractError": 3,
+          "feeCharged": 20664,
+          "confirmMs": 2912,
+          "ledgersWaited": 1,
+          "prepareMs": 421,
+          "fees": {
+            "totalNonRefundableResourceFeeCharged": "20564",
+            "totalRefundableResourceFeeCharged": "0",
+            "rentFeeCharged": "0"
+          },
+          "cost": {
+            "instructions": 3287038,
+            "diskReadBytes": 144,
+            "writeBytes": 1368,
+            "readOnlyEntries": 6,
+            "readWriteEntries": 8,
+            "minResourceFee": 332556,
+            "events": 3,
+            "envelopeBytes": 3480
+          }
+        },
+        {
+          "intendedCursor": "115",
+          "hash": "02e9748374eed2e29ad2190a301501d887736b07d3af55975048a92b0a55f89a",
+          "status": "FAILED",
+          "ledger": 5362757,
+          "applicationOrder": 4,
+          "contractError": 3,
+          "feeCharged": 20664,
+          "confirmMs": 2074,
+          "ledgersWaited": 1,
+          "prepareMs": 359,
+          "fees": {
+            "totalNonRefundableResourceFeeCharged": "20564",
+            "totalRefundableResourceFeeCharged": "0",
+            "rentFeeCharged": "0"
+          },
+          "cost": {
+            "instructions": 3287038,
+            "diskReadBytes": 144,
+            "writeBytes": 1368,
+            "readOnlyEntries": 6,
+            "readWriteEntries": 8,
+            "minResourceFee": 332556,
+            "events": 3,
+            "envelopeBytes": 3480
+          }
+        },
+        {
+          "intendedCursor": "116",
+          "hash": "bcde09a946892055187cbbda8389cd39377aac4772a0b3dd118287cbd1a6b40f",
+          "status": "SUCCESS",
+          "ledger": 5362757,
+          "applicationOrder": 3,
+          "feeCharged": 287757,
+          "confirmMs": 1822,
+          "ledgersWaited": 1,
+          "prepareMs": 449,
+          "fees": {
+            "totalNonRefundableResourceFeeCharged": "20571",
+            "totalRefundableResourceFeeCharged": "267086",
+            "rentFeeCharged": "266783"
+          },
+          "cost": {
+            "instructions": 3312603,
+            "diskReadBytes": 144,
+            "writeBytes": 1368,
+            "readOnlyEntries": 6,
+            "readWriteEntries": 8,
+            "minResourceFee": 332563,
+            "events": 3,
+            "envelopeBytes": 3480
+          }
+        },
+        {
+          "intendedCursor": "117",
+          "hash": "d72394c66ca4b200b50d6aa0ab46a9c8e5c9bfd2c5e5c12ea3df4f885f2acdbd",
+          "status": "SUCCESS",
+          "ledger": 5362757,
+          "applicationOrder": 7,
+          "feeCharged": 287750,
+          "confirmMs": 2095,
+          "ledgersWaited": 1,
+          "prepareMs": 426,
+          "fees": {
+            "totalNonRefundableResourceFeeCharged": "20564",
+            "totalRefundableResourceFeeCharged": "267086",
+            "rentFeeCharged": "266783"
+          },
+          "cost": {
+            "instructions": 3287038,
+            "diskReadBytes": 144,
+            "writeBytes": 1368,
+            "readOnlyEntries": 6,
+            "readWriteEntries": 8,
+            "minResourceFee": 332556,
+            "events": 3,
+            "envelopeBytes": 3480
+          }
+        },
+        {
+          "intendedCursor": "118",
+          "hash": "82e5273299c45fbc7fa89d73c469fbf054ba759f4efb87096ff0e8da9f1bb9b2",
+          "status": "SUCCESS",
+          "ledger": 5362757,
+          "applicationOrder": 13,
+          "feeCharged": 287757,
+          "confirmMs": 2056,
+          "ledgersWaited": 1,
+          "prepareMs": 441,
+          "fees": {
+            "totalNonRefundableResourceFeeCharged": "20571",
+            "totalRefundableResourceFeeCharged": "267086",
+            "rentFeeCharged": "266783"
+          },
+          "cost": {
+            "instructions": 3312603,
+            "diskReadBytes": 144,
+            "writeBytes": 1368,
+            "readOnlyEntries": 6,
+            "readWriteEntries": 8,
+            "minResourceFee": 332563,
+            "events": 3,
+            "envelopeBytes": 3480
+          }
+        }
+      ],
+      [
+        {
+          "intendedCursor": "119",
+          "hash": "bd97fd751231d890549e867076a2ddfc51df28af01d45063eaabbbacdf12d02c",
+          "status": "FAILED",
+          "ledger": 5362761,
+          "applicationOrder": 16,
+          "contractError": 3,
+          "feeCharged": 20666,
+          "confirmMs": 2066,
+          "ledgersWaited": 1,
+          "prepareMs": 2297,
+          "fees": {
+            "totalNonRefundableResourceFeeCharged": "20566",
+            "totalRefundableResourceFeeCharged": "0",
+            "rentFeeCharged": "0"
+          },
+          "cost": {
+            "instructions": 3293719,
+            "diskReadBytes": 144,
+            "writeBytes": 1368,
+            "readOnlyEntries": 6,
+            "readWriteEntries": 8,
+            "minResourceFee": 332558,
+            "events": 3,
+            "envelopeBytes": 3480
+          }
+        },
+        {
+          "intendedCursor": "120",
+          "hash": "d3f4728056cf0c11c1a02d79348dd4be6d9416bf2e834ea83f533d1719e70236",
+          "status": "SUCCESS",
+          "ledger": 5362761,
+          "applicationOrder": 6,
+          "feeCharged": 287752,
+          "confirmMs": 1995,
+          "ledgersWaited": 1,
+          "prepareMs": 1133,
+          "fees": {
+            "totalNonRefundableResourceFeeCharged": "20566",
+            "totalRefundableResourceFeeCharged": "267086",
+            "rentFeeCharged": "266783"
+          },
+          "cost": {
+            "instructions": 3293719,
+            "diskReadBytes": 144,
+            "writeBytes": 1368,
+            "readOnlyEntries": 6,
+            "readWriteEntries": 8,
+            "minResourceFee": 332558,
+            "events": 3,
+            "envelopeBytes": 3480
+          }
+        },
+        {
+          "intendedCursor": "121",
+          "hash": "a4e581385b4f73a3d4708b32396f5a2c38ae47de2b0babf7e8805b8bf043eabf",
+          "status": "SUCCESS",
+          "ledger": 5362761,
+          "applicationOrder": 7,
+          "feeCharged": 287752,
+          "confirmMs": 2281,
+          "ledgersWaited": 1,
+          "prepareMs": 1011,
+          "fees": {
+            "totalNonRefundableResourceFeeCharged": "20566",
+            "totalRefundableResourceFeeCharged": "267086",
+            "rentFeeCharged": "266783"
+          },
+          "cost": {
+            "instructions": 3293719,
+            "diskReadBytes": 144,
+            "writeBytes": 1368,
+            "readOnlyEntries": 6,
+            "readWriteEntries": 8,
+            "minResourceFee": 332558,
+            "events": 3,
+            "envelopeBytes": 3480
+          }
+        },
+        {
+          "intendedCursor": "122",
+          "hash": "de991362745c47e3ba49c98dd5ea44075f161b6834d5866ceb04f91bf6e9a1fc",
+          "status": "FAILED",
+          "ledger": 5362761,
+          "applicationOrder": 15,
+          "contractError": 3,
+          "feeCharged": 20671,
+          "confirmMs": 2117,
+          "ledgersWaited": 1,
+          "prepareMs": 1227,
+          "fees": {
+            "totalNonRefundableResourceFeeCharged": "20571",
+            "totalRefundableResourceFeeCharged": "0",
+            "rentFeeCharged": "0"
+          },
+          "cost": {
+            "instructions": 3312603,
+            "diskReadBytes": 144,
+            "writeBytes": 1368,
+            "readOnlyEntries": 6,
+            "readWriteEntries": 8,
+            "minResourceFee": 332563,
+            "events": 3,
+            "envelopeBytes": 3480
+          }
+        },
+        {
+          "intendedCursor": "123",
+          "hash": "949627aae47d23c9ecedf23a1edca88666528564e71d3b66aa9b87f2fb3693f8",
+          "status": "SUCCESS",
+          "ledger": 5362761,
+          "applicationOrder": 11,
+          "feeCharged": 287750,
+          "confirmMs": 2112,
+          "ledgersWaited": 1,
+          "prepareMs": 869,
+          "fees": {
+            "totalNonRefundableResourceFeeCharged": "20564",
+            "totalRefundableResourceFeeCharged": "267086",
+            "rentFeeCharged": "266783"
+          },
+          "cost": {
+            "instructions": 3287038,
+            "diskReadBytes": 144,
+            "writeBytes": 1368,
+            "readOnlyEntries": 6,
+            "readWriteEntries": 8,
+            "minResourceFee": 332556,
+            "events": 3,
+            "envelopeBytes": 3480
+          }
+        }
+      ],
+      [
+        {
+          "intendedCursor": "124",
+          "hash": "797c40c792741ce764f34778586551210df58f0ef036a119c8167de5d9a6c917",
+          "status": "FAILED",
+          "ledger": 5362767,
+          "applicationOrder": 8,
+          "contractError": 3,
+          "feeCharged": 20666,
+          "confirmMs": 4458,
+          "ledgersWaited": 1,
+          "prepareMs": 2571,
+          "fees": {
+            "totalNonRefundableResourceFeeCharged": "20566",
+            "totalRefundableResourceFeeCharged": "0",
+            "rentFeeCharged": "0"
+          },
+          "cost": {
+            "instructions": 3293719,
+            "diskReadBytes": 144,
+            "writeBytes": 1368,
+            "readOnlyEntries": 6,
+            "readWriteEntries": 8,
+            "minResourceFee": 332558,
+            "events": 3,
+            "envelopeBytes": 3480
+          }
+        },
+        {
+          "intendedCursor": "125",
+          "hash": "6aaf8555b1479bfbb968b2682ea689ce1e0abd35518ecef6b10d7b09f37d2434",
+          "status": "SUCCESS",
+          "ledger": 5362767,
+          "applicationOrder": 6,
+          "feeCharged": 287757,
+          "confirmMs": 3855,
+          "ledgersWaited": 1,
+          "prepareMs": 1878,
+          "fees": {
+            "totalNonRefundableResourceFeeCharged": "20571",
+            "totalRefundableResourceFeeCharged": "267086",
+            "rentFeeCharged": "266783"
+          },
+          "cost": {
+            "instructions": 3312603,
+            "diskReadBytes": 144,
+            "writeBytes": 1368,
+            "readOnlyEntries": 6,
+            "readWriteEntries": 8,
+            "minResourceFee": 332563,
+            "events": 3,
+            "envelopeBytes": 3480
+          }
+        },
+        {
+          "intendedCursor": "126",
+          "hash": "1221e6c3527a2640ccac9a60295a5f34ed4a3b532c4ff3628b569f74ee315cb6",
+          "status": "SUCCESS",
+          "ledger": 5362767,
+          "applicationOrder": 11,
+          "feeCharged": 287752,
+          "confirmMs": 3705,
+          "ledgersWaited": 1,
+          "prepareMs": 2155,
+          "fees": {
+            "totalNonRefundableResourceFeeCharged": "20566",
+            "totalRefundableResourceFeeCharged": "267086",
+            "rentFeeCharged": "266783"
+          },
+          "cost": {
+            "instructions": 3293719,
+            "diskReadBytes": 144,
+            "writeBytes": 1368,
+            "readOnlyEntries": 6,
+            "readWriteEntries": 8,
+            "minResourceFee": 332558,
+            "events": 3,
+            "envelopeBytes": 3480
+          }
+        },
+        {
+          "intendedCursor": "127",
+          "hash": "99776265b6362a2ff95cd06f1f488fa3372080cb77ab40e763a3aa2699150a78",
+          "status": "FAILED",
+          "ledger": 5362767,
+          "applicationOrder": 16,
+          "contractError": 3,
+          "feeCharged": 20671,
+          "confirmMs": 3477,
+          "ledgersWaited": 1,
+          "prepareMs": 1825,
+          "fees": {
+            "totalNonRefundableResourceFeeCharged": "20571",
+            "totalRefundableResourceFeeCharged": "0",
+            "rentFeeCharged": "0"
+          },
+          "cost": {
+            "instructions": 3312603,
+            "diskReadBytes": 144,
+            "writeBytes": 1368,
+            "readOnlyEntries": 6,
+            "readWriteEntries": 8,
+            "minResourceFee": 332563,
+            "events": 3,
+            "envelopeBytes": 3480
+          }
+        },
+        {
+          "intendedCursor": "128",
+          "hash": "6a6c4845ec937b81011e944e99c87fcf62e58bcafd2de37754b118c081dff049",
+          "status": "SUCCESS",
+          "ledger": 5362767,
+          "applicationOrder": 14,
+          "feeCharged": 287757,
+          "confirmMs": 4028,
+          "ledgersWaited": 1,
+          "prepareMs": 592,
+          "fees": {
+            "totalNonRefundableResourceFeeCharged": "20571",
+            "totalRefundableResourceFeeCharged": "267086",
+            "rentFeeCharged": "266783"
+          },
+          "cost": {
+            "instructions": 3312603,
+            "diskReadBytes": 144,
+            "writeBytes": 1368,
+            "readOnlyEntries": 6,
+            "readWriteEntries": 8,
+            "minResourceFee": 332563,
+            "events": 3,
+            "envelopeBytes": 3480
+          }
+        }
+      ]
+    ],
+    "idemConcurrent": [
+      [
+        {
+          "fillId": "1000032",
+          "hash": "fe742e8be3e2e11018e33d099d923062713aec65d043647bab7acff21e5d5ee8",
+          "status": "SUCCESS",
+          "ledger": 5362759,
+          "applicationOrder": 12,
+          "feeCharged": 397332,
+          "confirmMs": 3212,
+          "ledgersWaited": 1,
+          "prepareMs": 1662,
+          "fees": {
+            "totalNonRefundableResourceFeeCharged": "20684",
+            "totalRefundableResourceFeeCharged": "376548",
+            "rentFeeCharged": "376245"
+          },
+          "cost": {
+            "instructions": 3360771,
+            "diskReadBytes": 144,
+            "writeBytes": 1084,
+            "readOnlyEntries": 7,
+            "readWriteEntries": 8,
+            "minResourceFee": 458579,
+            "events": 3,
+            "envelopeBytes": 3580
+          }
+        },
+        {
+          "fillId": "1000033",
+          "hash": "a61137cbd3f80b917f79f5f7dfd9490c7ed586248a0e203d5a7bd699c13fdac6",
+          "status": "SUCCESS",
+          "ledger": 5362759,
+          "applicationOrder": 6,
+          "feeCharged": 397328,
+          "confirmMs": 2405,
+          "ledgersWaited": 1,
+          "prepareMs": 824,
+          "fees": {
+            "totalNonRefundableResourceFeeCharged": "20680",
+            "totalRefundableResourceFeeCharged": "376548",
+            "rentFeeCharged": "376245"
+          },
+          "cost": {
+            "instructions": 3347195,
+            "diskReadBytes": 144,
+            "writeBytes": 1084,
+            "readOnlyEntries": 7,
+            "readWriteEntries": 8,
+            "minResourceFee": 458575,
+            "events": 3,
+            "envelopeBytes": 3580
+          }
+        },
+        {
+          "fillId": "1000034",
+          "hash": "9d0c1cc400389be967fd02f8da086162daf173d8cd4d4ac10184e39b10970ebd",
+          "status": "SUCCESS",
+          "ledger": 5362759,
+          "applicationOrder": 16,
+          "feeCharged": 397332,
+          "confirmMs": 3061,
+          "ledgersWaited": 1,
+          "prepareMs": 920,
+          "fees": {
+            "totalNonRefundableResourceFeeCharged": "20684",
+            "totalRefundableResourceFeeCharged": "376548",
+            "rentFeeCharged": "376245"
+          },
+          "cost": {
+            "instructions": 3360771,
+            "diskReadBytes": 144,
+            "writeBytes": 1084,
+            "readOnlyEntries": 7,
+            "readWriteEntries": 8,
+            "minResourceFee": 458579,
+            "events": 3,
+            "envelopeBytes": 3580
+          }
+        },
+        {
+          "fillId": "1000035",
+          "hash": "c5e942c1a4bddfcdf6a53c0a477a905d05933f136256125a2f482f2a56e47e7f",
+          "status": "SUCCESS",
+          "ledger": 5362759,
+          "applicationOrder": 4,
+          "feeCharged": 397334,
+          "confirmMs": 2979,
+          "ledgersWaited": 1,
+          "prepareMs": 1880,
+          "fees": {
+            "totalNonRefundableResourceFeeCharged": "20686",
+            "totalRefundableResourceFeeCharged": "376548",
+            "rentFeeCharged": "376245"
+          },
+          "cost": {
+            "instructions": 3368326,
+            "diskReadBytes": 144,
+            "writeBytes": 1084,
+            "readOnlyEntries": 7,
+            "readWriteEntries": 8,
+            "minResourceFee": 458581,
+            "events": 3,
+            "envelopeBytes": 3580
+          }
+        },
+        {
+          "fillId": "1000036",
+          "hash": "4705f9f7ff0d88c4d327ae26a743fa99007715e5dacbc98f4d0f67617d462acd",
+          "status": "SUCCESS",
+          "ledger": 5362759,
+          "applicationOrder": 9,
+          "feeCharged": 397334,
+          "confirmMs": 2607,
+          "ledgersWaited": 1,
+          "prepareMs": 1109,
+          "fees": {
+            "totalNonRefundableResourceFeeCharged": "20686",
+            "totalRefundableResourceFeeCharged": "376548",
+            "rentFeeCharged": "376245"
+          },
+          "cost": {
+            "instructions": 3368326,
+            "diskReadBytes": 144,
+            "writeBytes": 1084,
+            "readOnlyEntries": 7,
+            "readWriteEntries": 8,
+            "minResourceFee": 458581,
+            "events": 3,
+            "envelopeBytes": 3580
+          }
+        }
+      ],
+      [
+        {
+          "fillId": "1000037",
+          "hash": "3efccf5b8c9b0576aa7a68e5f726c3289869bd3c6bb83c9655abc726d1b41456",
+          "status": "SUCCESS",
+          "ledger": 5362764,
+          "applicationOrder": 16,
+          "feeCharged": 397328,
+          "confirmMs": 6648,
+          "ledgersWaited": 2,
+          "prepareMs": 1630,
+          "fees": {
+            "totalNonRefundableResourceFeeCharged": "20680",
+            "totalRefundableResourceFeeCharged": "376548",
+            "rentFeeCharged": "376245"
+          },
+          "cost": {
+            "instructions": 3347195,
+            "diskReadBytes": 144,
+            "writeBytes": 1084,
+            "readOnlyEntries": 7,
+            "readWriteEntries": 8,
+            "minResourceFee": 458575,
+            "events": 3,
+            "envelopeBytes": 3580
+          }
+        },
+        {
+          "fillId": "1000038",
+          "hash": "22e9e67d37cb1856ee572f3db04d758e1d7090caec9cedcdf70896c4f95939de",
+          "status": "SUCCESS",
+          "ledger": 5362764,
+          "applicationOrder": 12,
+          "feeCharged": 397332,
+          "confirmMs": 6444,
+          "ledgersWaited": 2,
+          "prepareMs": 1592,
+          "fees": {
+            "totalNonRefundableResourceFeeCharged": "20684",
+            "totalRefundableResourceFeeCharged": "376548",
+            "rentFeeCharged": "376245"
+          },
+          "cost": {
+            "instructions": 3360771,
+            "diskReadBytes": 144,
+            "writeBytes": 1084,
+            "readOnlyEntries": 7,
+            "readWriteEntries": 8,
+            "minResourceFee": 458579,
+            "events": 3,
+            "envelopeBytes": 3580
+          }
+        },
+        {
+          "fillId": "1000039",
+          "hash": "c9f4d4e245b86d6a8fc2461963778f6f9d49ad59d965c38c17b40a4357f58ab4",
+          "status": "SUCCESS",
+          "ledger": 5362764,
+          "applicationOrder": 28,
+          "feeCharged": 397334,
+          "confirmMs": 6921,
+          "ledgersWaited": 2,
+          "prepareMs": 1289,
+          "fees": {
+            "totalNonRefundableResourceFeeCharged": "20686",
+            "totalRefundableResourceFeeCharged": "376548",
+            "rentFeeCharged": "376245"
+          },
+          "cost": {
+            "instructions": 3368326,
+            "diskReadBytes": 144,
+            "writeBytes": 1084,
+            "readOnlyEntries": 7,
+            "readWriteEntries": 8,
+            "minResourceFee": 458581,
+            "events": 3,
+            "envelopeBytes": 3580
+          }
+        },
+        {
+          "fillId": "1000040",
+          "hash": "35f1a5b69646c6d043a11a16916678c0bf1dce88baa16c3f74ed48c8326f125b",
+          "status": "SUCCESS",
+          "ledger": 5362764,
+          "applicationOrder": 20,
+          "feeCharged": 397325,
+          "confirmMs": 6735,
+          "ledgersWaited": 2,
+          "prepareMs": 2211,
+          "fees": {
+            "totalNonRefundableResourceFeeCharged": "20677",
+            "totalRefundableResourceFeeCharged": "376548",
+            "rentFeeCharged": "376245"
+          },
+          "cost": {
+            "instructions": 3339640,
+            "diskReadBytes": 144,
+            "writeBytes": 1084,
+            "readOnlyEntries": 7,
+            "readWriteEntries": 8,
+            "minResourceFee": 458572,
+            "events": 3,
+            "envelopeBytes": 3580
+          }
+        },
+        {
+          "fillId": "1000041",
+          "hash": "7451ba73e4d96ebc3be61ffc3542d9fdee5c4e8faf72062e8224cddace010015",
+          "status": "SUCCESS",
+          "ledger": 5362764,
+          "applicationOrder": 13,
+          "feeCharged": 397332,
+          "confirmMs": 6599,
+          "ledgersWaited": 2,
+          "prepareMs": 1499,
+          "fees": {
+            "totalNonRefundableResourceFeeCharged": "20684",
+            "totalRefundableResourceFeeCharged": "376548",
+            "rentFeeCharged": "376245"
+          },
+          "cost": {
+            "instructions": 3360771,
+            "diskReadBytes": 144,
+            "writeBytes": 1084,
+            "readOnlyEntries": 7,
+            "readWriteEntries": 8,
+            "minResourceFee": 458579,
+            "events": 3,
+            "envelopeBytes": 3580
+          }
+        }
+      ],
+      [
+        {
+          "fillId": "1000042",
+          "hash": "78f9552cd42ae447a75275310a03edfe3bace3cf2e9297d39ca22ff8c67a1851",
+          "status": "SUCCESS",
+          "ledger": 5362770,
+          "applicationOrder": 7,
+          "feeCharged": 397332,
+          "confirmMs": 5433,
+          "ledgersWaited": 1,
+          "prepareMs": 1707,
+          "fees": {
+            "totalNonRefundableResourceFeeCharged": "20684",
+            "totalRefundableResourceFeeCharged": "376548",
+            "rentFeeCharged": "376245"
+          },
+          "cost": {
+            "instructions": 3360771,
+            "diskReadBytes": 144,
+            "writeBytes": 1084,
+            "readOnlyEntries": 7,
+            "readWriteEntries": 8,
+            "minResourceFee": 458579,
+            "events": 3,
+            "envelopeBytes": 3580
+          }
+        },
+        {
+          "fillId": "1000043",
+          "hash": "0a55171fc6530bd432e378b185b82856c102f5ae1ee7df4a7f2fb5c10070135b",
+          "status": "SUCCESS",
+          "ledger": 5362770,
+          "applicationOrder": 22,
+          "feeCharged": 397332,
+          "confirmMs": 5007,
+          "ledgersWaited": 1,
+          "prepareMs": 2428,
+          "fees": {
+            "totalNonRefundableResourceFeeCharged": "20684",
+            "totalRefundableResourceFeeCharged": "376548",
+            "rentFeeCharged": "376245"
+          },
+          "cost": {
+            "instructions": 3360771,
+            "diskReadBytes": 144,
+            "writeBytes": 1084,
+            "readOnlyEntries": 7,
+            "readWriteEntries": 8,
+            "minResourceFee": 458579,
+            "events": 3,
+            "envelopeBytes": 3580
+          }
+        },
+        {
+          "fillId": "1000044",
+          "hash": "d8dc710ec1199636478834e0c542b826260cb1889e4d794efe79358021374a7d",
+          "status": "SUCCESS",
+          "ledger": 5362770,
+          "applicationOrder": 16,
+          "feeCharged": 397334,
+          "confirmMs": 4426,
+          "ledgersWaited": 1,
+          "prepareMs": 1805,
+          "fees": {
+            "totalNonRefundableResourceFeeCharged": "20686",
+            "totalRefundableResourceFeeCharged": "376548",
+            "rentFeeCharged": "376245"
+          },
+          "cost": {
+            "instructions": 3368326,
+            "diskReadBytes": 144,
+            "writeBytes": 1084,
+            "readOnlyEntries": 7,
+            "readWriteEntries": 8,
+            "minResourceFee": 458581,
+            "events": 3,
+            "envelopeBytes": 3580
+          }
+        },
+        {
+          "fillId": "1000045",
+          "hash": "5551f6089357c160fde3193479d4d374b9951c9f531047396dbdeca5359af1fc",
+          "status": "SUCCESS",
+          "ledger": 5362770,
+          "applicationOrder": 20,
+          "feeCharged": 397325,
+          "confirmMs": 4753,
+          "ledgersWaited": 1,
+          "prepareMs": 1780,
+          "fees": {
+            "totalNonRefundableResourceFeeCharged": "20677",
+            "totalRefundableResourceFeeCharged": "376548",
+            "rentFeeCharged": "376245"
+          },
+          "cost": {
+            "instructions": 3339640,
+            "diskReadBytes": 144,
+            "writeBytes": 1084,
+            "readOnlyEntries": 7,
+            "readWriteEntries": 8,
+            "minResourceFee": 458572,
+            "events": 3,
+            "envelopeBytes": 3580
+          }
+        },
+        {
+          "fillId": "1000046",
+          "hash": "146cc8256026dab9892ddb56d80993cf5b2acfa82b91bf02b5eee6dd90d7b7f5",
+          "status": "SUCCESS",
+          "ledger": 5362770,
+          "applicationOrder": 14,
+          "feeCharged": 397325,
+          "confirmMs": 5114,
+          "ledgersWaited": 1,
+          "prepareMs": 2142,
+          "fees": {
+            "totalNonRefundableResourceFeeCharged": "20677",
+            "totalRefundableResourceFeeCharged": "376548",
+            "rentFeeCharged": "376245"
+          },
+          "cost": {
+            "instructions": 3339640,
+            "diskReadBytes": 144,
+            "writeBytes": 1084,
+            "readOnlyEntries": 7,
+            "readWriteEntries": 8,
+            "minResourceFee": 458572,
+            "events": 3,
+            "envelopeBytes": 3580
+          }
+        }
+      ]
+    ],
+    "idemConcurrentDuplicate": [
+      {
+        "hash": "098ce9e19ed61f67b61cf8a547289fc31010d9dafc1aa973e0f1884fe0fe0d68",
+        "status": "SUCCESS",
+        "ledger": 5362772,
+        "applicationOrder": 4,
+        "feeCharged": 397334,
+        "confirmMs": 4453,
+        "ledgersWaited": 1,
+        "prepareMs": 2600,
+        "fees": {
+          "totalNonRefundableResourceFeeCharged": "20686",
+          "totalRefundableResourceFeeCharged": "376548",
+          "rentFeeCharged": "376245"
+        },
+        "cost": {
+          "instructions": 3368326,
+          "diskReadBytes": 144,
+          "writeBytes": 1084,
+          "readOnlyEntries": 7,
+          "readWriteEntries": 8,
+          "minResourceFee": 458581,
+          "events": 3,
+          "envelopeBytes": 3580
+        }
+      },
+      {
+        "hash": "f2ade32fc409c4ca40f8623e8f5a1a42d300dda3ce561ae2a5bd827c3356f3a2",
+        "status": "FAILED",
+        "ledger": 5362772,
+        "applicationOrder": 13,
+        "contractError": 14,
+        "feeCharged": 20786,
+        "confirmMs": 4188,
+        "ledgersWaited": 1,
+        "prepareMs": 2509,
+        "fees": {
+          "totalNonRefundableResourceFeeCharged": "20686",
+          "totalRefundableResourceFeeCharged": "0",
+          "rentFeeCharged": "0"
+        },
+        "cost": {
+          "instructions": 3368326,
+          "diskReadBytes": 144,
+          "writeBytes": 1084,
+          "readOnlyEntries": 7,
+          "readWriteEntries": 8,
+          "minResourceFee": 458581,
+          "events": 3,
+          "envelopeBytes": 3580
+        }
+      }
+    ],
+    "sequentialThree": {
+      "totalMs": 14614,
+      "txs": [
+        {
+          "hash": "eb8ecc3a9a3a3463bfbf4b39ff849f44481f22e511fd8942506db376cd6bf1ef",
+          "status": "SUCCESS",
+          "ledger": 5362773,
+          "applicationOrder": 7,
+          "feeCharged": 287752,
+          "confirmMs": 2700,
+          "ledgersWaited": 1,
+          "prepareMs": 1724,
+          "fees": {
+            "totalNonRefundableResourceFeeCharged": "20566",
+            "totalRefundableResourceFeeCharged": "267086",
+            "rentFeeCharged": "266783"
+          },
+          "cost": {
+            "instructions": 3293719,
+            "diskReadBytes": 144,
+            "writeBytes": 1368,
+            "readOnlyEntries": 6,
+            "readWriteEntries": 8,
+            "minResourceFee": 332558,
+            "events": 3,
+            "envelopeBytes": 3480
+          }
+        },
+        {
+          "hash": "c693edff13b02031560d4aac66b858a5fc0008ebb481b47bb040f913f33a3cf1",
+          "status": "SUCCESS",
+          "ledger": 5362774,
+          "applicationOrder": 6,
+          "feeCharged": 287757,
+          "confirmMs": 2993,
+          "ledgersWaited": 1,
+          "prepareMs": 1768,
+          "fees": {
+            "totalNonRefundableResourceFeeCharged": "20571",
+            "totalRefundableResourceFeeCharged": "267086",
+            "rentFeeCharged": "266783"
+          },
+          "cost": {
+            "instructions": 3312603,
+            "diskReadBytes": 144,
+            "writeBytes": 1368,
+            "readOnlyEntries": 6,
+            "readWriteEntries": 8,
+            "minResourceFee": 332563,
+            "events": 3,
+            "envelopeBytes": 3480
+          }
+        },
+        {
+          "hash": "31bee56b0d8ad0a3136ab9c9838db7e5c4c398949dc0c30b4e2caea700fa9313",
+          "status": "SUCCESS",
+          "ledger": 5362775,
+          "applicationOrder": 4,
+          "feeCharged": 287752,
+          "confirmMs": 3835,
+          "ledgersWaited": 1,
+          "prepareMs": 1350,
+          "fees": {
+            "totalNonRefundableResourceFeeCharged": "20566",
+            "totalRefundableResourceFeeCharged": "267086",
+            "rentFeeCharged": "266783"
+          },
+          "cost": {
+            "instructions": 3293719,
+            "diskReadBytes": 144,
+            "writeBytes": 1368,
+            "readOnlyEntries": 6,
+            "readWriteEntries": 8,
+            "minResourceFee": 332558,
+            "events": 3,
+            "envelopeBytes": 3480
+          }
+        }
+      ]
+    }
+  },
+  "invalidationAndReplay": {
+    "beforeBump": {
+      "ok": true,
+      "cost": {
+        "instructions": 2713373,
+        "diskReadBytes": 0,
+        "writeBytes": 1292,
+        "readOnlyEntries": 5,
+        "readWriteEntries": 7,
+        "minResourceFee": 327822,
+        "events": 3,
+        "envelopeBytes": 3080
+      },
+      "retval": null,
+      "simulateMs": 1033
+    },
+    "bump": {
+      "hash": "0d34a07d00c1946be29a228daf6d9a91c81ddee5b2f5f021a43f8f553edbe4f8",
+      "status": "SUCCESS",
+      "ledger": 5362777,
+      "applicationOrder": 23,
+      "feeCharged": 135971,
+      "confirmMs": 4696,
+      "ledgersWaited": 1,
+      "prepareMs": 576,
+      "fees": {
+        "totalNonRefundableResourceFeeCharged": "3204",
+        "totalRefundableResourceFeeCharged": "132667",
+        "rentFeeCharged": "132647"
+      },
+      "cost": {
+        "instructions": 638218,
+        "diskReadBytes": 0,
+        "writeBytes": 136,
+        "readOnlyEntries": 2,
+        "readWriteEntries": 1,
+        "minResourceFee": 160575,
+        "events": 2,
+        "envelopeBytes": 508
+      }
+    },
+    "afterBump": {
+      "ok": false,
+      "error": "contract error #9",
+      "simulateMs": 282
+    },
+    "signedForAOnC": {
+      "ok": false,
+      "error": "host Error(Crypto, InvalidInput)",
+      "simulateMs": 297
+    },
+    "signedForConC": {
+      "ok": true,
+      "cost": {
+        "instructions": 2682028,
+        "diskReadBytes": 0,
+        "writeBytes": 1176,
+        "readOnlyEntries": 5,
+        "readWriteEntries": 7,
+        "minResourceFee": 2041654,
+        "events": 3,
+        "envelopeBytes": 3080
+      },
+      "retval": null,
+      "simulateMs": 1127
+    }
+  },
+  "closeTimesAfter": {
+    "ledgers": 200,
+    "from": 5362577,
+    "to": 5362776,
+    "meanSec": 5,
+    "p50Sec": 5,
+    "p95Sec": 5,
+    "maxSec": 5
+  },
+  "finishedAt": "2026-10-24T10:24:41.811Z"
+}
